@@ -9,14 +9,14 @@ Django REST API for CampusHat.
 - JWT Auth
 
 ## Project Structure
-apps/
- ├─ users/
- ├─ marketplace/
- ├─ mall/
+- apps/
+- ├─ users/
+- ├─ marketplace/
+- ├─ mall/
 
 ## Rules
-All APIs must be documented
-Separate apps for each module
+- All APIs must be documented
+- Separate apps for each module
 ## Setup
 
 ```bash
