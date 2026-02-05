@@ -13,17 +13,18 @@ This is the React + Tailwind frontend of CampusHat.
 ```bash
 npm install
 npm run dev
-
+```
 ---
 
 Folder Structure
+```bash
 src/
  ├─ components/
  ├─ pages/
  ├─ layouts/
  ├─ services/
  ├─ hooks/
-
+```
 Rules
 
 All API calls must be inside services/
