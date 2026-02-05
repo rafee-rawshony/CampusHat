@@ -8,13 +8,6 @@ Django REST API for CampusHat.
 - SQLite / PostgreSQL
 - JWT Auth
 
-## Setup
-
-```bash
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py runserver
-
 ## Project Structure
 apps/
  ├─ users/
@@ -24,3 +17,11 @@ apps/
 ## Rules
 All APIs must be documented
 Separate apps for each module
+## Setup
+
+```bash
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py runserver
+
+
