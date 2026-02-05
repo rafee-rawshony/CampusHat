@@ -1,4 +1,3 @@
-```md
 # CampusHat Backend
 
 Django REST API for CampusHat.
