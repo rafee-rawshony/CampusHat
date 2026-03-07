@@ -1,14 +1,13 @@
 # =================================================
-# CampusHat Backend — Docker Compose (Development)
+# CampusHat Backend — Standalone Docker Compose
 # =================================================
-# Services: PostgreSQL, Redis, Django, Celery, Beat, Nginx
+# For running backend services independently.
+# Use root docker-compose.yml for full-stack.
+#
 # Usage: docker-compose up --build
 # =================================================
 
-version: '3.8'
-
 services:
-  # --- PostgreSQL 15 ---
   db:
     image: postgres:15-alpine
     container_name: campushat_db
@@ -29,7 +28,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # --- Redis 7 ---
   redis:
     image: redis:7-alpine
     container_name: campushat_redis
@@ -46,11 +44,12 @@ services:
       timeout: 5s
       retries: 5
 
-  # --- Django Backend ---
+  # Build once, share across backend/celery/celerybeat
   backend:
     build:
       context: .
       dockerfile: docker/Dockerfile
+    image: campushat-backend:latest
     container_name: campushat_backend
     restart: unless-stopped
     command: >
@@ -79,11 +78,8 @@ services:
     networks:
       - campushat_network
 
-  # --- Celery Worker ---
   celery:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile
+    image: campushat-backend:latest
     container_name: campushat_celery
     restart: unless-stopped
     command: celery -A config worker --loglevel=info --concurrency=2
@@ -108,11 +104,8 @@ services:
     networks:
       - campushat_network
 
-  # --- Celery Beat Scheduler ---
   celerybeat:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile
+    image: campushat-backend:latest
     container_name: campushat_celerybeat
     restart: unless-stopped
     command: celery -A config beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
@@ -137,7 +130,6 @@ services:
     networks:
       - campushat_network
 
-  # --- Nginx Reverse Proxy ---
   nginx:
     image: nginx:1.25-alpine
     container_name: campushat_nginx
@@ -153,7 +145,6 @@ services:
     networks:
       - campushat_network
 
-# --- Volumes ---
 volumes:
   postgres_data:
     name: campushat_postgres_data
@@ -164,7 +155,6 @@ volumes:
   static_data:
     name: campushat_static_data
 
-# --- Networks ---
 networks:
   campushat_network:
     name: campushat_network

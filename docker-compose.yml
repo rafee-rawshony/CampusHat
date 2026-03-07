@@ -1,18 +1,17 @@
 # =================================================
-# CampusHat — Root Docker Compose (Full Stack)
+# CampusHat — Docker Compose (Full Stack)
 # =================================================
-# Orchestrates backend + frontend + infrastructure
+# Single image for backend services, shared across
+# Django, Celery Worker, and Celery Beat.
+#
 # Usage: docker-compose up --build
 # =================================================
-
-version: '3.8'
 
 services:
   # =============================================
   # INFRASTRUCTURE
   # =============================================
 
-  # --- PostgreSQL 15 ---
   db:
     image: postgres:15-alpine
     container_name: campushat_db
@@ -33,7 +32,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # --- Redis 7 ---
   redis:
     image: redis:7-alpine
     container_name: campushat_redis
@@ -51,14 +49,14 @@ services:
       retries: 5
 
   # =============================================
-  # BACKEND (Django + Celery)
+  # BACKEND — Single image, multiple services
   # =============================================
 
-  # --- Django API ---
   backend:
     build:
       context: ./backend
       dockerfile: docker/Dockerfile
+    image: campushat-backend:latest
     container_name: campushat_backend
     restart: unless-stopped
     command: >
@@ -87,11 +85,8 @@ services:
     networks:
       - campushat_network
 
-  # --- Celery Worker ---
   celery:
-    build:
-      context: ./backend
-      dockerfile: docker/Dockerfile
+    image: campushat-backend:latest
     container_name: campushat_celery
     restart: unless-stopped
     command: celery -A config worker --loglevel=info --concurrency=2
@@ -116,11 +111,8 @@ services:
     networks:
       - campushat_network
 
-  # --- Celery Beat ---
   celerybeat:
-    build:
-      context: ./backend
-      dockerfile: docker/Dockerfile
+    image: campushat-backend:latest
     container_name: campushat_celerybeat
     restart: unless-stopped
     command: celery -A config beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
@@ -153,6 +145,7 @@ services:
   #   build:
   #     context: ./frontend
   #     dockerfile: Dockerfile
+  #   image: campushat-frontend:latest
   #   container_name: campushat_frontend
   #   restart: unless-stopped
   #   ports:
@@ -184,9 +177,6 @@ services:
     networks:
       - campushat_network
 
-# =============================================
-# VOLUMES
-# =============================================
 volumes:
   postgres_data:
     name: campushat_postgres_data
@@ -197,9 +187,6 @@ volumes:
   backend_static:
     name: campushat_backend_static
 
-# =============================================
-# NETWORKS
-# =============================================
 networks:
   campushat_network:
     name: campushat_network
