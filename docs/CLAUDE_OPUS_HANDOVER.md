@@ -125,7 +125,28 @@ The repository includes a file named `database_dump.sql` in the `backend/` direc
 
 ---
 
-## 4. How to Run the Project Local Environment
+## 4. How to Run Development Tests
+
+The project uses a mix of standard Django tests (for early phases) and comprehensive endpoint scripts (for later phases). Claude Opus should verify tests pass before/after making changes.
+
+**Phase 02 & 03 Tests** (Auth, Roles, Universities, Verifications):
+```bash
+docker exec campushat_backend python manage.py test apps.authentication
+```
+
+**Phase 04 Tests** (Marketplace end-to-end):
+```bash
+docker exec campushat_backend python test_phase04.py
+```
+
+**Phase 05 Tests** (Sellers end-to-end):
+```bash
+docker exec campushat_backend python test_phase05.py
+```
+
+---
+
+## 5. How to Run the Project Local Environment
 
 **Step 1:** Pull the `backend` branch from GitHub.
 ```bash

@@ -73,7 +73,13 @@ docker exec campushat_backend python manage.py showmigrations
 
 // turbo
 ```bash
+# Phase 02 & 03: Auth and User Verification (Standard Django Tests)
+docker exec campushat_backend python manage.py test apps.authentication
+
+# Phase 04: Campus Marketplace (Custom Test Script)
 docker exec campushat_backend python test_phase04.py
+
+# Phase 05: Seller System (Custom Test Script)
 docker exec campushat_backend python test_phase05.py
 ```
 
