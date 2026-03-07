@@ -1,0 +1,13 @@
+# CampusHat Backend - Production Requirements
+# =============================================
+
+-r base.txt
+
+# Error Tracking
+sentry-sdk[django]==2.13.0
+
+# Redis Cache Backend
+django-redis==5.4.0
+
+# Security
+django-csp==3.8
