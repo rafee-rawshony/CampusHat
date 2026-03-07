@@ -53,8 +53,9 @@ THIRD_PARTY_APPS = [
 
 LOCAL_APPS = [
     'core',
+    'apps.universities',
     'apps.authentication',
-    # --- Phase 02+ apps will be added here ---
+    # --- Phase 03+ apps will be added here ---
     # 'apps.users',
     # 'apps.mall',
     # 'apps.marketplace',
@@ -148,6 +149,10 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+]
+
+AUTHENTICATION_BACKENDS = [
+    'apps.authentication.backends.EmailBackend',
 ]
 
 # =============================================================================

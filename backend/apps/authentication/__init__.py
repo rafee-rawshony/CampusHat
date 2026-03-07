@@ -1,8 +1,8 @@
 """
 CampusHat Authentication App.
 
-Custom User model and authentication logic.
-Full implementation in Phase 02.
+Custom User model with email-based authentication, role system,
+email verification, and JWT token management.
 """
 
 default_app_config = 'apps.authentication.apps.AuthenticationConfig'
