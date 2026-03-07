@@ -53,8 +53,8 @@ THIRD_PARTY_APPS = [
 
 LOCAL_APPS = [
     'core',
+    'apps.authentication',
     # --- Phase 02+ apps will be added here ---
-    # 'apps.authentication',
     # 'apps.users',
     # 'apps.mall',
     # 'apps.marketplace',
