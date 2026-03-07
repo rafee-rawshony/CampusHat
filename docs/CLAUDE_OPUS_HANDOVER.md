@@ -56,6 +56,33 @@ Extends `authentication` app with identity validation and session management.
 - **Signals**: Automatic `reputation_score` increment when verified.
 - **12 Automated Tests**: Covering submitting docs, admin reviewing, session login creation, and addresses.
 
+### Phase 04: Campus Marketplace
+Full marketplace module at `apps/marketplace/`.
+- **8 Models**:
+  - `MarketplaceCategory`: 3-level hierarchy per ad_type (sell/rent/service/food). Auto-slug generation.
+  - `MarketplaceProduct`: Full lifecycle (pending → active → expired/sold/hidden → repost). ActiveProductManager, duration validation (sell/rent: 7/15/30, service/food: 30/90/180), auto `expires_at` on create.
+  - `MarketplaceProductImage`: Multi-image per product (max 8), S3 upload with local fallback.
+  - `MarketplaceOffer`: Price negotiation, one offer per buyer, 48h expiry, accept/reject/counter.
+  - `MarketplaceChat` + `MarketplaceMessage`: Per-product buyer-seller threads, message types (text/image/offer_ref), block, mark-read.
+  - `MarketplaceReview`: 1-5 rating per product per reviewer.
+  - `MarketplaceReport`: Content moderation (spam/fake/scam), admin review queue.
+- **API Endpoints**:
+  - Public: `GET /marketplace/listings/` (filterable), `GET /marketplace/listings/{id}/` (atomic view_count increment)
+  - Verified user: `POST /marketplace/listings/`, hide/unhide/repost/mark-sold, offers, chat, reviews, reports
+  - Owner: `GET /marketplace/my-listings/` (all statuses)
+  - Admin: `/admin/marketplace/pending/`, approve/reject, reports queue, report action
+- **Celery Beat Tasks**:
+  - `expire_marketplace_posts`: every 15 min, atomic `select_for_update()` + `transaction.atomic()`
+  - `send_expiry_warning`: daily 9 AM BDT, warns posts expiring in 2-3 days
+- **Filters** (django-filter): `post_type`, `university_slug`, `category_slug`, `price_min/max`, `condition`, `campus_visibility`, `is_negotiable`
+- **Rules**:
+  - Guest/unverified users NEVER see user contact info (ListSerializer vs DetailSerializer)
+  - `status=pending` posts NEVER appear in public listings
+  - Admin must approve before post goes live
+  - `view_count` uses `F()` expression (never `.save()` on entire object)
+  - Auto-expiry uses `select_for_update()` inside `atomic()`
+- **26 Automated Tests**: All passing.
+
 ---
 
 ## 3. Environment & Collaboration Workflow

@@ -40,14 +40,18 @@ urlpatterns = [
     path('api/v1/admin/verifications/',
          include(('apps.authentication.admin_urls', 'admin-verifications'))),
 
-    # Phase 04+ app URLs will be added here:
-    # path('api/v1/users/', include('apps.users.urls')),
+    # --- Marketplace (Phase 04) ---
+    path('api/v1/marketplace/', include('apps.marketplace.urls')),
+
+    # --- Admin Marketplace (Phase 04) ---
+    path('api/v1/admin/marketplace/',
+         include(('apps.marketplace.admin_urls', 'admin-marketplace'))),
+
+    # Phase 05+ app URLs will be added here:
     # path('api/v1/mall/', include('apps.mall.urls')),
-    # path('api/v1/marketplace/', include('apps.marketplace.urls')),
     # path('api/v1/orders/', include('apps.orders.urls')),
     # path('api/v1/payments/', include('apps.payments.urls')),
     # path('api/v1/notifications/', include('apps.notifications.urls')),
-    # path('api/v1/reviews/', include('apps.reviews.urls')),
 ]
 
 # Serve media files in development
