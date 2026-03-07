@@ -10,8 +10,8 @@ from rest_framework.permissions import BasePermission, SAFE_METHODS
 
 class IsVerifiedStudent(BasePermission):
     """
-    Allow access only to users with role 'student' whose verification
-    has been approved.
+    Allow access only to users whose student_id or faculty_id
+    verification has been approved.
     """
 
     message = 'You must be a verified student to perform this action.'
@@ -20,10 +20,15 @@ class IsVerifiedStudent(BasePermission):
         user = request.user
         if not user or not user.is_authenticated:
             return False
-        return (
-            getattr(user, 'role', None) == 'student'
-            and getattr(user, 'is_verified', False)
-        )
+        if getattr(user, 'role', None) not in ('student', 'faculty'):
+            return False
+        # Check for approved verification via UserVerification model
+        from apps.authentication.models import UserVerification
+        return UserVerification.objects.filter(
+            user=user,
+            verification_type__in=['student_id', 'faculty_id'],
+            status='approved',
+        ).exists()
 
 
 class IsApprovedSeller(BasePermission):

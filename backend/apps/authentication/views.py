@@ -159,11 +159,26 @@ class LoginView(GenericAPIView):
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        # Create a UserSession record for session tracking (Phase 03)
+        data = serializer.validated_data
+        access_token = data.get('access_token', '')
+        if access_token:
+            from .models import UserSession
+            try:
+                user_email = data.get('user', {}).get('email', '')
+                if user_email:
+                    from .models import User
+                    user = User.objects.get(email=user_email)
+                    UserSession.create_from_request(user, access_token, request)
+            except Exception:
+                pass  # Don't block login if session tracking fails
+
         return Response(
             {
                 'success': True,
                 'message': 'Login successful.',
-                'data': serializer.validated_data,
+                'data': data,
             },
             status=status.HTTP_200_OK,
         )

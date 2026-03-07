@@ -1,15 +1,20 @@
 """
 Authentication Admin Configuration.
 
-Custom admin interfaces for User and EmailVerificationToken models.
-Since we use AbstractBaseUser (not AbstractUser), we define custom
-fieldsets instead of inheriting from UserAdmin.
+Custom admin interfaces for User, EmailVerificationToken,
+UserVerification, UserSession, and UserAddress models.
 """
 
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from .models import EmailVerificationToken, User
+from .models import (
+    EmailVerificationToken,
+    User,
+    UserAddress,
+    UserSession,
+    UserVerification,
+)
 
 
 @admin.register(User)
@@ -86,3 +91,58 @@ class EmailVerificationTokenAdmin(admin.ModelAdmin):
         return obj.is_expired
     is_expired.boolean = True
     is_expired.short_description = 'Expired?'
+
+
+# =============================================================================
+# PHASE 03: VERIFICATION, SESSION, ADDRESS
+# =============================================================================
+
+@admin.register(UserVerification)
+class UserVerificationAdmin(admin.ModelAdmin):
+    """Admin for user verification records."""
+
+    list_display = (
+        'user', 'verification_type', 'status',
+        'verification_tier', 'reviewed_by', 'valid_until', 'created_at',
+    )
+    list_filter = ('status', 'verification_type', 'verification_tier')
+    search_fields = ('user__email', 'user__full_name', 'student_id_number')
+    readonly_fields = ('id', 'created_at', 'updated_at')
+    raw_id_fields = ('user', 'reviewed_by')
+    ordering = ('-created_at',)
+
+
+@admin.register(UserSession)
+class UserSessionAdmin(admin.ModelAdmin):
+    """Admin for user sessions."""
+
+    list_display = (
+        'user', 'device_info_short', 'ip_address',
+        'revoked', 'expires_at', 'created_at',
+    )
+    list_filter = ('revoked',)
+    search_fields = ('user__email', 'ip_address')
+    readonly_fields = ('id', 'token_hash', 'created_at', 'updated_at')
+    raw_id_fields = ('user',)
+    ordering = ('-created_at',)
+
+    def device_info_short(self, obj):
+        info = obj.device_info or ''
+        return f'{info[:60]}...' if len(info) > 60 else info
+    device_info_short.short_description = 'Device'
+
+
+@admin.register(UserAddress)
+class UserAddressAdmin(admin.ModelAdmin):
+    """Admin for user addresses."""
+
+    list_display = (
+        'user', 'label', 'district', 'city',
+        'postal_code', 'is_default', 'created_at',
+    )
+    list_filter = ('is_default', 'district')
+    search_fields = ('user__email', 'label', 'city', 'district')
+    readonly_fields = ('id', 'created_at', 'updated_at')
+    raw_id_fields = ('user',)
+    ordering = ('-created_at',)
+

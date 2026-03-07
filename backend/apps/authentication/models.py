@@ -1,5 +1,5 @@
 """
-CampusHat Custom User Model & Email Verification Token.
+CampusHat Custom User Model & Related Auth Models.
 
 Implements a fully custom User extending AbstractBaseUser with:
 - Email-based authentication (no username)
@@ -7,13 +7,17 @@ Implements a fully custom User extending AbstractBaseUser with:
 - University scoping via FK
 - Soft delete support
 - Email verification via time-limited tokens
+- User verification system (Phase 03)
+- User session tracking (Phase 03)
+- User addresses (Phase 03)
 """
 
+import hashlib
 import secrets
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 
 from core.models import TimestampMixin, UUIDMixin
@@ -202,8 +206,13 @@ class User(AbstractBaseUser, PermissionsMixin, UUIDMixin, TimestampMixin):
 
     @property
     def is_verified_student(self):
-        """Check if user is a student with approved verification."""
-        return self.role == 'student' and self.is_email_verified
+        """Check if user has an approved student_id or faculty_id verification."""
+        return self.role in ('student', 'faculty') and (
+            self.verifications.filter(
+                verification_type__in=['student_id', 'faculty_id'],
+                status='approved',
+            ).exists()
+        )
 
     @property
     def is_approved_seller(self):
@@ -299,3 +308,334 @@ class EmailVerificationToken(UUIDMixin):
             expires_at=timezone.now() + timezone.timedelta(hours=24),
         )
         return token
+
+
+# =============================================================================
+# USER VERIFICATION (Phase 03)
+# =============================================================================
+
+class UserVerification(UUIDMixin, TimestampMixin):
+    """
+    Tracks identity verification for users.
+
+    Supports multiple verification types (student_id, faculty_id, email, phone).
+    Each type follows a status workflow: pending → approved | rejected | expired.
+    Rejected verifications can be resubmitted (pending again).
+    """
+
+    VERIFICATION_TYPE_CHOICES = [
+        ('student_id', 'Student ID'),
+        ('faculty_id', 'Faculty ID'),
+        ('email', 'Email'),
+        ('phone', 'Phone'),
+    ]
+
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+        ('expired', 'Expired'),
+    ]
+
+    TIER_CHOICES = [
+        ('bronze', 'Bronze'),
+        ('silver', 'Silver'),
+        ('gold', 'Gold'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='verifications',
+        db_index=True,
+        help_text='User requesting verification.',
+    )
+    verification_type = models.CharField(
+        max_length=20,
+        choices=VERIFICATION_TYPE_CHOICES,
+        help_text='Type of verification being submitted.',
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending',
+        db_index=True,
+        help_text='Current verification status.',
+    )
+    submitted_document_url = models.CharField(
+        max_length=500,
+        blank=True,
+        null=True,
+        help_text='S3 private bucket path for the submitted document.',
+    )
+    student_id_number = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text='Student or faculty ID number.',
+    )
+    enrollment_cert_url = models.CharField(
+        max_length=500,
+        blank=True,
+        null=True,
+        help_text='S3 private bucket path for enrollment certificate.',
+    )
+    verification_tier = models.CharField(
+        max_length=10,
+        choices=TIER_CHOICES,
+        default='bronze',
+        help_text='Verification tier level.',
+    )
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reviewed_verifications',
+        help_text='Admin who reviewed this verification.',
+    )
+    rejection_reason = models.TextField(
+        blank=True,
+        null=True,
+        help_text='Reason for rejection, shown to the user.',
+    )
+    valid_until = models.DateField(
+        blank=True,
+        null=True,
+        help_text='Expiration date for this verification (annual renewal).',
+    )
+    deleted_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        db_index=True,
+        help_text='Soft deletion timestamp.',
+    )
+
+    class Meta:
+        db_table = 'auth_user_verifications'
+        verbose_name = 'User Verification'
+        verbose_name_plural = 'User Verifications'
+        ordering = ['-created_at']
+        unique_together = [('user', 'verification_type')]
+        indexes = [
+            models.Index(
+                fields=['user', 'status'],
+                name='idx_verification_user_status',
+            ),
+            models.Index(
+                fields=['user', 'verification_type'],
+                name='idx_verification_user_type',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.user.email} — {self.verification_type} ({self.status})'
+
+    @property
+    def is_expired(self):
+        """Check if verification has passed its valid_until date."""
+        if self.valid_until is None:
+            return False
+        return timezone.now().date() > self.valid_until
+
+    def soft_delete(self):
+        self.deleted_at = timezone.now()
+        self.save(update_fields=['deleted_at'])
+
+    def restore(self):
+        self.deleted_at = None
+        self.save(update_fields=['deleted_at'])
+
+
+# =============================================================================
+# USER SESSION (Phase 03)
+# =============================================================================
+
+class UserSession(UUIDMixin, TimestampMixin):
+    """
+    Tracks active JWT sessions for a user.
+
+    Stores a SHA-256 hash of the JWT token so sessions can be individually
+    revoked without storing the raw token. Supports force-logout via
+    revoke_all_for_user().
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='sessions',
+        db_index=True,
+        help_text='User who owns this session.',
+    )
+    token_hash = models.CharField(
+        max_length=255,
+        unique=True,
+        help_text='SHA-256 hash of the JWT access token.',
+    )
+    device_info = models.CharField(
+        max_length=300,
+        blank=True,
+        null=True,
+        help_text='User-Agent or device description.',
+    )
+    ip_address = models.GenericIPAddressField(
+        blank=True,
+        null=True,
+        help_text='IP address the session was created from.',
+    )
+    expires_at = models.DateTimeField(
+        db_index=True,
+        help_text='When this session token expires.',
+    )
+    revoked = models.BooleanField(
+        default=False,
+        help_text='Whether this session has been revoked.',
+    )
+
+    class Meta:
+        db_table = 'auth_user_sessions'
+        verbose_name = 'User Session'
+        verbose_name_plural = 'User Sessions'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        status = 'revoked' if self.revoked else 'active'
+        return f'Session for {self.user.email} ({status})'
+
+    @classmethod
+    def create_from_request(cls, user, token, request):
+        """
+        Create a new session record from a login request.
+
+        Args:
+            user: The authenticated User instance.
+            token: The raw JWT access token string.
+            request: The DRF request object.
+
+        Returns:
+            The created UserSession instance.
+        """
+        token_hash = hashlib.sha256(token.encode('utf-8')).hexdigest()
+        device_info = request.META.get('HTTP_USER_AGENT', '')[:300]
+        ip_address = (
+            request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip()
+            or request.META.get('REMOTE_ADDR')
+        )
+        # Default expiry: 15 minutes from now (same as access token)
+        from django.conf import settings as django_settings
+        from datetime import timedelta
+        access_lifetime = getattr(
+            django_settings, 'SIMPLE_JWT', {}
+        ).get('ACCESS_TOKEN_LIFETIME', timedelta(minutes=15))
+        expires_at = timezone.now() + access_lifetime
+
+        return cls.objects.create(
+            user=user,
+            token_hash=token_hash,
+            device_info=device_info,
+            ip_address=ip_address,
+            expires_at=expires_at,
+        )
+
+    @classmethod
+    def revoke_all_for_user(cls, user_id):
+        """Revoke all active sessions for a given user (force logout)."""
+        return cls.objects.filter(
+            user_id=user_id,
+            revoked=False,
+        ).update(revoked=True)
+
+
+# =============================================================================
+# USER ADDRESS (Phase 03)
+# =============================================================================
+
+class UserAddress(UUIDMixin, TimestampMixin):
+    """
+    Stores user addresses for delivery or identification.
+
+    Supports multiple addresses per user with a single default.
+    Setting is_default=True atomically unsets any other default address.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='addresses',
+        db_index=True,
+        help_text='User who owns this address.',
+    )
+    label = models.CharField(
+        max_length=100,
+        help_text="Label for this address, e.g. 'Home', 'Dorm', 'Campus'.",
+    )
+    address_line1 = models.TextField(
+        help_text='Primary address line.',
+    )
+    address_line2 = models.TextField(
+        blank=True,
+        null=True,
+        help_text='Secondary address line (optional).',
+    )
+    campus_building = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text='Campus building name (if applicable).',
+    )
+    room_number = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text='Room number (if applicable).',
+    )
+    district = models.CharField(
+        max_length=80,
+        help_text='District name.',
+    )
+    city = models.CharField(
+        max_length=100,
+        help_text='City name.',
+    )
+    postal_code = models.CharField(
+        max_length=10,
+        help_text='Postal code.',
+    )
+    is_default = models.BooleanField(
+        default=False,
+        help_text='Whether this is the default address.',
+    )
+    deleted_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        db_index=True,
+        help_text='Soft deletion timestamp.',
+    )
+
+    class Meta:
+        db_table = 'auth_user_addresses'
+        verbose_name = 'User Address'
+        verbose_name_plural = 'User Addresses'
+        ordering = ['-is_default', '-created_at']
+
+    def __str__(self):
+        return f'{self.label} — {self.user.email}'
+
+    def save(self, *args, **kwargs):
+        """Override save to ensure only one default address per user."""
+        if self.is_default:
+            with transaction.atomic():
+                UserAddress.objects.filter(
+                    user=self.user,
+                    is_default=True,
+                ).exclude(pk=self.pk).update(is_default=False)
+        super().save(*args, **kwargs)
+
+    def soft_delete(self):
+        self.deleted_at = timezone.now()
+        self.save(update_fields=['deleted_at'])
+
+    def restore(self):
+        self.deleted_at = None
+        self.save(update_fields=['deleted_at'])
+

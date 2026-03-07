@@ -35,7 +35,12 @@ urlpatterns = [
     # --- API v1 ---
     path('api/v1/universities/', include('apps.universities.urls')),
     path('api/v1/auth/', include('apps.authentication.urls')),
-    # Phase 03+ app URLs will be added here:
+
+    # --- Admin API (Phase 03) ---
+    path('api/v1/admin/verifications/',
+         include(('apps.authentication.admin_urls', 'admin-verifications'))),
+
+    # Phase 04+ app URLs will be added here:
     # path('api/v1/users/', include('apps.users.urls')),
     # path('api/v1/mall/', include('apps.mall.urls')),
     # path('api/v1/marketplace/', include('apps.marketplace.urls')),
