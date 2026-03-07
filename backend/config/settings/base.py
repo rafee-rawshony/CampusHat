@@ -56,7 +56,8 @@ LOCAL_APPS = [
     'apps.universities',
     'apps.authentication',
     'apps.marketplace',
-    # --- Phase 05+ apps will be added here ---
+    'apps.sellers',
+    # --- Phase 06+ apps will be added here ---
     # 'apps.mall',
     # 'apps.orders',
     # 'apps.payments',

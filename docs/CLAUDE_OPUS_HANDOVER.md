@@ -83,6 +83,28 @@ Full marketplace module at `apps/marketplace/`.
   - Auto-expiry uses `select_for_update()` inside `atomic()`
 - **26 Automated Tests**: All passing.
 
+### Phase 05: Seller System & Stores
+Full seller module at `apps/sellers/`.
+- **5 Models**:
+  - `SellerProfile`: BD law docs (NID, trade license, TIN, VAT, brand auth), **Fernet-encrypted** bank/mobile details, student seller detection, commission rates (7% student / 10% regular).
+  - `Store`: Storefront with auto-slug, logo, banner, status workflow (draft→under_review→active), ratings, review counts.
+  - `SellerBadge`: `student_seller` (auto-displays 'Student Seller of {uni.short_name}'), `verified_seller`, `official_store`, `best_seller`, `club_seller`, `fast_dispatch`. Award/revoke by admin.
+  - `SellerPayoutRequest`: Withdrawal requests (bank/bKash/Nagad/Rocket), admin processing.
+  - `StudentBenefit`: Commission discounts, free listings, priority ranking for student sellers.
+- **API Endpoints**:
+  - Seller: `register/`, `my-profile/` (GET/PATCH), `my-dashboard/`
+  - Store: `create/`, `my-store/`, `update/`, `submit-for-review/`, public `/{slug}/`, listing with filters
+  - Payouts: `request/`, list
+  - Admin Seller: `pending/`, `{id}/`, `approve/`, `reject/`, `suspend/`
+  - Admin Store: `pending/`, `{id}/`, `approve/` (auto-awards student badge), `reject/`
+  - Admin Badge: `award/`, `{badge_id}/revoke/`
+  - Admin Payout: `pending/`, `process/`, `reject/`
+- **Security**: Fernet symmetric encryption (from `cryptography` lib) for `bank_account_details`, `mobile_banking_number`, `nid_number`. Key from `ENCRYPTION_KEY` env var.
+- **Celery Tasks**: `notify_admin_new_seller_application`, `notify_seller_approval_result`, `notify_store_approval_result`, `notify_payout_processed`
+- **Signals**: `post_save` on `SellerProfile` triggers approval notification
+- **Permissions**: `IsApprovedSeller` (already existed in `core/permissions.py`)
+- **28 Automated Tests**: All passing.
+
 ---
 
 ## 3. Environment & Collaboration Workflow
