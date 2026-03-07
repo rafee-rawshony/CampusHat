@@ -45,6 +45,17 @@ The backend is a production-ready Django API powered by **PostgreSQL, Redis, Cel
 - **Celery Tasks**: Async email sending configured via Redis.
 - **14 Automated Tests**: Covering registration, verification, and login logic.
 
+### Phase 03: User Verification System
+Extends `authentication` app with identity validation and session management.
+- **New Models**:
+  - `UserVerification`: Handles document verification workflow (student ID, faculty ID) with AWS S3 private uploading and tiers (bronze/silver/gold). Admin review queue (`status`, `rejection_reason`).
+  - `UserSession`: Stateful JWT session tracking with `token_hash` (SHA-256), device IP tracking, and forced logout (revocation).
+  - `UserAddress`: Address profiles with atomic `is_default` toggling.
+- **S3 Integration**: Documents are uploaded via `boto3` to a private S3 bucket. Admin API receives 15-minute presigned URLs for safe document viewing.
+- **Permissions**: `IsVerifiedStudent` verifies directly against the `UserVerification` model logic instead of simple booleans.
+- **Signals**: Automatic `reputation_score` increment when verified.
+- **12 Automated Tests**: Covering submitting docs, admin reviewing, session login creation, and addresses.
+
 ---
 
 ## 3. Environment & Collaboration Workflow
