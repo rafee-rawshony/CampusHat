@@ -16,6 +16,7 @@ Models:
 """
 
 from datetime import timedelta
+from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -206,7 +207,10 @@ class MarketplaceProduct(BaseModel):
         choices=AD_TYPE_CHOICES,
         db_index=True,
     )
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+    price = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))]
+    )
     price_unit = models.CharField(max_length=30, blank=True, null=True)
     condition = models.CharField(
         max_length=15,
@@ -328,10 +332,14 @@ class MarketplaceOffer(BaseModel):
         on_delete=models.CASCADE,
         related_name='marketplace_offers',
     )
-    offered_price = models.DecimalField(max_digits=10, decimal_places=2)
+    offered_price = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))]
+    )
     counter_price = models.DecimalField(
         max_digits=10, decimal_places=2,
         blank=True, null=True,
+        validators=[MinValueValidator(Decimal('0.01'))]
     )
     status = models.CharField(
         max_length=15,

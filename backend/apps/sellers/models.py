@@ -17,7 +17,9 @@ import uuid
 
 from cryptography.fernet import Fernet
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from decimal import Decimal
 from django.utils import timezone
 from django.utils.text import slugify
 
@@ -175,7 +177,11 @@ class SellerProfile(BaseModel):
         db_index=True,
     )
     commission_rate = models.DecimalField(
-        max_digits=5, decimal_places=2, default=10.00,
+        max_digits=5, decimal_places=2, default=Decimal('10.00'),
+        validators=[
+            MinValueValidator(Decimal('0.00')),
+            MaxValueValidator(Decimal('100.00')),
+        ]
     )
     is_student_seller = models.BooleanField(default=False)
     rejection_reason = models.TextField(blank=True, null=True)

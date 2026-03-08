@@ -6,6 +6,8 @@ Covers categories, products, variants, reviews, and cart operations.
 
 import uuid
 
+from decimal import Decimal
+
 from django.conf import settings
 from django.db import transaction
 from rest_framework import serializers
@@ -257,8 +259,17 @@ class StoreProductCreateUpdateSerializer(serializers.ModelSerializer):
         return value or []
 
     def validate_base_price(self, value):
-        if value <= 0:
-            raise serializers.ValidationError('Base price must be greater than 0.')
+        if value <= Decimal('0.00'):
+            raise serializers.ValidationError(
+                'Price must be greater than 0.'
+            )
+        return value
+
+    def validate_stock_quantity(self, value):
+        if value < 0:
+            raise serializers.ValidationError(
+                'Stock quantity cannot be negative.'
+            )
         return value
 
     def _upload_image(self, image_file, product_id):

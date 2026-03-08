@@ -13,6 +13,7 @@ Design:
 from decimal import Decimal
 
 from django.conf import settings
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils import timezone
 
@@ -102,20 +103,30 @@ class Order(BaseModel):
     )
 
     # Financial fields — IMMUTABLE after creation
-    subtotal = models.DecimalField(max_digits=10, decimal_places=2)
+    subtotal = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))]
+    )
     discount_amount = models.DecimalField(
         max_digits=10, decimal_places=2, default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))]
     )
     delivery_fee = models.DecimalField(
         max_digits=10, decimal_places=2, default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))]
     )
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    total_amount = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))]
+    )
     platform_commission = models.DecimalField(
         max_digits=10, decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.00'))],
         help_text='Total commission taken by platform. Immutable.',
     )
     seller_net_amount = models.DecimalField(
         max_digits=10, decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.00'))],
         help_text='Amount seller receives. Immutable.',
     )
 
@@ -216,11 +227,15 @@ class OrderItem(UUIDMixin):
     product_name_snapshot = models.CharField(max_length=300)
     unit_price = models.DecimalField(
         max_digits=10, decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))],
         help_text='Price per unit at checkout time. Immutable.',
     )
-    quantity = models.PositiveIntegerField()
+    quantity = models.PositiveIntegerField(
+        validators=[MinValueValidator(1)]
+    )
     line_total = models.DecimalField(
         max_digits=10, decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))],
         help_text='unit_price * quantity. Immutable.',
     )
     commission_rate_snapshot = models.DecimalField(

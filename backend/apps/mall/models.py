@@ -14,6 +14,8 @@ Models:
   7. CartItem            — price snapshot on add
 """
 
+from decimal import Decimal
+
 from django.conf import settings
 from django.contrib.postgres.indexes import GinIndex
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -168,13 +170,18 @@ class StoreProduct(BaseModel):
     slug = models.SlugField(max_length=320, unique=True, db_index=True)
     description = models.TextField()
     short_description = models.CharField(max_length=500, blank=True, null=True)
-    base_price = models.DecimalField(max_digits=10, decimal_places=2)
+    base_price = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))],
+    )
     discount_price = models.DecimalField(
         max_digits=10, decimal_places=2, blank=True, null=True,
+        validators=[MinValueValidator(Decimal('0.01'))],
     )
     sku = models.CharField(max_length=100, blank=True, null=True, unique=True)
     stock_quantity = models.IntegerField(
         default=0,
+        validators=[MinValueValidator(0)],
         help_text='Total stock. Auto-updated from variants if has_variants=True.',
     )
     has_variants = models.BooleanField(default=False)
@@ -280,9 +287,13 @@ class ProductVariant(BaseModel):
     sku = models.CharField(max_length=100, blank=True, null=True, unique=True)
     price_override = models.DecimalField(
         max_digits=10, decimal_places=2, blank=True, null=True,
+        validators=[MinValueValidator(Decimal('0.01'))],
         help_text='Override price. Falls back to product base_price if null.',
     )
-    stock_quantity = models.IntegerField(default=0)
+    stock_quantity = models.IntegerField(
+        default=0,
+        validators=[MinValueValidator(0)]
+    )
     attributes = models.JSONField(
         help_text="Variant attributes, e.g. {'color':'Red','size':'XL'}.",
     )
@@ -412,9 +423,13 @@ class CartItem(UUIDMixin, TimestampMixin):
         blank=True,
         related_name='cart_items',
     )
-    quantity = models.PositiveIntegerField(default=1)
+    quantity = models.PositiveIntegerField(
+        default=1,
+        validators=[MinValueValidator(1)]
+    )
     unit_price_snapshot = models.DecimalField(
         max_digits=10, decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))],
         help_text='Price at the time of adding to cart.',
     )
 
