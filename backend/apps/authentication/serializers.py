@@ -73,7 +73,6 @@ class UserRegistrationSerializer(serializers.Serializer):
             full_name=validated_data['full_name'],
             password=validated_data['password'],
             university=university,
-            role='student',
         )
 
         # Generate email verification token

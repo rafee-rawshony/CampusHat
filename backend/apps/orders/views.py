@@ -19,7 +19,7 @@ from apps.orders.services.checkout import (
     process_checkout,
 )
 from core.pagination import CampusHatPagination
-from core.permissions import IsApprovedSeller
+from core.permissions import IsApprovedSeller, IsNormalUserOrAbove
 from core.wallet_engine import InsufficientBalanceError
 
 from .serializers import (
@@ -41,7 +41,7 @@ from .serializers import (
 class CheckoutView(APIView):
     """POST /api/v1/orders/checkout/ — atomic checkout."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsNormalUserOrAbove]
 
     def post(self, request):
         serializer = CheckoutSerializer(data=request.data)

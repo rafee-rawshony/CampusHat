@@ -95,6 +95,7 @@ class User(AbstractBaseUser, PermissionsMixin, UUIDMixin, TimestampMixin):
     """
 
     ROLE_CHOICES = [
+        ('normal_user', 'Normal User'),
         ('student', 'Student'),
         ('faculty', 'Faculty'),
         ('seller', 'Seller'),
@@ -136,9 +137,9 @@ class User(AbstractBaseUser, PermissionsMixin, UUIDMixin, TimestampMixin):
     role = models.CharField(
         max_length=20,
         choices=ROLE_CHOICES,
-        default='student',
+        default='normal_user',
         db_index=True,
-        help_text='User role on the platform.',
+        help_text='System role determining access rights.',
     )
     is_email_verified = models.BooleanField(
         default=False,

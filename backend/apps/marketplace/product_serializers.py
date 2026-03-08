@@ -208,6 +208,7 @@ class MarketplaceProductDetailSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True, default=None)
     images = ProductImageSerializer(many=True, read_only=True)
     user_info = serializers.SerializerMethodField()
+    contact_visible = serializers.SerializerMethodField()
     offers_count = serializers.SerializerMethodField()
     reviews_count = serializers.SerializerMethodField()
     average_rating = serializers.SerializerMethodField()
@@ -228,14 +229,28 @@ class MarketplaceProductDetailSerializer(serializers.ModelSerializer):
 
     def get_user_info(self, obj):
         request = self.context.get('request')
+        base = {
+            'id': str(obj.user.id),
+            'full_name': obj.user.full_name,
+            'profile_picture': getattr(obj.user, 'profile_picture', None),
+            'reputation_score': float(obj.user.reputation_score),
+        }
+        # Only show contact if requester is marketplace-verified
         if request and hasattr(request, 'user') and request.user.is_authenticated:
-            return {
-                'id': str(obj.user.id),
-                'full_name': obj.user.full_name,
-                'profile_picture': getattr(obj.user, 'profile_picture', None),
-                'reputation_score': float(obj.user.reputation_score),
-            }
-        return None
+            from core.permissions import IsVerifiedForMarketplace
+            perm = IsVerifiedForMarketplace()
+            if perm.has_permission(request, None):
+                base['phone'] = obj.user.phone
+                base['email'] = obj.user.email
+        return base
+
+    def get_contact_visible(self, obj):
+        request = self.context.get('request')
+        if not request or not hasattr(request, 'user') or not request.user.is_authenticated:
+            return False
+        from core.permissions import IsVerifiedForMarketplace
+        perm = IsVerifiedForMarketplace()
+        return perm.has_permission(request, None)
 
     def get_offers_count(self, obj):
         return obj.offers.filter(deleted_at__isnull=True).count()

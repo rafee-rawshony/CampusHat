@@ -15,7 +15,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet, ViewSet
 
-from core.permissions import IsAdminOrModerator, IsApprovedSeller
+from core.permissions import IsAdminOrModerator, IsApprovedSeller, IsNormalUserOrAbove
 
 from .filters import StoreProductFilter
 from .models import (
@@ -596,7 +596,7 @@ class ProductVariantDetailView(APIView):
 class CartView(APIView):
     """GET /api/v1/cart/ — get or create cart for authenticated user."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsNormalUserOrAbove]
 
     def get(self, request):
         cart, _ = Cart.objects.get_or_create(user=request.user)
@@ -611,7 +611,7 @@ class CartView(APIView):
 class CartAddItemView(APIView):
     """POST /api/v1/cart/add/ — add item (or increment quantity)."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsNormalUserOrAbove]
 
     def post(self, request):
         cart, _ = Cart.objects.get_or_create(user=request.user)
@@ -667,7 +667,7 @@ class CartAddItemView(APIView):
 class CartUpdateItemView(APIView):
     """PATCH /api/v1/cart/update/{item_id}/ — change quantity."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsNormalUserOrAbove]
 
     def patch(self, request, item_id):
         cart, _ = Cart.objects.get_or_create(user=request.user)
@@ -699,7 +699,7 @@ class CartUpdateItemView(APIView):
 class CartRemoveItemView(APIView):
     """DELETE /api/v1/cart/remove/{item_id}/"""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsNormalUserOrAbove]
 
     def delete(self, request, item_id):
         cart, _ = Cart.objects.get_or_create(user=request.user)
@@ -724,7 +724,7 @@ class CartRemoveItemView(APIView):
 class CartClearView(APIView):
     """DELETE /api/v1/cart/clear/"""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsNormalUserOrAbove]
 
     def delete(self, request):
         cart, _ = Cart.objects.get_or_create(user=request.user)
@@ -741,7 +741,7 @@ class CartClearView(APIView):
 class CartApplyCouponView(APIView):
     """POST /api/v1/cart/apply-coupon/"""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsNormalUserOrAbove]
 
     def post(self, request):
         cart, _ = Cart.objects.get_or_create(user=request.user)
@@ -768,7 +768,7 @@ class CartApplyCouponView(APIView):
 class CartRemoveCouponView(APIView):
     """DELETE /api/v1/cart/remove-coupon/"""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsNormalUserOrAbove]
 
     def delete(self, request):
         cart, _ = Cart.objects.get_or_create(user=request.user)
@@ -784,7 +784,7 @@ class CartRemoveCouponView(APIView):
 class CartSummaryView(APIView):
     """GET /api/v1/cart/summary/ — totals breakdown."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsNormalUserOrAbove]
 
     def get(self, request):
         cart, _ = Cart.objects.get_or_create(user=request.user)

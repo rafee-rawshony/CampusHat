@@ -32,21 +32,14 @@ class IsVerifiedStudent(BasePermission):
 
 
 class IsApprovedSeller(BasePermission):
-    """
-    Allow access only to users who have an approved seller profile.
-    """
-
-    message = 'You must be an approved seller to perform this action.'
-
+    """Must have seller role AND approved seller profile"""
     def has_permission(self, request, view):
-        user = request.user
-        if not user or not user.is_authenticated:
+        if not request.user or not request.user.is_authenticated:
             return False
-        # Check if the user has a seller_profile and it's approved
-        seller_profile = getattr(user, 'seller_profile', None)
-        if seller_profile is None:
-            return False
-        return getattr(seller_profile, 'is_approved', False)
+        if request.user.role == 'admin': return True
+        from apps.sellers.models import SellerProfile
+        return SellerProfile.objects.filter(
+            user=request.user, status='approved').exists()
 
 
 class IsAdminOrModerator(BasePermission):
@@ -122,7 +115,7 @@ class HasPermission(BasePermission):
         if not user or not user.is_authenticated:
             return False
 
-        # Admin role bypasses all permission checks
+# Admin role bypasses all permission checks
         if getattr(user, 'role', None) == 'admin':
             return True
 
@@ -133,3 +126,66 @@ class HasPermission(BasePermission):
             role__in=user_roles.values('role'),
             permission__codename=self.codename,
         ).exists()
+
+
+class IsVerifiedForMarketplace(BasePermission):
+    """
+    Allows marketplace posting, chatting, and seeing contact info.
+    Requires: verified student OR verified faculty OR approved seller OR admin.
+    Normal users: DENIED.
+    """
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if request.user.role == 'admin': return True
+        
+        from apps.sellers.models import SellerProfile
+        if request.user.role == 'seller':
+            return SellerProfile.objects.filter(
+                user=request.user, status='approved').exists()
+                
+        from apps.authentication.models import UserVerification
+        if request.user.role in ['student', 'faculty']:
+            return UserVerification.objects.filter(
+                user=request.user,
+                verification_type__in=['student_id', 'faculty_id'],
+                status='approved'
+            ).exists()
+        return False  # normal_user and moderator: no marketplace access
+
+
+class IsNormalUserOrAbove(BasePermission):
+    """Any authenticated user (normal_user, student, faculty, seller, admin)"""
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated
+
+
+class CanBuyFromMall(BasePermission):
+    """Normal user and above can buy. Guests cannot."""
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated
+
+
+class IsSellerModerator(BasePermission):
+    """Has permission codename: approve_seller"""
+    def has_permission(self, request, view):
+        if not request.user.is_authenticated: return False
+        if request.user.role == 'admin': return True
+        from apps.admin_panel.models import RolePermission
+        return RolePermission.objects.filter(
+            role__userrole__user=request.user,
+            permission__codename='approve_seller'
+        ).exists()
+
+
+class IsMarketplaceModerator(BasePermission):
+    """Has permission codename: moderate_marketplace"""
+    def has_permission(self, request, view):
+        if not request.user.is_authenticated: return False
+        if request.user.role == 'admin': return True
+        from apps.admin_panel.models import RolePermission
+        return RolePermission.objects.filter(
+            role__userrole__user=request.user,
+            permission__codename='moderate_marketplace'
+        ).exists()
+
