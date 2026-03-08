@@ -65,19 +65,16 @@ class UserRegistrationSerializer(serializers.Serializer):
         return value
 
     def create(self, validated_data):
-        """Create the user with hashed password and generate a verification token."""
         university = University.objects.get(id=validated_data['university_id'])
 
         user = User.objects.create_user(
             email=validated_data['email'],
-            full_name=validated_data['full_name'],
             password=validated_data['password'],
+            full_name=validated_data['full_name'],
             university=university,
+            # DO NOT pass role= here.
+            # The model default 'normal_user' handles it.
         )
-
-        # Generate email verification token
-        EmailVerificationToken.create_for_user(user)
-
         return user
 
 
@@ -122,7 +119,8 @@ class UserLoginSerializer(serializers.Serializer):
 
         if not user.is_email_verified:
             raise serializers.ValidationError(
-                {'non_field_errors': ['Please verify your email before logging in.']}
+                {'non_field_errors': ['Please verify your email before logging in.']},
+                code='EMAIL_NOT_VERIFIED'
             )
 
         # Generate JWT tokens

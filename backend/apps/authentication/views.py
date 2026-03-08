@@ -5,11 +5,15 @@ Provides endpoints for user registration, email verification, JWT login/logout,
 profile management, and password changes.
 """
 
+import secrets
+from datetime import timedelta
+
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView as SimpleJWTTokenRefreshView
 
@@ -27,24 +31,34 @@ from .serializers import (
 # REGISTRATION
 # =============================================================================
 
-class RegisterView(GenericAPIView):
+class RegisterView(APIView):
     """
     POST /api/v1/auth/register/
 
-    Register a new user. Creates the user with role='student',
+    Register a new user. Creates the user with role='normal_user',
     generates an email verification token, and queues a Celery task
     to send the verification email.
     """
 
-    serializer_class = UserRegistrationSerializer
     permission_classes = [AllowAny]
 
     def post(self, request):
-        serializer = self.get_serializer(data=request.data)
+        serializer = UserRegistrationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
 
-        # Queue verification email via Celery
+        # Explicitly confirm role in response for debugging/logging
+        assert user.role == 'normal_user', (
+            f'Registration bug: user {user.email} got role {user.role}'
+        )
+
+        # Generate verification token and queue email
+        token = EmailVerificationToken.objects.create(
+            user=user,
+            token=secrets.token_urlsafe(48),
+            expires_at=timezone.now() + timedelta(hours=24)
+        )
+        
         try:
             from .tasks import send_verification_email
             send_verification_email.delay(str(user.id))
@@ -52,13 +66,11 @@ class RegisterView(GenericAPIView):
             # If Celery is not available, fail gracefully
             pass
 
-        return Response(
-            {
-                'success': True,
-                'message': 'Registration successful. Check your email to verify your account.',
-            },
-            status=status.HTTP_201_CREATED,
-        )
+        return Response({
+            'success': True,
+            'message': 'Registration successful. Check your email to verify your account.',
+            'data': {'email': user.email, 'role': user.role}
+        }, status=status.HTTP_201_CREATED)
 
 
 # =============================================================================
@@ -140,6 +152,48 @@ class VerifyEmailView(GenericAPIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class ResendVerificationView(APIView):
+    """
+    POST /api/v1/auth/resend-verification/
+    
+    Resend verification email to an unverified user.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+
+        # Block already-verified users
+        if user.is_email_verified:
+            return Response({
+                'success': False,
+                'message': 'Email is already verified.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Invalidate existing unused tokens for this user
+        EmailVerificationToken.objects.filter(
+            user=user, is_used=False
+        ).update(is_used=True)  # Mark old tokens as used
+
+        # Create fresh token
+        token = EmailVerificationToken.objects.create(
+            user=user,
+            token=secrets.token_urlsafe(48),
+            expires_at=timezone.now() + timedelta(hours=24)
+        )
+        
+        try:
+            from .tasks import send_verification_email
+            send_verification_email.delay(str(user.id))
+        except Exception:
+            pass
+
+        return Response({
+            'success': True,
+            'message': 'Verification email resent. Check your inbox.'
+        }, status=status.HTTP_200_OK)
 
 
 # =============================================================================
@@ -324,70 +378,4 @@ class ChangePasswordView(GenericAPIView):
         )
 
 
-# =============================================================================
-# RESEND VERIFICATION
-# =============================================================================
 
-class ResendVerificationView(GenericAPIView):
-    """
-    POST /api/v1/auth/resend-verification/
-
-    Resend the email verification link. Only for users who have not
-    yet verified their email.
-    """
-
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        email = request.data.get('email', '').lower().strip()
-
-        if not email:
-            return Response(
-                {
-                    'success': False,
-                    'message': 'Email is required.',
-                    'errors': {'email': ['This field is required.']},
-                    'code': 'VALIDATION_ERROR',
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
-            # Don't reveal whether the email exists
-            return Response(
-                {
-                    'success': True,
-                    'message': 'If an account exists with this email, a verification link has been sent.',
-                },
-                status=status.HTTP_200_OK,
-            )
-
-        if user.is_email_verified:
-            return Response(
-                {
-                    'success': False,
-                    'message': 'This email is already verified.',
-                    'errors': {},
-                    'code': 'ALREADY_VERIFIED',
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # Generate new token and send email
-        EmailVerificationToken.create_for_user(user)
-
-        try:
-            from .tasks import send_verification_email
-            send_verification_email.delay(str(user.id))
-        except Exception:
-            pass
-
-        return Response(
-            {
-                'success': True,
-                'message': 'If an account exists with this email, a verification link has been sent.',
-            },
-            status=status.HTTP_200_OK,
-        )
