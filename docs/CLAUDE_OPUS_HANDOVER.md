@@ -127,8 +127,29 @@ Full e-commerce mall module at `apps/mall/`.
 - **Category Seeder**: `python manage.py seed_categories` — 175 categories across 8 top-level groups (Electronics, Fashion, Cosmetics, Food, Books, Home, Sports, Campus Services)
 - **Stock Safety**: `select_for_update` on cart-add for atomic stock validation; `unit_price_snapshot` frozen at add time.
 
----
+### Phase 07: Order & Payment Engine
+Wallet at `apps/wallet/`, Orders at `apps/orders/`, engine at `core/wallet_engine.py`.
+- **7 Models across 2 apps**:
+  - `Wallet`: user/seller/platform types, balance computed from transactions, `get_platform_wallet()` singleton, `refresh_balance()`, locked_balance.
+  - `WalletTransaction`: IMMUTABLE ledger (save raises PermissionError on update, delete blocked). Balance snapshots, reason tracking, reference linking.
+  - `Payment`: Gateway response storage, status tracking (pending→success→failed→reversed).
+  - `Order`: Full lifecycle with `VALID_TRANSITIONS` state machine (placed→confirmed→packed→shipped→delivered). Immutable financial snapshots (commission, prices, delivery fee). `transition_status()` method with automatic history creation.
+  - `OrderItem`: Immutable price/commission snapshots per item.
+  - `OrderStatusHistory`: Full audit trail of every status change.
+  - `Invoice`: Auto-generated via Celery task with PDF URL placeholder.
+- **Wallet Engine** (`core/wallet_engine.py`):
+  - `create_wallet_transaction()`: Atomic with `select_for_update()`, balance snapshot, `InsufficientBalanceError`.
+- **Checkout Service** (`apps/orders/services/checkout.py`):
+  - 14-step atomic flow: validate cart → lock stock → check stock → calculate totals → get commission rate (with StudentBenefit discount) → debit buyer wallet → create order + items → deduct stock (F-expression) → credit seller + platform wallets → clear cart → create status history → queue async tasks.
+- **API Endpoints**:
+  - Wallet: `GET /wallet/balance/`, `GET /wallet/transactions/`, `POST /wallet/topup/`
+  - Buyer Orders: `POST /orders/checkout/`, `GET /orders/`, `GET /orders/{id}/`, `PATCH /orders/{id}/cancel/`, `GET /orders/{id}/tracking/`
+  - Seller Orders: `GET /seller/orders/`, `GET /seller/orders/{id}/`, `PATCH .../confirm/`, `PATCH .../pack/`, `PATCH .../ship/`
+  - Admin Orders: `GET /admin/orders/`, `GET /admin/orders/{id}/`, `PATCH /admin/orders/{id}/status/`
+- **Celery Tasks**: `generate_invoice_task`, `send_order_confirmation`, `notify_seller_new_order`, `notify_order_status_change`
+- **Commission Engine**: `commission_rate` from SellerProfile, minus active `StudentBenefit.discount_percentage`. Stored immutably in `OrderItem.commission_rate_snapshot` and `commission_amount`.
 
+---
 
 ## 3. Environment & Collaboration Workflow
 

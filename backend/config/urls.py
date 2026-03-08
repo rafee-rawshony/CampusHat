@@ -58,9 +58,13 @@ urlpatterns = [
     # --- Cart (Phase 06) ---
     # Cart URLs are imported below from apps.mall.urls
 
-    # Phase 07+ app URLs will be added here:
-    # path('api/v1/orders/', include('apps.orders.urls')),
-    # path('api/v1/payments/', include('apps.payments.urls')),
+    # --- Wallet (Phase 07) ---
+    path('api/v1/wallet/', include('apps.wallet.urls')),
+
+    # --- Orders (Phase 07) ---
+    path('api/v1/orders/', include('apps.orders.urls')),
+
+    # Phase 08+ app URLs will be added here:
     # path('api/v1/notifications/', include('apps.notifications.urls')),
 ]
 
@@ -76,13 +80,19 @@ from apps.sellers.admin_urls import (
 # --- Phase 06 Cart URL patterns ---
 from apps.mall.urls import cart_urlpatterns
 
+# --- Phase 07 Order URL patterns (seller + admin) ---
+from apps.orders.urls import seller_order_urlpatterns, admin_order_urlpatterns
+
 urlpatterns += [
     path('api/v1/stores/', include((store_urlpatterns, 'stores'))),
     path('api/v1/admin/sellers/', include((seller_admin_urlpatterns, 'admin-sellers'))),
     path('api/v1/admin/stores/', include((store_admin_urlpatterns, 'admin-stores'))),
     path('api/v1/admin/payouts/', include((payout_admin_urlpatterns, 'admin-payouts'))),
     path('api/v1/cart/', include((cart_urlpatterns, 'cart'))),
+    path('api/v1/seller/orders/', include((seller_order_urlpatterns, 'seller-orders'))),
+    path('api/v1/admin/orders/', include((admin_order_urlpatterns, 'admin-orders'))),
 ]
+
 
 
 # Serve media files in development
