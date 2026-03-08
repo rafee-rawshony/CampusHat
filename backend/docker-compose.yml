@@ -20,8 +20,8 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      # Automatically initialize the database using the shared dump file
-      - ./database_dump.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      # Auto-init disabled — let Django migrations create schema from scratch
+      # - ./database_dump.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       - campushat_network
     healthcheck:

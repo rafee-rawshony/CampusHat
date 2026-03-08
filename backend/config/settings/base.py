@@ -57,12 +57,13 @@ LOCAL_APPS = [
     'apps.authentication',
     'apps.marketplace',
     'apps.sellers',
-    # --- Phase 06+ apps will be added here ---
-    # 'apps.mall',
+    'apps.mall',
+    # --- Phase 07+ apps will be added here ---
     # 'apps.orders',
     # 'apps.payments',
     # 'apps.notifications',
 ]
+
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 

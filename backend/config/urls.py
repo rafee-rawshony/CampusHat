@@ -52,12 +52,18 @@ urlpatterns = [
 
     # --- Admin Sellers (Phase 05) ---
 
-    # Phase 06+ app URLs will be added here:
-    # path('api/v1/mall/', include('apps.mall.urls')),
+    # --- Mall (Phase 06) ---
+    path('api/v1/mall/', include('apps.mall.urls')),
+
+    # --- Cart (Phase 06) ---
+    # Cart URLs are imported below from apps.mall.urls
+
+    # Phase 07+ app URLs will be added here:
     # path('api/v1/orders/', include('apps.orders.urls')),
     # path('api/v1/payments/', include('apps.payments.urls')),
     # path('api/v1/notifications/', include('apps.notifications.urls')),
 ]
+
 
 # --- Phase 05 URL patterns from sellers ---
 from apps.sellers.urls import store_urlpatterns
@@ -66,12 +72,18 @@ from apps.sellers.admin_urls import (
     store_admin_urlpatterns,
     payout_admin_urlpatterns,
 )
+
+# --- Phase 06 Cart URL patterns ---
+from apps.mall.urls import cart_urlpatterns
+
 urlpatterns += [
     path('api/v1/stores/', include((store_urlpatterns, 'stores'))),
     path('api/v1/admin/sellers/', include((seller_admin_urlpatterns, 'admin-sellers'))),
     path('api/v1/admin/stores/', include((store_admin_urlpatterns, 'admin-stores'))),
     path('api/v1/admin/payouts/', include((payout_admin_urlpatterns, 'admin-payouts'))),
+    path('api/v1/cart/', include((cart_urlpatterns, 'cart'))),
 ]
+
 
 # Serve media files in development
 if settings.DEBUG:

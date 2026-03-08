@@ -105,7 +105,30 @@ Full seller module at `apps/sellers/`.
 - **Permissions**: `IsApprovedSeller` (already existed in `core/permissions.py`)
 - **28 Automated Tests**: All passing.
 
+### Phase 06: CampusHat Mall
+Full e-commerce mall module at `apps/mall/`.
+- **7 Models**:
+  - `MallCategory`: 3-level hierarchy (Main→Sub→Sub-Sub), auto-slug, `get_full_tree()` class method, `full_path` property, `get_descendants()` for filtering.
+  - `StoreProduct`: Full product with base/discount price, SKU, JSONB `tags` (with GIN index), `has_variants` toggle, stock management, rating/review counts. Auto-slug from `store.slug-product.name`.
+  - `StoreProductImage`: Multi-image per product (max 8), sort_order, is_primary flag.
+  - `ProductVariant`: JSONB `attributes` (e.g., `{'color':'Red','size':'XL'}`), per-variant stock, `price_override`, `effective_price` property.
+  - `ProductReview`: 1-5 rating, unique per (product, reviewer), seller response with timestamp, visibility toggle.
+  - `Cart`: One per user (OneToOneField), coupon_code placeholder for Phase 08.
+  - `CartItem`: Price snapshot (`unit_price_snapshot`) set at add-to-cart time, `line_total` property.
+- **API Endpoints**:
+  - Categories: `GET /mall/categories/` (flat), `GET /mall/categories/tree/` (nested), `GET /mall/categories/{slug}/` (detail), admin CRUD
+  - Products: `GET /mall/products/` (filtered listing), `GET /mall/products/{slug}/` (detail), `POST` (seller), `PATCH/DELETE` (owner)
+  - Reviews: `GET /mall/products/{slug}/reviews/`, `POST /mall/products/{slug}/reviews/create/`, `PATCH .../reviews/{id}/seller-response/`
+  - Variants: `GET/POST /mall/products/{slug}/variants/`, `PATCH/DELETE .../variants/{id}/`
+  - Cart: `GET /cart/`, `POST /cart/add/`, `PATCH /cart/update/{id}/`, `DELETE /cart/remove/{id}/`, `DELETE /cart/clear/`, `POST /cart/apply-coupon/`, `DELETE /cart/remove-coupon/`, `GET /cart/summary/`
+- **Filters**: `category_slug` (includes descendants), `store_slug`, `price_min/max`, `is_featured`, `tags` (JSON contains), `search` (name+description)
+- **Ordering**: `-created_at`, `base_price`, `-sold_count`, `-rating_avg`
+- **Signals**: Variant `post_save` → updates parent stock; Review `post_save` → recalculates `rating_avg`/`review_count`
+- **Category Seeder**: `python manage.py seed_categories` — 175 categories across 8 top-level groups (Electronics, Fashion, Cosmetics, Food, Books, Home, Sports, Campus Services)
+- **Stock Safety**: `select_for_update` on cart-add for atomic stock validation; `unit_price_snapshot` frozen at add time.
+
 ---
+
 
 ## 3. Environment & Collaboration Workflow
 
