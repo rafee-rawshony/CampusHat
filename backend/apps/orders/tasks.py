@@ -116,3 +116,86 @@ def notify_order_status_change(order_id, new_status):
         logger.error(f'Order {order_id} not found for status notification.')
     except Exception as e:
         logger.warning(f'Status notification failed: {e}')
+
+
+from django.db import transaction
+from django.db.models import F
+from decimal import Decimal
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=300)
+def auto_cancel_unpaid_orders(self):
+    """
+    Cancels orders stuck in 'placed' status with payment_status='pending'.
+    Gateway timeout: 2 hours. COD timeout: 24 hours.
+    Restores stock atomically for each cancelled order.
+    Schedule: every 30 minutes.
+    """
+    from apps.orders.models import Order, OrderStatusHistory
+    from apps.mall.models import StoreProduct, ProductVariant
+    now = timezone.now()
+
+    try:
+        # Gateway orders unpaid after 2 hours
+        gateway_cutoff = now - timezone.timedelta(hours=2)
+        stale_orders = Order.objects.filter(
+            order_status='placed',
+            payment_status='pending',
+            created_at__lt=gateway_cutoff,
+        ).select_related('buyer', 'store')[:50]  # batch 50 at a time
+
+        cancelled = 0
+        for order in stale_orders:
+            try:
+                with transaction.atomic():
+                    # Lock the order
+                    locked_order = Order.objects.select_for_update().get(
+                        pk=order.pk, order_status='placed'
+                    )
+
+                    # Restore stock for each item
+                    for item in locked_order.items.select_related(
+                        'product', 'variant').all():
+                        if item.variant_id:
+                            ProductVariant.objects.filter(
+                                pk=item.variant_id
+                            ).update(
+                                stock_quantity=F('stock_quantity') + item.quantity
+                            )
+                        else:
+                            StoreProduct.objects.filter(
+                                pk=item.product_id
+                            ).update(
+                                stock_quantity=F('stock_quantity') + item.quantity
+                            )
+
+                    # Update order
+                    old_status = locked_order.order_status
+                    locked_order.order_status = 'cancelled'
+                    locked_order.cancelled_at = now
+                    locked_order.cancellation_reason = (
+                        'Auto-cancelled: payment not received within 2 hours.'
+                    )
+                    locked_order.save(update_fields=[
+                        'order_status', 'cancelled_at', 'cancellation_reason'
+                    ])
+
+                    OrderStatusHistory.objects.create(
+                        order=locked_order,
+                        from_status=old_status,
+                        to_status='cancelled',
+                        changed_by=None,
+                        changed_by_role='system',
+                        note='Auto-cancelled due to payment timeout.'
+                    )
+                cancelled += 1
+            except Order.DoesNotExist:
+                pass  # Already cancelled by another process — skip
+            except Exception as e:
+                logger.warning(f'Failed to cancel order {order.pk}: {e}')
+
+        logger.info(f'auto_cancel_unpaid_orders: cancelled {cancelled} orders')
+        return {'cancelled': cancelled}
+
+    except Exception as exc:
+        logger.error(f'auto_cancel_unpaid_orders failed: {exc}')
+        raise self.retry(exc=exc)
