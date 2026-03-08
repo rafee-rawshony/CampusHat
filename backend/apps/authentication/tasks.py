@@ -198,3 +198,22 @@ def send_verification_result(self, verification_id):
         logger.error(f'send_verification_result error: {exc}')
         raise self.retry(exc=exc)
 
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=300, name='authentication.cleanup_expired_sessions')
+def cleanup_expired_sessions(self):
+    """Delete expired UserSession rows. Runs daily at 3AM BD time."""
+    try:
+        from apps.authentication.models import UserSession
+        from django.utils import timezone
+        now = timezone.now()
+        # Delete expired sessions
+        expired = UserSession.objects.filter(expires_at__lt=now).delete()[0]
+        # Delete old revoked sessions (keep 30 days for audit)
+        old_revoked = UserSession.objects.filter(
+            revoked=True,
+            created_at__lt=now - timezone.timedelta(days=30)
+        ).delete()[0]
+        logger.info(f'Cleanup: {expired} expired + {old_revoked} old revoked sessions deleted')
+        return {'expired': expired, 'old_revoked': old_revoked}
+    except Exception as exc:
+        raise self.retry(exc=exc)

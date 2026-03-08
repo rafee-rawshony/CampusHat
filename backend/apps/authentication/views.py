@@ -200,64 +200,116 @@ class ResendVerificationView(APIView):
 # LOGIN
 # =============================================================================
 
-class LoginView(GenericAPIView):
+class LoginView(APIView):
     """
     POST /api/v1/auth/login/
 
     Authenticate with email/password and receive JWT access + refresh tokens.
     """
 
-    serializer_class = UserLoginSerializer
     permission_classes = [AllowAny]
 
     def post(self, request):
-        serializer = self.get_serializer(data=request.data)
+        serializer = UserLoginSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
+        
+        user_data = serializer.validated_data.get('user')
+        if user_data and isinstance(user_data, dict):
+             user_email = user_data.get('email', '')
+             user = User.objects.get(email=user_email)
+        else:
+             user = user_data
+             if not user:
+                 user_email = serializer.validated_data.get('email', '')
+                 if user_email:
+                     user = User.objects.get(email=user_email)
 
-        # Create a UserSession record for session tracking (Phase 03)
-        data = serializer.validated_data
-        access_token = data.get('access_token', '')
-        if access_token:
-            from .models import UserSession
-            try:
-                user_email = data.get('user', {}).get('email', '')
-                if user_email:
-                    from .models import User
-                    user = User.objects.get(email=user_email)
-                    UserSession.create_from_request(user, access_token, request)
-            except Exception:
-                pass  # Don't block login if session tracking fails
+        # Generate tokens
+        from rest_framework_simplejwt.tokens import RefreshToken
+        from django.conf import settings
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+        refresh_token = str(refresh)
 
-        return Response(
-            {
-                'success': True,
-                'message': 'Login successful.',
-                'data': data,
-            },
-            status=status.HTTP_200_OK,
+        # Create UserSession record for revocation tracking
+        import hashlib
+        from datetime import timedelta
+        from django.utils import timezone
+        token_hash = hashlib.sha256(refresh_token.encode()).hexdigest()
+        from .models import UserSession
+        UserSession.objects.create(
+            user=user,
+            token_hash=token_hash,
+            device_info=request.META.get('HTTP_USER_AGENT', '')[:300],
+            ip_address=request.META.get('REMOTE_ADDR'),
+            expires_at=timezone.now() + timedelta(days=7)
         )
+
+        # Build response
+        response = Response({
+            'success': True,
+            'message': 'Login successful.',
+            'data': {
+                'access_token': access_token,  # access token in body
+                'user': {
+                    'id': str(user.id),
+                    'email': user.email,
+                    'full_name': user.full_name,
+                    'role': user.role,
+                    'university': str(user.university_id) if user.university else None,
+                }
+            }
+        }, status=status.HTTP_200_OK)
+
+        # Set refresh token as HttpOnly cookie
+        is_production = getattr(settings, 'DEBUG', True) is False
+        response.set_cookie(
+            key='refresh_token',
+            value=refresh_token,
+            httponly=True,
+            secure=is_production,
+            samesite='Lax',
+            max_age=60 * 60 * 24 * 7,
+            path='/api/v1/auth/',
+        )
+        return response
 
 
 # =============================================================================
 # TOKEN REFRESH
 # =============================================================================
 
-class CampusHatTokenRefreshView(SimpleJWTTokenRefreshView):
-    """
-    POST /api/v1/auth/token/refresh/
+class CookieTokenRefreshView(APIView):
+    permission_classes = [AllowAny]
 
-    Refresh an access token using a valid refresh token.
-    Uses SimpleJWT's built-in refresh logic with token rotation.
-    """
-
-    pass
+    def post(self, request):
+        # Read refresh token from HttpOnly cookie
+        refresh_token = request.COOKIES.get('refresh_token')
+        if not refresh_token:
+            return Response(
+                {'error': 'Refresh token not found.', 'code': 'NO_REFRESH_TOKEN'},
+                status=401
+            )
+        try:
+            from rest_framework_simplejwt.tokens import RefreshToken
+            token = RefreshToken(refresh_token)
+            access_token = str(token.access_token)
+            return Response({
+                'success': True,
+                'data': {'access_token': access_token}
+            }, status=200)
+        except Exception:
+            return Response(
+                {'error': 'Invalid or expired refresh token.', 'code': 'TOKEN_INVALID'},
+                status=401
+            )
 
 
 # =============================================================================
 # LOGOUT
 # =============================================================================
 
-class LogoutView(GenericAPIView):
+class LogoutView(APIView):
     """
     POST /api/v1/auth/logout/
 
@@ -267,40 +319,26 @@ class LogoutView(GenericAPIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        refresh_token = request.data.get('refresh_token')
+        refresh_token = request.COOKIES.get('refresh_token')
+        if refresh_token:
+            try:
+                from rest_framework_simplejwt.tokens import RefreshToken
+                token = RefreshToken(refresh_token)
+                token.blacklist()
+            except Exception:
+                pass  # Already invalid — ignore
 
-        if not refresh_token:
-            return Response(
-                {
-                    'success': False,
-                    'message': 'Refresh token is required.',
-                    'errors': {'refresh_token': ['This field is required.']},
-                    'code': 'VALIDATION_ERROR',
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            # Revoke UserSession
+            import hashlib
+            token_hash = hashlib.sha256(refresh_token.encode()).hexdigest()
+            from .models import UserSession
+            UserSession.objects.filter(
+                user=request.user, token_hash=token_hash
+            ).update(revoked=True)
 
-        try:
-            token = RefreshToken(refresh_token)
-            token.blacklist()
-        except Exception:
-            return Response(
-                {
-                    'success': False,
-                    'message': 'Invalid or already blacklisted token.',
-                    'errors': {},
-                    'code': 'INVALID_TOKEN',
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        return Response(
-            {
-                'success': True,
-                'message': 'Logged out successfully.',
-            },
-            status=status.HTTP_200_OK,
-        )
+        response = Response({'success': True, 'message': 'Logged out.'}, status=200)
+        response.delete_cookie('refresh_token', path='/api/v1/auth/')
+        return response
 
 
 # =============================================================================

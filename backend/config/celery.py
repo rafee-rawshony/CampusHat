@@ -54,6 +54,10 @@ app.conf.beat_schedule = {
             minute=0, hour=20, day_of_week='sunday',  # Sunday 2AM UTC+6
         ),
     },
+    'cleanup-expired-sessions': {
+        'task': 'authentication.cleanup_expired_sessions',
+        'schedule': crontab(hour=21, minute=0),  # 3:00 AM Bangladesh (UTC+6)
+    },
 }
 
 

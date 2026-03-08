@@ -17,7 +17,7 @@ from .views import (
     MeView,
     RegisterView,
     ResendVerificationView,
-    CampusHatTokenRefreshView,
+    CookieTokenRefreshView,
     VerifyEmailView,
 )
 from .verification_views import (
@@ -45,7 +45,7 @@ urlpatterns = [
 
     # Login / Logout / Token (Phase 02)
     path('login/', LoginView.as_view(), name='login'),
-    path('token/refresh/', CampusHatTokenRefreshView.as_view(), name='token-refresh'),
+    path('token/refresh/', CookieTokenRefreshView.as_view(), name='token-refresh'),
     path('logout/', LogoutView.as_view(), name='logout'),
 
     # Profile (Phase 02)
