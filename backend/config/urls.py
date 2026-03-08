@@ -64,7 +64,18 @@ urlpatterns = [
     # --- Orders (Phase 07) ---
     path('api/v1/orders/', include('apps.orders.urls')),
 
-    # Phase 08+ app URLs will be added here:
+    # --- Refunds (Phase 08) ---
+    path('api/v1/refunds/', include('apps.refunds.urls')),
+
+    # --- Delivery (Phase 08) ---
+    path('api/v1/delivery/', include('apps.delivery.urls')),
+
+
+    # --- Coupons (Phase 08) ---
+    path('api/v1/coupons/', include('apps.coupons.urls')),
+
+    # Phase 09+ app URLs will be added here:
+
     # path('api/v1/notifications/', include('apps.notifications.urls')),
 ]
 
@@ -83,6 +94,17 @@ from apps.mall.urls import cart_urlpatterns
 # --- Phase 07 Order URL patterns (seller + admin) ---
 from apps.orders.urls import seller_order_urlpatterns, admin_order_urlpatterns
 
+# --- Phase 08 URL patterns ---
+from apps.refunds.urls import admin_refund_urlpatterns
+from apps.delivery.urls import admin_delivery_urlpatterns
+from apps.coupons.urls import (
+    flash_sale_urlpatterns,
+    seller_coupon_urlpatterns,
+    seller_flash_sale_urlpatterns,
+    admin_coupon_urlpatterns,
+    admin_flash_sale_urlpatterns,
+)
+
 urlpatterns += [
     path('api/v1/stores/', include((store_urlpatterns, 'stores'))),
     path('api/v1/admin/sellers/', include((seller_admin_urlpatterns, 'admin-sellers'))),
@@ -91,7 +113,16 @@ urlpatterns += [
     path('api/v1/cart/', include((cart_urlpatterns, 'cart'))),
     path('api/v1/seller/orders/', include((seller_order_urlpatterns, 'seller-orders'))),
     path('api/v1/admin/orders/', include((admin_order_urlpatterns, 'admin-orders'))),
+    # Phase 08
+    path('api/v1/admin/refunds/', include((admin_refund_urlpatterns, 'admin-refunds'))),
+    path('api/v1/admin/delivery/', include((admin_delivery_urlpatterns, 'admin-delivery'))),
+    path('api/v1/seller/coupons/', include((seller_coupon_urlpatterns, 'seller-coupons'))),
+    path('api/v1/seller/flash-sales/', include((seller_flash_sale_urlpatterns, 'seller-flash-sales'))),
+    path('api/v1/admin/coupons/', include((admin_coupon_urlpatterns, 'admin-coupons'))),
+    path('api/v1/admin/flash-sales/', include((admin_flash_sale_urlpatterns, 'admin-flash-sales'))),
+    path('api/v1/flash-sales/', include((flash_sale_urlpatterns, 'flash-sales'))),
 ]
+
 
 
 

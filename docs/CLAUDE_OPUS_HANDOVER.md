@@ -149,6 +149,25 @@ Wallet at `apps/wallet/`, Orders at `apps/orders/`, engine at `core/wallet_engin
 - **Celery Tasks**: `generate_invoice_task`, `send_order_confirmation`, `notify_seller_new_order`, `notify_order_status_change`
 - **Commission Engine**: `commission_rate` from SellerProfile, minus active `StudentBenefit.discount_percentage`. Stored immutably in `OrderItem.commission_rate_snapshot` and `commission_amount`.
 
+### Phase 08: Refunds, Delivery & Coupons
+Three new apps: `apps/refunds/`, `apps/delivery/`, `apps/coupons/`.
+- **Refunds** (`apps/refunds/`):
+  - `Refund` model: evidence URLs, calculated reversal amounts, 5-step status flow.
+  - `process_approved_refund()` atomic service: credits buyer, debits seller + platform wallets.
+  - Buyer: `POST /refunds/request/`, `GET /refunds/my-refunds/`, `GET /refunds/{id}/`
+  - Admin: pending list, approve, reject, process (atomic wallet reversal).
+- **Delivery** (`apps/delivery/`):
+  - `DeliveryPartner`, `Delivery`, `DeliveryTrackingEvent` models.
+  - Public: `GET /delivery/track/{tracking_code}/`
+  - Admin: `POST /admin/delivery/{id}/update-status/` (creates events, transitions order).
+- **Coupons** (`apps/coupons/`):
+  - `Coupon`: %, fixed, free_delivery types, `validate_for_user()`, F()-expression `increment_usage()`.
+  - `CouponUsage`, `FlashSale`, `FlashSaleProduct` models.
+  - Seller CRUD for coupons + flash sales.
+  - Admin: platform-wide coupons + flash sales.
+  - Public: `GET /coupons/validate/`, `GET /flash-sales/active/`, `GET /flash-sales/{id}/`
+  - **Celery tasks**: `expire_coupons` (hourly), `end_flash_sales` (5-min with select_for_update).
+
 ---
 
 ## 3. Environment & Collaboration Workflow

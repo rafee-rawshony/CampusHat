@@ -60,10 +60,13 @@ LOCAL_APPS = [
     'apps.mall',
     'apps.wallet',
     'apps.orders',
-    # --- Phase 08+ apps will be added here ---
-    # 'apps.payments',
+    'apps.refunds',
+    'apps.delivery',
+    'apps.coupons',
+    # --- Phase 09+ apps will be added here ---
     # 'apps.notifications',
 ]
+
 
 
 
