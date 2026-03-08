@@ -60,6 +60,8 @@ class ProductImageSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+from core.validators import validate_image_file
+
 # =============================================================================
 # PRODUCT CREATE
 # =============================================================================
@@ -73,7 +75,7 @@ class MarketplaceProductCreateSerializer(serializers.ModelSerializer):
     """
 
     images = serializers.ListField(
-        child=serializers.ImageField(),
+        child=serializers.ImageField(validators=[validate_image_file]),
         max_length=8,
         required=False,
         write_only=True,

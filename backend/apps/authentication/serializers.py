@@ -11,6 +11,7 @@ from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.universities.models import University
+from core.validators import validate_document_file
 
 from .models import EmailVerificationToken, User
 

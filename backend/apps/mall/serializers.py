@@ -163,6 +163,8 @@ class ProductVariantCreateUpdateSerializer(serializers.ModelSerializer):
         return value
 
 
+from core.validators import validate_image_file
+
 # =============================================================================
 # PRODUCT SERIALIZERS
 # =============================================================================
@@ -238,7 +240,7 @@ class StoreProductCreateUpdateSerializer(serializers.ModelSerializer):
     """Seller-only product create/update serializer."""
 
     images = serializers.ListField(
-        child=serializers.ImageField(max_length=500),
+        child=serializers.ImageField(max_length=500, validators=[validate_image_file]),
         required=False,
         write_only=True,
         max_length=8,

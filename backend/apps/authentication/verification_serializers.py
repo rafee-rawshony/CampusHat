@@ -14,6 +14,9 @@ from rest_framework import serializers
 from .models import UserVerification
 
 
+from core.validators import validate_document_file
+
+
 class SubmitVerificationSerializer(serializers.Serializer):
     """
     Serializer for submitting a new verification request.
@@ -31,12 +34,14 @@ class SubmitVerificationSerializer(serializers.Serializer):
         required=False,
         allow_blank=True,
     )
-    submitted_document = serializers.ImageField(
+    submitted_document = serializers.FileField(
         required=True,
+        validators=[validate_document_file],
         help_text='Main identity document (student ID, faculty ID, etc.).',
     )
-    enrollment_cert = serializers.ImageField(
+    enrollment_cert = serializers.FileField(
         required=False,
+        validators=[validate_document_file],
         help_text='Enrollment certificate (optional, for seller verification).',
     )
 

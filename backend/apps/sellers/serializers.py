@@ -16,6 +16,8 @@ from .models import (
 )
 
 
+from core.validators import validate_document_file
+
 # =============================================================================
 # SELLER REGISTRATION
 # =============================================================================
@@ -28,13 +30,13 @@ class SellerRegistrationSerializer(serializers.ModelSerializer):
     Encrypts bank and mobile details.
     """
 
-    nid_front = serializers.ImageField(write_only=True, required=True)
-    nid_back = serializers.ImageField(write_only=True, required=True)
-    trade_license = serializers.ImageField(write_only=True, required=False)
-    tin_cert = serializers.ImageField(write_only=True, required=False)
-    vat_cert = serializers.ImageField(write_only=True, required=False)
-    brand_auth_letter = serializers.ImageField(write_only=True, required=False)
-    trademark_cert = serializers.ImageField(write_only=True, required=False)
+    nid_front = serializers.FileField(write_only=True, required=True, validators=[validate_document_file])
+    nid_back = serializers.FileField(write_only=True, required=True, validators=[validate_document_file])
+    trade_license = serializers.FileField(write_only=True, required=False, validators=[validate_document_file])
+    tin_cert = serializers.FileField(write_only=True, required=False, validators=[validate_document_file])
+    vat_cert = serializers.FileField(write_only=True, required=False, validators=[validate_document_file])
+    brand_auth_letter = serializers.FileField(write_only=True, required=False, validators=[validate_document_file])
+    trademark_cert = serializers.FileField(write_only=True, required=False, validators=[validate_document_file])
 
     # Financial
     bank_account_details = serializers.JSONField(required=False)
