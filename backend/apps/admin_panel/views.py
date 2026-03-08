@@ -125,6 +125,34 @@ class AdminDashboardView(APIView):
             },
         })
 
+    # Access all records including soft-deleted
+
+from django.shortcuts import get_object_or_404
+
+class AdminRestoreView(APIView):
+    """POST /api/v1/admin/restore/{resource_type}/{pk}/"""
+    permission_classes = [IsAuthenticated, IsAdminOnly]
+
+    def post(self, request, resource_type, pk):
+        from apps.sellers.models import SellerProfile, Store
+        from apps.authentication.models import User
+        
+        MODEL_MAP = {
+            'seller': SellerProfile,
+            'store':  Store,
+            'user':   User,
+        }
+        
+        model = MODEL_MAP.get(resource_type)
+        if not model:
+            return Response({'error': 'Invalid resource type.'}, status=400)
+
+        obj = get_object_or_404(model.all_objects, pk=pk)
+        if not obj.is_deleted:
+            return Response({'error': 'Record is not deleted.'}, status=400)
+
+        obj.restore()
+        return Response({'message': f'{resource_type} restored.'}, status=200)
 
 # ═══════════════════════════════════════════════════════════════════
 # USER MANAGEMENT

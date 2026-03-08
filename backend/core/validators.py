@@ -1,11 +1,30 @@
 import magic
 from django.core.exceptions import ValidationError
+import bleach
 
 MAX_IMAGE_SIZE_MB = 5
 MAX_DOC_SIZE_MB = 10
 
 ALLOWED_IMAGE_MIMES = {'image/jpeg', 'image/png', 'image/webp'}
 ALLOWED_DOC_MIMES = {'application/pdf', 'image/jpeg', 'image/png'}
+
+ALLOWED_HTML_TAGS = [
+    'b', 'i', 'strong', 'em', 'p', 'br', 'ul', 'ol', 'li', 'a', 'blockquote', 'code', 'pre'
+]
+ALLOWED_HTML_ATTRIBUTES = {
+    'a': ['href', 'title', 'rel'],
+}
+
+def sanitize_html(text):
+    """Sanitize user-provided text to prevent XSS attacks while keeping basic markdown."""
+    if not text:
+        return text
+    return bleach.clean(
+        text,
+        tags=ALLOWED_HTML_TAGS,
+        attributes=ALLOWED_HTML_ATTRIBUTES,
+        strip=True
+    )
 
 def validate_image_file(file):
     # Size check

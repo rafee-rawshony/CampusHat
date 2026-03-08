@@ -230,12 +230,31 @@ class User(AbstractBaseUser, PermissionsMixin, UUIDMixin, TimestampMixin):
         self.deleted_at = timezone.now()
         self.is_active = False
         self.save(update_fields=['deleted_at', 'is_active'])
+        self._cascade_soft_delete()
 
     def restore(self):
         """Restore a soft-deleted user."""
         self.deleted_at = None
         self.is_active = True
         self.save(update_fields=['deleted_at', 'is_active'])
+
+    def _cascade_soft_delete(self):
+        from apps.marketplace.models import MarketplaceProduct
+        from apps.authentication.models import UserSession
+
+        # Hide all active marketplace ads by this user
+        MarketplaceProduct.objects.filter(
+            user=self,
+            status='active',
+            deleted_at__isnull=True
+        ).update(
+            status='hidden',
+            is_hidden_by_user=True
+        )
+        # Revoke all sessions (force logout)
+        UserSession.objects.filter(
+            user=self, revoked=False
+        ).update(revoked=True)
 
 
 # =============================================================================

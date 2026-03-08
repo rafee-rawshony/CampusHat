@@ -41,6 +41,7 @@ gunicorn==22.0.0
 
 # Utilities
 python-dateutil==2.9.0
+bleach==6.1.0
 
 # Encryption (Fernet symmetric)
 cryptography==43.0.3

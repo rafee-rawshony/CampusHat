@@ -163,7 +163,7 @@ class ProductVariantCreateUpdateSerializer(serializers.ModelSerializer):
         return value
 
 
-from core.validators import validate_image_file
+from core.validators import validate_image_file, sanitize_html
 
 # =============================================================================
 # PRODUCT SERIALIZERS
@@ -377,6 +377,9 @@ class ProductReviewCreateSerializer(serializers.Serializer):
     comment = serializers.CharField(required=False, allow_blank=True)
     order_item_id = serializers.UUIDField(required=False)
 
+    def validate_comment(self, value):
+        return sanitize_html(value)
+
     def create(self, validated_data):
         request = self.context['request']
         product = self.context['product']
@@ -395,6 +398,9 @@ class SellerResponseSerializer(serializers.Serializer):
     """Seller adds/updates response to a review."""
 
     seller_response = serializers.CharField()
+
+    def validate_seller_response(self, value):
+        return sanitize_html(value)
 
     def update(self, instance, validated_data):
         from django.utils import timezone

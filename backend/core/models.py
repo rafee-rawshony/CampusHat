@@ -122,10 +122,16 @@ class SoftDeleteMixin(models.Model):
         """Check whether this record has been soft-deleted."""
         return self.deleted_at is not None
 
-    def soft_delete(self):
+    def soft_delete(self, cascade=True):
         """Mark this record as deleted without removing it from the database."""
         self.deleted_at = timezone.now()
         self.save(update_fields=['deleted_at'])
+        if cascade:
+            self._cascade_soft_delete()
+
+    def _cascade_soft_delete(self):
+        """Override in subclasses to cascade to children."""
+        pass
 
     def restore(self):
         """Restore a soft-deleted record."""

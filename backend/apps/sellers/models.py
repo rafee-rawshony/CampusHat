@@ -234,6 +234,14 @@ class SellerProfile(BaseModel):
             self.nid_number = encrypt_value(self.nid_number)
         super().save(*args, **kwargs)
 
+    def _cascade_soft_delete(self):
+        # Soft-delete the seller's store, which cascades to products
+        try:
+            if hasattr(self, 'store') and self.store:
+                self.store.soft_delete(cascade=True)
+        except Store.DoesNotExist:
+            pass
+
 
 # =============================================================================
 # MODEL 2: STORE
@@ -302,6 +310,18 @@ class Store(BaseModel):
                 counter += 1
             self.slug = slug
         super().save(*args, **kwargs)
+
+    def _cascade_soft_delete(self):
+        # Deactivate all products belonging to this store
+        from apps.mall.models import StoreProduct
+        now = timezone.now()
+        StoreProduct.objects.filter(
+            store=self,
+            deleted_at__isnull=True
+        ).update(
+            is_active=False,
+            deleted_at=now
+        )
 
 
 # =============================================================================

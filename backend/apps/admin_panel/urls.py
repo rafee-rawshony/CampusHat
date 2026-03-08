@@ -22,6 +22,7 @@ from .views import (
     NotificationMarkAllReadView,
     NotificationMarkReadView,
     NotificationUnreadCountView,
+    AdminRestoreView,
 )
 
 app_name = 'admin_panel'
@@ -37,6 +38,7 @@ notification_urlpatterns = [
 # ── Admin dashboard ──
 admin_dashboard_urlpatterns = [
     path('', AdminDashboardView.as_view(), name='dashboard'),
+    path('restore/<str:resource_type>/<uuid:pk>/', AdminRestoreView.as_view(), name='restore'),
 ]
 
 # ── Admin user management ──

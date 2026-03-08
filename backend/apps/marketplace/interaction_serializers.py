@@ -13,6 +13,7 @@ from .models import (
     MarketplaceReport,
     MarketplaceReview,
 )
+from core.validators import sanitize_html
 
 
 # =============================================================================
@@ -47,6 +48,9 @@ class MarketplaceOfferSerializer(serializers.ModelSerializer):
                 'You can only make offers on active listings.'
             )
         return attrs
+
+    def validate_message(self, value):
+        return sanitize_html(value)
 
     def create(self, validated_data):
         validated_data['buyer'] = self.context['request'].user
@@ -122,6 +126,9 @@ class SendMessageSerializer(serializers.Serializer):
     )
     content = serializers.CharField()
 
+    def validate_content(self, value):
+        return sanitize_html(value)
+
 
 # =============================================================================
 # REVIEWS
@@ -148,6 +155,9 @@ class MarketplaceReviewSerializer(serializers.ModelSerializer):
         if value < 1 or value > 5:
             raise serializers.ValidationError('Rating must be between 1 and 5.')
         return value
+
+    def validate_comment(self, value):
+        return sanitize_html(value)
 
     def create(self, validated_data):
         validated_data['reviewer'] = self.context['request'].user
