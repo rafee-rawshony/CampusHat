@@ -114,6 +114,9 @@ from apps.admin_panel.urls import (
     admin_log_urlpatterns,
 )
 
+# --- Phase 10 URL patterns ---
+from apps.analytics.urls import seller_analytics_urlpatterns, admin_analytics_urlpatterns
+
 urlpatterns += [
     path('api/v1/stores/', include((store_urlpatterns, 'stores'))),
     path('api/v1/admin/sellers/', include((seller_admin_urlpatterns, 'admin-sellers'))),
@@ -138,6 +141,9 @@ urlpatterns += [
     path('api/v1/admin/wallet/', include((admin_panel_wallet_urlpatterns, 'admin-wallet'))),
     path('api/v1/admin/notifications/', include((admin_notification_urlpatterns, 'admin-notifications'))),
     path('api/v1/admin/action-logs/', include((admin_log_urlpatterns, 'admin-logs'))),
+    # Phase 10
+    path('api/v1/analytics/seller/', include((seller_analytics_urlpatterns, 'seller-analytics'))),
+    path('api/v1/admin/analytics/', include((admin_analytics_urlpatterns, 'admin-analytics'))),
 ]
 
 

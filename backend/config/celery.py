@@ -22,22 +22,40 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 # Auto-discover tasks from all installed apps.
 app.autodiscover_tasks()
 
-# =============================================================================
-# CELERY BEAT SCHEDULE
-# Periodic tasks will be registered here in later phases.
-# =============================================================================
+from celery.schedules import crontab
 
 app.conf.beat_schedule = {
-    # Example (will be added in Phase 05+):
-    # 'check-order-timeouts': {
-    #     'task': 'apps.orders.tasks.check_order_timeouts',
-    #     'schedule': crontab(minute='*/15'),
-    # },
-    # 'send-daily-digest': {
-    #     'task': 'apps.notifications.tasks.send_daily_digest',
-    #     'schedule': crontab(hour=8, minute=0),
-    # },
+    # Phase 04: Marketplace
+    'expire-marketplace-posts': {
+        'task': 'marketplace.expire_marketplace_posts',
+        'schedule': crontab(minute='*/15'),
+    },
+    'send-expiry-warnings': {
+        'task': 'marketplace.send_expiry_warnings',
+        'schedule': crontab(hour=3, minute=0),  # 9AM UTC+6
+    },
+    # Phase 08: Coupons
+    'expire-coupons': {
+        'task': 'coupons.expire_coupons',
+        'schedule': crontab(minute=0),  # every hour
+    },
+    'end-flash-sales': {
+        'task': 'coupons.end_flash_sales',
+        'schedule': crontab(minute='*/5'),  # every 5 min
+    },
+    # Phase 10: Analytics
+    'update-seller-dashboard-stats': {
+        'task': 'analytics.update_seller_dashboard_stats',
+        'schedule': crontab(minute=0, hour='*/6'),  # every 6 hours
+    },
+    'cleanup-old-analytics': {
+        'task': 'analytics.cleanup_old_analytics',
+        'schedule': crontab(
+            minute=0, hour=20, day_of_week='sunday',  # Sunday 2AM UTC+6
+        ),
+    },
 }
+
 
 
 @app.task(bind=True, ignore_result=True)

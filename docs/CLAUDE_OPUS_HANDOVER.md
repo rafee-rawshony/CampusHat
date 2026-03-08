@@ -181,6 +181,17 @@ New app: `apps/admin_panel/`, plus `HasPermission` added to `core/permissions.py
 - **Action Logs**: `GET /admin/action-logs/` with module/action filters.
 - **Management Command**: `setup_initial_roles` — seeds 19 permissions across 8 modules, creates 4 roles (super_admin, moderator, finance_admin, support) with proper permission assignments.
 
+### Phase 10: Analytics, Logging & Final Polish
+New app: `apps/analytics/`, plus `core/middleware.py` and full Celery Beat schedule.
+- **Models** (4): `ProductView` (session dedup via `record_view()` classmethod), `SearchLog` (demand intelligence), `ActivityLog` (security audit), `SellerDashboardStats` (precomputed, refreshed by Celery).
+- **Middleware**: `ActivityLogMiddleware` in `core/middleware.py` — logs POST/PATCH/PUT/DELETE with status < 400, skips high-frequency paths (cart, token refresh).
+- **Seller Analytics**: `GET /analytics/seller/overview/` (stats + 30-day revenue chart + status breakdown + top 5 products + recent transactions), `GET /analytics/seller/revenue/?period=7d|30d|90d`, `GET /analytics/seller/products/top/` (top 10).
+- **Admin Platform Analytics**: `GET /admin/analytics/platform/` — GMV (today/7d/30d), new users, active listings, top selling, revenue by campus, unfulfilled searches, platform commission.
+- **Celery Tasks**: `update_seller_dashboard_stats` (every 6h, recomputes from source), `cleanup_old_analytics` (weekly, 90d views, 180d logs).
+- **Celery Beat Schedule**: 6 jobs fully configured: marketplace expire/warn, coupon expire, flash sale end, seller stats refresh, analytics cleanup.
+- **API Documentation**: drf-spectacular tags updated with 12 categories (Mall, Marketplace, Orders, Wallet, Refunds, Delivery, Coupons, Notifications, Analytics, Admin).
+- **README.md**: Full project setup, env vars, Celery beat schedule, app architecture, production deployment checklist.
+
 ---
 
 ## 3. Environment & Collaboration Workflow

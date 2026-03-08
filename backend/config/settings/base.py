@@ -64,7 +64,7 @@ LOCAL_APPS = [
     'apps.delivery',
     'apps.coupons',
     'apps.admin_panel',
-    # --- Phase 10+ apps will be added here ---
+    'apps.analytics',
 ]
 
 
@@ -86,6 +86,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.ActivityLogMiddleware',
 ]
 
 # =============================================================================
@@ -348,9 +349,13 @@ SPECTACULAR_SETTINGS = {
         {'name': 'Mall', 'description': 'CampusHat Mall e-commerce'},
         {'name': 'Marketplace', 'description': 'Campus Marketplace peer-to-peer'},
         {'name': 'Orders', 'description': 'Order management'},
-        {'name': 'Payments', 'description': 'Payment processing'},
-        {'name': 'Reviews', 'description': 'Product and seller reviews'},
+        {'name': 'Wallet', 'description': 'Wallet and transactions'},
+        {'name': 'Refunds', 'description': 'Refund management'},
+        {'name': 'Delivery', 'description': 'Delivery tracking'},
+        {'name': 'Coupons', 'description': 'Coupons and flash sales'},
         {'name': 'Notifications', 'description': 'User notifications'},
+        {'name': 'Analytics', 'description': 'Seller and platform analytics'},
+        {'name': 'Admin', 'description': 'Admin panel, roles, and dashboard'},
     ],
 }
 
