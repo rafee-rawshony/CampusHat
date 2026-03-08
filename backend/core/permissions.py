@@ -102,3 +102,34 @@ class ReadOnly(BasePermission):
 
     def has_permission(self, request, view):
         return request.method in SAFE_METHODS
+
+
+class HasPermission(BasePermission):
+    """
+    Check role-based permission via the admin_panel models.
+
+    Usage:
+        permission_classes = [HasPermission('approve_seller')]
+
+    Admin role (user.role == 'admin') bypasses ALL permission checks.
+    """
+
+    def __init__(self, codename):
+        self.codename = codename
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not user or not user.is_authenticated:
+            return False
+
+        # Admin role bypasses all permission checks
+        if getattr(user, 'role', None) == 'admin':
+            return True
+
+        # Check role-based permissions from database
+        from apps.admin_panel.models import RolePermission, UserRole
+        user_roles = UserRole.objects.filter(user=user)
+        return RolePermission.objects.filter(
+            role__in=user_roles.values('role'),
+            permission__codename=self.codename,
+        ).exists()

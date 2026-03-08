@@ -63,9 +63,10 @@ LOCAL_APPS = [
     'apps.refunds',
     'apps.delivery',
     'apps.coupons',
-    # --- Phase 09+ apps will be added here ---
-    # 'apps.notifications',
+    'apps.admin_panel',
+    # --- Phase 10+ apps will be added here ---
 ]
+
 
 
 

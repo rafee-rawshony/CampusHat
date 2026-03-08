@@ -168,6 +168,19 @@ Three new apps: `apps/refunds/`, `apps/delivery/`, `apps/coupons/`.
   - Public: `GET /coupons/validate/`, `GET /flash-sales/active/`, `GET /flash-sales/{id}/`
   - **Celery tasks**: `expire_coupons` (hourly), `end_flash_sales` (5-min with select_for_update).
 
+### Phase 09: Admin Panel & Permissions
+New app: `apps/admin_panel/`, plus `HasPermission` added to `core/permissions.py`.
+- **Models** (6): `Role`, `Permission`, `RolePermission` (join table), `UserRole` (multi-role), `AdminActionLog` (audit trail with `log()` classmethod), `Notification` (8 types with `create_notification()` classmethod).
+- **Permission System**: `HasPermission(codename)` class in `core/permissions.py` — admin role bypasses all; otherwise checks `UserRole → RolePermission → Permission.codename`.
+- **Dashboard**: `GET /admin/dashboard/` — 14 aggregate stats (users, sellers, stores, orders today, revenue, pending approvals, refunds, platform wallet).
+- **User Management**: `GET /admin/users/` (filter by role/university/status/search), detail, suspend, activate, change-role, assign-role.
+- **Role Management**: CRUD roles, add/remove permissions via `RolePermission`.
+- **Platform Wallet**: `GET /admin/wallet/platform-balance/`, `GET /admin/wallet/transactions/`.
+- **Notifications**: `GET /notifications/` (own), unread-count, mark-read, mark-all-read.
+- **Admin Broadcast**: `POST /admin/notifications/broadcast/` → Celery task `broadcast_notification` (batches of 500).
+- **Action Logs**: `GET /admin/action-logs/` with module/action filters.
+- **Management Command**: `setup_initial_roles` — seeds 19 permissions across 8 modules, creates 4 roles (super_admin, moderator, finance_admin, support) with proper permission assignments.
+
 ---
 
 ## 3. Environment & Collaboration Workflow

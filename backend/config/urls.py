@@ -74,9 +74,7 @@ urlpatterns = [
     # --- Coupons (Phase 08) ---
     path('api/v1/coupons/', include('apps.coupons.urls')),
 
-    # Phase 09+ app URLs will be added here:
-
-    # path('api/v1/notifications/', include('apps.notifications.urls')),
+    # Phase 10+ app URLs will be added here:
 ]
 
 
@@ -105,6 +103,17 @@ from apps.coupons.urls import (
     admin_flash_sale_urlpatterns,
 )
 
+# --- Phase 09 URL patterns ---
+from apps.admin_panel.urls import (
+    notification_urlpatterns,
+    admin_dashboard_urlpatterns,
+    admin_user_urlpatterns,
+    admin_role_urlpatterns,
+    admin_wallet_urlpatterns as admin_panel_wallet_urlpatterns,
+    admin_notification_urlpatterns,
+    admin_log_urlpatterns,
+)
+
 urlpatterns += [
     path('api/v1/stores/', include((store_urlpatterns, 'stores'))),
     path('api/v1/admin/sellers/', include((seller_admin_urlpatterns, 'admin-sellers'))),
@@ -121,6 +130,14 @@ urlpatterns += [
     path('api/v1/admin/coupons/', include((admin_coupon_urlpatterns, 'admin-coupons'))),
     path('api/v1/admin/flash-sales/', include((admin_flash_sale_urlpatterns, 'admin-flash-sales'))),
     path('api/v1/flash-sales/', include((flash_sale_urlpatterns, 'flash-sales'))),
+    # Phase 09
+    path('api/v1/notifications/', include((notification_urlpatterns, 'notifications'))),
+    path('api/v1/admin/dashboard/', include((admin_dashboard_urlpatterns, 'admin-dashboard'))),
+    path('api/v1/admin/users/', include((admin_user_urlpatterns, 'admin-users'))),
+    path('api/v1/admin/roles/', include((admin_role_urlpatterns, 'admin-roles'))),
+    path('api/v1/admin/wallet/', include((admin_panel_wallet_urlpatterns, 'admin-wallet'))),
+    path('api/v1/admin/notifications/', include((admin_notification_urlpatterns, 'admin-notifications'))),
+    path('api/v1/admin/action-logs/', include((admin_log_urlpatterns, 'admin-logs'))),
 ]
 
 
