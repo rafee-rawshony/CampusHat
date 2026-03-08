@@ -100,7 +100,7 @@ class AdminUserListSerializer(serializers.Serializer):
     is_active = serializers.BooleanField()
     is_email_verified = serializers.BooleanField()
     university_name = serializers.SerializerMethodField()
-    date_joined = serializers.DateTimeField()
+    created_at = serializers.DateTimeField()
 
     def get_university_name(self, obj):
         return getattr(obj.university, 'name', None) if obj.university_id else None
@@ -111,12 +111,12 @@ class AdminUserDetailSerializer(serializers.Serializer):
     id = serializers.UUIDField()
     email = serializers.EmailField()
     full_name = serializers.CharField()
-    phone_number = serializers.CharField()
+    phone = serializers.CharField()
     role = serializers.CharField()
     is_active = serializers.BooleanField()
     is_email_verified = serializers.BooleanField()
     university_name = serializers.SerializerMethodField()
-    date_joined = serializers.DateTimeField()
+    created_at = serializers.DateTimeField()
     last_login = serializers.DateTimeField()
     user_roles = serializers.SerializerMethodField()
 

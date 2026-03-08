@@ -166,17 +166,40 @@ class CanBuyFromMall(BasePermission):
         return request.user and request.user.is_authenticated
 
 
+class IsAdminOnly(BasePermission):
+    """Strictly admin — no moderators."""
+    def has_permission(self, request, view):
+        return bool(
+            request.user and
+            request.user.is_authenticated and
+            request.user.role == 'admin'
+        )
+
+
 class IsSellerModerator(BasePermission):
     """Has permission codename: approve_seller"""
     def has_permission(self, request, view):
-        if not request.user.is_authenticated: return False
+        if not request.user or not request.user.is_authenticated:
+            return False
         if request.user.role == 'admin': return True
         from apps.admin_panel.models import RolePermission
         return RolePermission.objects.filter(
-            role__userrole__user=request.user,
+            role__user_roles__user=request.user,
             permission__codename='approve_seller'
         ).exists()
 
+
+class IsVerificationModerator(BasePermission):
+    """Has permission codename: review_verifications"""
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if request.user.role == 'admin': return True
+        from apps.admin_panel.models import RolePermission
+        return RolePermission.objects.filter(
+            role__user_roles__user=request.user,
+            permission__codename='review_verifications'
+        ).exists()
 
 class IsMarketplaceModerator(BasePermission):
     """Has permission codename: moderate_marketplace"""
@@ -185,7 +208,22 @@ class IsMarketplaceModerator(BasePermission):
         if request.user.role == 'admin': return True
         from apps.admin_panel.models import RolePermission
         return RolePermission.objects.filter(
-            role__userrole__user=request.user,
+            role__user_roles__user=request.user,
             permission__codename='moderate_marketplace'
         ).exists()
+
+
+class IsMarketplacePostOwner(BasePermission):
+    """
+    Object-level permission: allow only the owner of a marketplace listing.
+    """
+    message = 'You do not own this listing.'
+
+    def has_object_permission(self, request, view, obj):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        # Admin bypass
+        if request.user.role == 'admin':
+            return True
+        return obj.user == request.user
 

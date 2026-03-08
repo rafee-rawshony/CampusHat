@@ -9,7 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from core.permissions import IsVerifiedStudent
+from core.permissions import IsVerifiedForMarketplace
 
 from .interaction_serializers import MarketplaceOfferSerializer, OfferActionSerializer
 from .models import MarketplaceOffer, MarketplaceProduct
@@ -22,7 +22,7 @@ class CreateOfferView(APIView):
     Create a new price offer on a negotiable listing.
     """
 
-    permission_classes = [IsAuthenticated, IsVerifiedStudent]
+    permission_classes = [IsAuthenticated, IsVerifiedForMarketplace]
 
     def post(self, request, product_id):
         try:

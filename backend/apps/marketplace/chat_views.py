@@ -11,7 +11,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from core.permissions import IsVerifiedStudent
+from core.permissions import IsVerifiedForMarketplace
 
 from .interaction_serializers import (
     MarketplaceChatSerializer,
@@ -29,7 +29,7 @@ class StartChatView(APIView):
     Start a chat with a product's seller, or return existing thread.
     """
 
-    permission_classes = [IsAuthenticated, IsVerifiedStudent]
+    permission_classes = [IsAuthenticated, IsVerifiedForMarketplace]
 
     def post(self, request):
         serializer = StartChatSerializer(data=request.data)

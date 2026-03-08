@@ -16,7 +16,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
-from core.permissions import IsOwnerOrAdmin, IsVerifiedStudent
+from core.permissions import (
+    IsOwnerOrAdmin, IsVerifiedStudent, 
+    IsVerifiedForMarketplace, IsMarketplacePostOwner
+)
 
 from .filters import MarketplaceProductFilter
 from .models import (
@@ -32,6 +35,7 @@ from .product_serializers import (
     MarketplaceProductDetailSerializer,
     MarketplaceProductListSerializer,
     MarketplaceProductOwnerSerializer,
+    MarketplaceProductOwnerUpdateSerializer,  # NEW
 )
 
 
@@ -94,7 +98,13 @@ class MarketplaceListingViewSet(ModelViewSet):
     def get_permissions(self):
         if self.action in ('list', 'retrieve'):
             return [AllowAny()]
-        return [IsAuthenticated(), IsVerifiedStudent()]
+        elif self.action == 'create':
+            return [IsAuthenticated(), IsVerifiedForMarketplace()]
+        elif self.action in ('partial_update', 'update'):
+            return [IsAuthenticated(), IsVerifiedForMarketplace(), IsMarketplacePostOwner()]
+        elif self.action in ('hide', 'unhide', 'repost', 'mark_sold'):
+            return [IsAuthenticated(), IsVerifiedForMarketplace(), IsMarketplacePostOwner()]
+        return [IsAuthenticated()]
 
     def get_object(self):
         """
@@ -104,12 +114,14 @@ class MarketplaceListingViewSet(ModelViewSet):
         in any status (not just active), so we query all non-deleted
         user products for those actions.
         """
-        if self.action in ('hide', 'unhide', 'repost', 'mark_sold'):
+        if self.action in ('partial_update', 'update', 'hide', 'unhide', 'repost', 'mark_sold'):
             pk = self.kwargs.get('pk')
             try:
-                return MarketplaceProduct.objects.get(
+                obj = MarketplaceProduct.objects.get(
                     pk=pk, deleted_at__isnull=True,
                 )
+                self.check_object_permissions(self.request, obj)
+                return obj
             except MarketplaceProduct.DoesNotExist:
                 from rest_framework.exceptions import NotFound
                 raise NotFound('Listing not found.')
@@ -118,13 +130,12 @@ class MarketplaceListingViewSet(ModelViewSet):
     def get_serializer_class(self):
         if self.action == 'create':
             return MarketplaceProductCreateSerializer
+        if self.action in ('update', 'partial_update'):
+            return MarketplaceProductOwnerUpdateSerializer
         if self.action == 'list':
             return MarketplaceProductListSerializer
         if self.action == 'retrieve':
-            request = self.request
-            if request.user.is_authenticated:
-                return MarketplaceProductDetailSerializer
-            return MarketplaceProductListSerializer
+            return MarketplaceProductDetailSerializer
         return MarketplaceProductListSerializer
 
     def get_queryset(self):
@@ -182,15 +193,28 @@ class MarketplaceListingViewSet(ModelViewSet):
             'data': output,
         }, status=status.HTTP_201_CREATED)
 
+    def update(self, request, *args, **kwargs):
+        """Disable full PUT — PATCH only."""
+        return Response(
+            {'error': 'Use PATCH for updates. Full PUT is not supported.'},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED
+        )
+
     def partial_update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        if instance.user != request.user:
-            return Response({
-                'success': False,
-                'message': 'You can only edit your own listings.',
-                'code': 'FORBIDDEN',
-            }, status=status.HTTP_403_FORBIDDEN)
-        return super().partial_update(request, *args, **kwargs)
+        instance = self.get_object()  # triggers IsMarketplacePostOwner check
+        serializer = self.get_serializer(
+            instance, data=request.data, partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        updated = serializer.save()
+
+        message = ('Ad updated and re-submitted for review.'
+                   if updated.status == 'pending'
+                   else 'Ad updated successfully.')
+        return Response({
+            'success': True, 'message': message,
+            'data': MarketplaceProductOwnerSerializer(updated).data
+        }, status=200)
 
     # -----------------------------------------------------------------
     # CUSTOM ACTIONS

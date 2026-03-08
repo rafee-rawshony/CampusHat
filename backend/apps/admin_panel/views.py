@@ -13,7 +13,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from core.pagination import CampusHatPagination
-from core.permissions import IsAdminOrModerator
+from core.permissions import IsAdminOnly, IsAdminOrModerator
 
 from .models import (
     AdminActionLog, Notification, Permission,
@@ -133,7 +133,7 @@ class AdminDashboardView(APIView):
 class AdminUserListView(APIView):
     """GET /api/v1/admin/users/ — filter by role, university, status."""
 
-    permission_classes = [IsAuthenticated, IsAdminOrModerator]
+    permission_classes = [IsAuthenticated, IsAdminOnly]
 
     def get(self, request):
         from apps.authentication.models import User
@@ -160,7 +160,7 @@ class AdminUserListView(APIView):
                 | Q(full_name__icontains=search)
             )
 
-        users = users.order_by('-date_joined')
+        users = users.order_by('-created_at')
         paginator = CampusHatPagination()
         page = paginator.paginate_queryset(users, request)
         if page is not None:
@@ -175,7 +175,7 @@ class AdminUserListView(APIView):
 class AdminUserDetailView(APIView):
     """GET /api/v1/admin/users/{id}/"""
 
-    permission_classes = [IsAuthenticated, IsAdminOrModerator]
+    permission_classes = [IsAuthenticated, IsAdminOnly]
 
     def get(self, request, user_id):
         from apps.authentication.models import User
@@ -194,7 +194,7 @@ class AdminUserDetailView(APIView):
 class AdminUserSuspendView(APIView):
     """PATCH /api/v1/admin/users/{id}/suspend/"""
 
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsAdminOnly]
 
     def patch(self, request, user_id):
         from apps.authentication.models import User
@@ -218,7 +218,7 @@ class AdminUserSuspendView(APIView):
 class AdminUserActivateView(APIView):
     """PATCH /api/v1/admin/users/{id}/activate/"""
 
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsAdminOnly]
 
     def patch(self, request, user_id):
         from apps.authentication.models import User
@@ -242,7 +242,7 @@ class AdminUserActivateView(APIView):
 class AdminUserChangeRoleView(APIView):
     """PATCH /api/v1/admin/users/{id}/change-role/"""
 
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsAdminOnly]
 
     def patch(self, request, user_id):
         from apps.authentication.models import User
@@ -275,7 +275,7 @@ class AdminUserChangeRoleView(APIView):
 class AdminAssignRoleView(APIView):
     """POST /api/v1/admin/users/{id}/assign-role/"""
 
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsAdminOnly]
 
     def post(self, request, user_id):
         from apps.authentication.models import User
@@ -316,7 +316,7 @@ class AdminAssignRoleView(APIView):
 class AdminRoleListView(APIView):
     """GET/POST /api/v1/admin/roles/"""
 
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsAdminOnly]
 
     def get(self, request):
         roles = Role.objects.prefetch_related(
@@ -346,7 +346,7 @@ class AdminRoleListView(APIView):
 class AdminRoleDetailView(APIView):
     """GET/PATCH /api/v1/admin/roles/{id}/"""
 
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsAdminOnly]
 
     def get(self, request, role_id):
         try:
@@ -376,7 +376,7 @@ class AdminRoleDetailView(APIView):
 class AdminRoleAddPermissionView(APIView):
     """POST /api/v1/admin/roles/{id}/add-permission/"""
 
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsAdminOnly]
 
     def post(self, request, role_id):
         permission_id = request.data.get('permission_id')
@@ -405,7 +405,7 @@ class AdminRoleAddPermissionView(APIView):
 class AdminRoleRemovePermissionView(APIView):
     """DELETE /api/v1/admin/roles/{id}/remove-permission/{perm_id}/"""
 
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsAdminOnly]
 
     def delete(self, request, role_id, perm_id):
         deleted, _ = RolePermission.objects.filter(
@@ -587,7 +587,7 @@ class AdminBroadcastNotificationView(APIView):
 class AdminActionLogListView(APIView):
     """GET /api/v1/admin/action-logs/"""
 
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsAdminOnly]
 
     def get(self, request):
         logs = AdminActionLog.objects.select_related('admin_user').all()

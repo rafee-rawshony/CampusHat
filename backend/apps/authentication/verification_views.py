@@ -10,7 +10,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from core.permissions import IsAdminOrModerator
+from core.permissions import IsAdminOnly, IsAdminOrModerator, IsVerificationModerator
 
 from .models import UserVerification
 from .verification_serializers import (
@@ -103,7 +103,7 @@ class AdminVerificationListView(APIView):
     Supports ?status= filter for approved/rejected/expired.
     """
 
-    permission_classes = [IsAuthenticated, IsAdminOrModerator]
+    permission_classes = [IsAuthenticated, IsVerificationModerator]
 
     def get(self, request):
         status_filter = request.query_params.get('status', 'pending')
@@ -135,7 +135,7 @@ class AdminVerificationDetailView(APIView):
     for the submitted documents.
     """
 
-    permission_classes = [IsAuthenticated, IsAdminOrModerator]
+    permission_classes = [IsAuthenticated, IsAdminOnly]
 
     def get(self, request, pk):
         try:
@@ -174,7 +174,7 @@ class AdminVerificationReviewView(APIView):
     Approve or reject a pending verification.
     """
 
-    permission_classes = [IsAuthenticated, IsAdminOrModerator]
+    permission_classes = [IsAuthenticated, IsVerificationModerator]
 
     def patch(self, request, pk):
         try:

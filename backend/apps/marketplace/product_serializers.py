@@ -287,3 +287,52 @@ class MarketplaceProductOwnerSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at',
         ]
         read_only_fields = fields
+from decimal import Decimal
+
+class MarketplaceProductOwnerUpdateSerializer(serializers.ModelSerializer):
+    """
+    Used ONLY by the post owner to update their own listing via PATCH.
+    Only safe fields are writable. Status, university, user are all
+    read-only — owners cannot self-approve their ads.
+    """
+    class Meta:
+        model = MarketplaceProduct
+        fields = [
+            # WRITABLE — owner can change these:
+            'title',
+            'description',
+            'price',
+            'price_unit',
+            'condition',
+            'is_negotiable',
+            'safe_meetup_location',
+        ]
+
+    def validate_price(self, value):
+        if value <= Decimal('0.00'):
+            raise serializers.ValidationError('Price must be greater than 0.')
+        return value
+
+    def validate(self, data):
+        # Only active or rejected ads can be edited.
+        # pending, expired, sold, deleted → no edits allowed.
+        instance = self.instance
+        if instance and instance.status not in ['active', 'rejected']:
+            raise serializers.ValidationError({
+                'non_field_errors': [
+                    f'Cannot edit an ad with status: {instance.status}. '
+                    f'Only active or rejected ads can be edited.'
+                ]
+            })
+        return data
+
+    def update(self, instance, validated_data):
+        # If title/description/price change on an ACTIVE ad →
+        # re-submit for admin approval (status back to pending).
+        content_fields = {'title', 'description', 'price'}
+        if instance.status == 'active' and (set(validated_data) & content_fields):
+            validated_data['status'] = 'pending'
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance

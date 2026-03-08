@@ -11,7 +11,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from core.permissions import IsAdminOrModerator
+from core.permissions import IsAdminOrModerator, IsSellerModerator
 
 from .models import SellerBadge, SellerPayoutRequest, SellerProfile, Store
 from .serializers import (
@@ -26,7 +26,7 @@ from .serializers import (
 
 class AdminSellerPendingView(APIView):
     """GET /api/v1/admin/sellers/pending/"""
-    permission_classes = [IsAuthenticated, IsAdminOrModerator]
+    permission_classes = [IsAuthenticated, IsSellerModerator]
 
     def get(self, request):
         sellers = SellerProfile.objects.filter(
@@ -41,7 +41,7 @@ class AdminSellerPendingView(APIView):
 
 class AdminSellerDetailView(APIView):
     """GET /api/v1/admin/sellers/{id}/"""
-    permission_classes = [IsAuthenticated, IsAdminOrModerator]
+    permission_classes = [IsAuthenticated, IsSellerModerator]
 
     def get(self, request, pk):
         try:
@@ -60,7 +60,7 @@ class AdminSellerDetailView(APIView):
 
 class AdminSellerApproveView(APIView):
     """POST /api/v1/admin/sellers/{id}/approve/"""
-    permission_classes = [IsAuthenticated, IsAdminOrModerator]
+    permission_classes = [IsAuthenticated, IsSellerModerator]
 
     def post(self, request, pk):
         try:
@@ -85,7 +85,7 @@ class AdminSellerApproveView(APIView):
 
 class AdminSellerRejectView(APIView):
     """POST /api/v1/admin/sellers/{id}/reject/"""
-    permission_classes = [IsAuthenticated, IsAdminOrModerator]
+    permission_classes = [IsAuthenticated, IsSellerModerator]
 
     def post(self, request, pk):
         try:
@@ -113,7 +113,7 @@ class AdminSellerRejectView(APIView):
 
 class AdminSellerSuspendView(APIView):
     """POST /api/v1/admin/sellers/{id}/suspend/"""
-    permission_classes = [IsAuthenticated, IsAdminOrModerator]
+    permission_classes = [IsAuthenticated, IsSellerModerator]
 
     def post(self, request, pk):
         try:
@@ -137,7 +137,7 @@ class AdminSellerSuspendView(APIView):
 
 class AdminStorePendingView(APIView):
     """GET /api/v1/admin/stores/pending/"""
-    permission_classes = [IsAuthenticated, IsAdminOrModerator]
+    permission_classes = [IsAuthenticated, IsSellerModerator]
 
     def get(self, request):
         stores = Store.objects.filter(
@@ -152,7 +152,7 @@ class AdminStorePendingView(APIView):
 
 class AdminStoreDetailView(APIView):
     """GET /api/v1/admin/stores/{id}/"""
-    permission_classes = [IsAuthenticated, IsAdminOrModerator]
+    permission_classes = [IsAuthenticated, IsSellerModerator]
 
     def get(self, request, pk):
         try:
@@ -171,7 +171,7 @@ class AdminStoreDetailView(APIView):
 
 class AdminStoreApproveView(APIView):
     """POST /api/v1/admin/stores/{id}/approve/"""
-    permission_classes = [IsAuthenticated, IsAdminOrModerator]
+    permission_classes = [IsAuthenticated, IsSellerModerator]
 
     def post(self, request, pk):
         try:
@@ -198,7 +198,7 @@ class AdminStoreApproveView(APIView):
 
 class AdminStoreRejectView(APIView):
     """POST /api/v1/admin/stores/{id}/reject/"""
-    permission_classes = [IsAuthenticated, IsAdminOrModerator]
+    permission_classes = [IsAuthenticated, IsSellerModerator]
 
     def post(self, request, pk):
         try:

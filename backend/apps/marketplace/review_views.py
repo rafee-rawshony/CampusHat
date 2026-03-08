@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from core.permissions import IsVerifiedStudent
+from core.permissions import IsVerifiedForMarketplace
 
 from .interaction_serializers import MarketplaceReviewSerializer
 from .models import MarketplaceProduct, MarketplaceReview
@@ -16,7 +16,7 @@ from .models import MarketplaceProduct, MarketplaceReview
 class CreateReviewView(APIView):
     """POST /api/v1/marketplace/listings/{id}/reviews/"""
 
-    permission_classes = [IsAuthenticated, IsVerifiedStudent]
+    permission_classes = [IsAuthenticated, IsVerifiedForMarketplace]
 
     def post(self, request, product_id):
         try:

@@ -31,6 +31,7 @@ PERMISSIONS = [
     ('broadcast_notification', 'notifications', 'Send broadcast notifications'),
     ('approve_verification', 'verification', 'Approve student verifications'),
     ('reject_verification', 'verification', 'Reject student verifications'),
+    ('review_verifications', 'authentication', 'Can review student verifications'),
 ]
 
 # Role → permission codenames mapping
@@ -39,6 +40,7 @@ ROLE_PERMISSIONS = {
     'moderator': [
         'approve_seller', 'reject_seller', 'approve_store', 'reject_store',
         'moderate_marketplace', 'approve_verification', 'reject_verification',
+        'review_verifications',
     ],
     'finance_admin': [
         'process_refund', 'approve_refund', 'reject_refund',
@@ -46,7 +48,7 @@ ROLE_PERMISSIONS = {
     ],
     'support': [
         'approve_verification', 'reject_verification',
-        'moderate_marketplace',
+        'moderate_marketplace', 'review_verifications',
     ],
 }
 
