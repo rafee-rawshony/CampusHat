@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
     Search,
     Heart,
@@ -18,6 +18,7 @@ import {
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { VerificationRequiredCard, VerificationBanner } from '@/components/auth/VerificationRequiredCard'
+import { UpgradePrompt } from '@/components/marketplace/UpgradePrompt'
 import { CartDrawer } from '@/components/mall/CartDrawer'
 import { Input } from '@/components/ui/input'
 import {
@@ -41,6 +42,7 @@ export function Navbar() {
         useAuthStore()
     const { getItemCount, setIsOpen } = useCartStore()
     const isMarketplace = pathname?.startsWith('/marketplace')
+    const router = useRouter()
 
     // Verification Modal State
     const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false)
@@ -51,8 +53,7 @@ export function Navbar() {
 
         // If they are admin, mod, seller, or verified, they can post
         if (isAdmin() || isModerator() || isSeller() || isVerifiedStudent()) {
-            // navigate to post ad (not built yet)
-            console.log("Navigate to /marketplace/post")
+            router.push('/marketplace/post')
         } else {
             // Normal unverified user
             setIsVerificationModalOpen(true)
@@ -214,6 +215,12 @@ export function Navbar() {
                 <VerificationRequiredCard
                     isOpen={isVerificationModalOpen}
                     onClose={() => setIsVerificationModalOpen(false)}
+                />
+
+                <UpgradePrompt
+                    isOpen={isVerificationModalOpen && isMarketplace}
+                    onClose={() => setIsVerificationModalOpen(false)}
+                    title="Verification Required to Post Ads"
                 />
 
                 {/* Global Cart Drawer */}

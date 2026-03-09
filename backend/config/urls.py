@@ -15,7 +15,12 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
 )
 
+from apps.core.views import health_check
+
 urlpatterns = [
+    # --- Health Check ---
+    path('api/health/', health_check, name='health-check'),
+
     # --- Admin ---
     path('admin/', admin.site.urls),
 
