@@ -19,6 +19,8 @@ export interface User {
     profile_picture?: string
     is_email_verified: boolean
     reputation_score?: number
+    verification_status: 'not_submitted' | 'pending' | 'approved' | 'rejected' | null
+    verification_rejection_reason?: string
 }
 
 interface AuthState {
