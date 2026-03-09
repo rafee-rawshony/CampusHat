@@ -1,110 +1,217 @@
 'use client'
 
-import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import React, { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { Check, ShoppingBag, Key, Briefcase, Utensils, UploadCloud, X, ArrowLeft, ArrowRight } from 'lucide-react'
+import { ShoppingBag, Key, Briefcase, Utensils, X, Info, Plus, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from "@/components/ui/checkbox"
 import { useAuthStore } from '@/stores/auth.store'
 import { api } from '@/lib/api'
-import { useToast } from '@/components/ui/use-toast'
-import { MarketplaceAdCard } from '@/components/marketplace/MarketplaceAdCard'
+import { useToast } from '@/hooks/use-toast'
 import { UpgradePrompt } from '@/components/marketplace/UpgradePrompt'
 
-type PostType = 'buy' | 'rental' | 'service' | 'food' | null
+type PostType = 'buy' | 'rental' | 'service' | 'food'
 
 export default function PostAdPage() {
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const editId = searchParams?.get('edit')
     const { toast } = useToast()
+
     const { isAuthenticated, user, isVerifiedStudent, isAdmin, isModerator, isSeller } = useAuthStore()
     const canAccessMarketplace = isAuthenticated && (isVerifiedStudent() || isAdmin() || isModerator() || isSeller())
 
-    const [currentStep, setCurrentStep] = useState(1)
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [isLoadingEdit, setIsLoadingEdit] = useState(false)
+    const [errors, setErrors] = useState<Record<string, string>>({})
+
+    // Active upload tab (for Section 3)
+    const [photoMode, setPhotoMode] = useState<'url' | 'upload'>('url')
 
     // Form State
     const [adData, setAdData] = useState({
-        post_type: null as PostType,
+        post_type: 'buy' as PostType,
         title: '',
         description: '',
         category: '',
         condition: '', // Only for buy/rental
         price: '',
-        price_unit: '', // Only for rental/service
-        is_negotiable: false,
-        duration: '',
-        meetup_location: '',
-        campus_visibility: 'My University Only'
+        duration_days: '15',
+        is_anonymous: false,
+        campus_visibility: 'own_university'
     })
 
-    const [images, setImages] = useState<File[]>([])
-    const [imagePreviews, setImagePreviews] = useState<string[]>([])
+    // Image arrays (Up to 8 combined)
+    const [imageUrls, setImageUrls] = useState<string[]>([''])
+    const [uploadFiles, setUploadFiles] = useState<File[]>([])
+    const [uploadPreviews, setUploadPreviews] = useState<string[]>([])
+    const [existingImages, setExistingImages] = useState<{ id: number, image: string }[]>([])
+
+    // Categories mapping
+    const categoriesMap: Record<PostType, string[]> = {
+        buy: ['Textbooks', 'Electronics', 'Furniture', 'Clothing', 'Sports', 'Other'],
+        rental: ['Housing', 'Appliances', 'Vehicles', 'Tools', 'Other'],
+        service: ['Tutoring', 'Design', 'Labor', 'Tech Support', 'Other'],
+        food: ['Homemade Meals', 'Snacks', 'Bakery', 'Other'],
+    }
+
+    // Load Edit Data
+    useEffect(() => {
+        if (editId && canAccessMarketplace) {
+            setIsLoadingEdit(true)
+            api.get(`/marketplace/listings/${editId}/`)
+                .then(res => {
+                    const data = res.data
+                    setAdData({
+                        post_type: data.post_type as PostType,
+                        title: data.title,
+                        description: data.description,
+                        category: data.category?.name || data.category,
+                        condition: data.condition || '',
+                        price: data.price.toString(),
+                        duration_days: '15', // Fallback, normally calculate from expires_at if needed
+                        is_anonymous: false, // Default since API might not expose this flag
+                        campus_visibility: 'own_university'
+                    })
+                    setExistingImages(data.images || [])
+                    setPhotoMode('upload') // Assume if editing, show the rich preview gallery
+                })
+                .catch(err => {
+                    toast({ title: "Error Loading Ad", description: "Could not fetch existing ad data.", variant: "destructive" })
+                })
+                .finally(() => setIsLoadingEdit(false))
+        }
+    }, [editId, canAccessMarketplace])
 
     // Handlers
-    const updateAdData = (field: string, value: any) => setAdData(prev => ({ ...prev, [field]: value }))
+    const updateAdData = (field: string, value: any) => {
+        setAdData(prev => ({ ...prev, [field]: value }))
+        // Clear error for this field
+        if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined } as any))
+    }
 
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleTypeChange = (type: PostType) => {
+        setAdData(prev => ({
+            ...prev,
+            post_type: type,
+            category: categoriesMap[type][0], // Auto-select first category
+            condition: (type === 'buy' || type === 'rental') ? 'USED-GOOD' : '' // Reset or set default condition
+        }))
+    }
+
+    // Image URL logic
+    const handleUrlChange = (index: number, value: string) => {
+        const newUrls = [...imageUrls]
+        newUrls[index] = value
+        setImageUrls(newUrls)
+    }
+    const addUrlRow = () => {
+        const totalImages = imageUrls.filter(u => u.trim() !== '').length + uploadFiles.length + existingImages.length
+        if (totalImages < 8) setImageUrls(prev => [...prev, ''])
+    }
+    const removeUrlRow = (index: number) => {
+        setImageUrls(prev => prev.filter((_, i) => i !== index))
+        if (imageUrls.length === 1) setImageUrls(['']) // keep at least one empty
+    }
+
+    // Image File logic
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files) return
-        const filesArray = Array.from(e.target.files).slice(0, 8 - images.length)
-        setImages(prev => [...prev, ...filesArray])
+        const currentCount = imageUrls.filter(u => u.trim() !== '').length + uploadFiles.length + existingImages.length
+        const allowed = 8 - currentCount
+
+        const filesArray = Array.from(e.target.files).slice(0, allowed)
+        setUploadFiles(prev => [...prev, ...filesArray])
 
         const newPreviews = filesArray.map(file => URL.createObjectURL(file))
-        setImagePreviews(prev => [...prev, ...newPreviews])
+        setUploadPreviews(prev => [...prev, ...newPreviews])
+    }
+    const removeUploadFile = (index: number) => {
+        URL.revokeObjectURL(uploadPreviews[index])
+        setUploadFiles(prev => prev.filter((_, i) => i !== index))
+        setUploadPreviews(prev => prev.filter((_, i) => i !== index))
+    }
+    const removeExistingImage = (index: number) => {
+        // Just remove from array visually, backend patch should handle remaining
+        setExistingImages(prev => prev.filter((_, i) => i !== index))
     }
 
-    const removeImage = (index: number) => {
-        URL.revokeObjectURL(imagePreviews[index])
-        setImages(prev => prev.filter((_, i) => i !== index))
-        setImagePreviews(prev => prev.filter((_, i) => i !== index))
-    }
+    // Submit Validation
+    const validateForm = () => {
+        const newErrors: Record<string, string> = {}
+        if (!adData.title.trim()) newErrors.title = "Title is required"
+        else if (adData.title.length < 5) newErrors.title = "Title must be at least 5 characters"
 
-    const validateStep2 = () => {
-        if (!adData.title || adData.title.length < 5) return "Title requires at least 5 characters."
-        if (!adData.description || adData.description.length < 20) return "Description requires at least 20 characters."
-        if (!adData.category) return "Please select a category."
-        if (!adData.price || isNaN(Number(adData.price))) return "Please enter a valid price."
-        if (!adData.duration) return "Please select an ad duration."
-        if ((adData.post_type === 'rental' || adData.post_type === 'service') && !adData.price_unit) return "Please select a price unit."
-        if ((adData.post_type === 'buy' || adData.post_type === 'rental') && !adData.condition) return "Please select item condition."
-        return null
-    }
+        if (!adData.description.trim()) newErrors.description = "Description is required"
+        else if (adData.description.length < 20) newErrors.description = "Description must be at least 20 characters"
+        else if (adData.description.length > 1000) newErrors.description = "Description cannot exceed 1000 characters"
 
-    const handleNext = () => {
-        if (currentStep === 1 && !adData.post_type) return
-        if (currentStep === 2) {
-            const error = validateStep2()
-            if (error) { toast({ title: "Incomplete Field", description: error, variant: "destructive" }); return }
+        if (!adData.category) newErrors.category = "Category is required"
+        if ((adData.post_type === 'buy' || adData.post_type === 'rental') && !adData.condition) {
+            newErrors.condition = "Condition is required"
         }
-        if (currentStep === 3 && images.length === 0) {
-            toast({ title: "Images required", description: "Please upload at least one image.", variant: "destructive" })
+
+        if (!adData.price && adData.price !== '0') newErrors.price = "Price is required"
+        else if (isNaN(Number(adData.price)) || Number(adData.price) < 0) newErrors.price = "Price must be a valid positive number"
+
+        const totalImages = imageUrls.filter(u => u.trim() !== '').length + uploadFiles.length + existingImages.length
+        if (totalImages === 0) newErrors.images = "Please add at least one image"
+
+        setErrors(newErrors)
+        return Object.keys(newErrors).length === 0
+    }
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!validateForm()) {
+            // Scroll to top to show banner if needed
+            window.scrollTo({ top: 0, behavior: 'smooth' })
             return
         }
-        setCurrentStep(prev => prev + 1)
-    }
 
-    const submitAd = async () => {
         setIsSubmitting(true)
         try {
             const formData = new FormData()
-            Object.entries(adData).forEach(([key, val]) => {
-                if (val !== null && val !== '') formData.append(key, val.toString())
-            })
-            images.forEach(img => formData.append('uploaded_images', img))
+            formData.append('post_type', adData.post_type)
+            formData.append('title', adData.title)
+            formData.append('description', adData.description)
+            formData.append('category', adData.category)
 
-            await api.post('/marketplace/listings/', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            })
+            if (adData.condition) formData.append('condition', adData.condition)
+            formData.append('price', adData.price)
+            formData.append('duration_days', adData.duration_days)
+            formData.append('is_anonymous', String(adData.is_anonymous))
+            formData.append('campus_visibility', adData.campus_visibility)
 
-            toast({ title: "Success!", description: "Your ad has been posted and is currently Under Review." })
+            // Handle URL images vs File uploads based on backend requirements
+            // For now, mapping valid URLs back to a comma-separated string if the backend supports it:
+            const validUrls = imageUrls.filter(u => u.trim() !== '')
+            if (validUrls.length > 0) formData.append('image_urls', JSON.stringify(validUrls))
+
+            // Append binary files
+            uploadFiles.forEach(file => formData.append('uploaded_images', file))
+
+            if (editId) {
+                // Determine remaining existing image IDs to keep
+                const existingImageIds = existingImages.map(img => img.id)
+                formData.append('keep_images', JSON.stringify(existingImageIds))
+                await api.patch(`/marketplace/listings/${editId}/`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+                toast({ title: 'Success', description: 'Your ad has been updated and is back Under Review.' })
+            } else {
+                await api.post('/marketplace/listings/', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+                toast({ title: 'Success', description: "Your ad has been posted and is currently Under Review." })
+            }
             router.push('/marketplace/my-ads')
+
         } catch (error: any) {
             toast({
-                title: "Failed to post ad",
-                description: error.response?.data?.detail || "Something went wrong.",
+                title: "Failed to save ad",
+                description: error.response?.data?.detail || "Please check your inputs and try again.",
                 variant: "destructive"
             })
         } finally {
@@ -114,89 +221,152 @@ export default function PostAdPage() {
 
     if (!canAccessMarketplace) {
         return (
-            <div className="min-h-screen bg-[#F5F5F5] pt-12">
+            <div className="min-h-[calc(100vh-64px)] bg-[#F5F5F5] pt-12 flex justify-center px-4">
                 <UpgradePrompt
                     isOpen={true}
                     onClose={() => router.push('/marketplace')}
                     title="Verification Required"
-                    description="You must verify your university email to post ads on the Marketplace. This keeps our community safe."
+                    description="You must verify your university email to post ads on the Marketplace. This builds trust and keeps your campus safe."
                 />
             </div>
         )
     }
 
-    // Step UI Mapping
-    const typeCards = [
-        { id: 'buy', icon: <ShoppingBag className="w-8 h-8" />, title: 'Buy', bg: 'bg-[#7C3AED]', label: 'Sell Physical Items' },
-        { id: 'rental', icon: <Key className="w-8 h-8" />, title: 'Rental', bg: 'bg-[#059669]', label: 'Rent out housing or gear' },
-        { id: 'service', icon: <Briefcase className="w-8 h-8" />, title: 'Services', bg: 'bg-[#0891B2]', label: 'Offer tutoring, rides, etc.' },
-        { id: 'food', icon: <Utensils className="w-8 h-8" />, title: 'Food', bg: 'bg-[#D97706]', label: 'Sell homemade meals' },
-    ]
-
-    const categoriesMap: Record<string, string[]> = {
-        buy: ['Electronics', 'Books', 'Furniture', 'Clothing', 'Other'],
-        rental: ['Apartment', 'Bicycle', 'Camera Gear', 'Event Tools'],
-        service: ['Tutoring', 'Delivery', 'Design/Web', 'Rideshare'],
-        food: ['Full Meals', 'Snacks', 'Baking', 'Meal Prep'],
+    if (isLoadingEdit) {
+        return <div className="min-h-screen pt-20 text-center animate-pulse text-gray-500">Loading ad data...</div>
     }
 
-    const durationOptions = (adData.post_type === 'service' || adData.post_type === 'food')
-        ? ['1 month', '3 months', '6 months']
-        : ['7 days', '15 days', '30 days']
+    const adTypeCards = [
+        { id: 'buy', icon: <ShoppingBag className="w-6 h-6" />, label: 'Sell Item' },
+        { id: 'rental', icon: <Key className="w-6 h-6" />, label: 'For Rent' },
+        { id: 'service', icon: <Briefcase className="w-6 h-6" />, label: 'Service' },
+        { id: 'food', icon: <Utensils className="w-6 h-6" />, label: 'Food' },
+    ]
 
-    const renderStepContent = () => {
-        switch (currentStep) {
-            case 1:
-                return (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {typeCards.map(type => (
-                            <button
-                                key={type.id}
-                                onClick={() => updateAdData('post_type', type.id as PostType)}
-                                className={`flex items-center gap-4 p-6 rounded-2xl border-2 transition-all ${adData.post_type === type.id ? 'border-brand-primary bg-brand-primary/5 shadow-md' : 'border-gray-100 bg-white hover:border-gray-200'} text-left relative overflow-hidden group`}
-                            >
-                                <div className={`w-16 h-16 rounded-xl flex items-center justify-center text-white shrink-0 ${type.bg}`}>
-                                    {type.icon}
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-bold text-gray-900">{type.title}</h3>
-                                    <p className="text-sm font-medium text-gray-500">{type.label}</p>
-                                </div>
-                                {adData.post_type === type.id && (
-                                    <div className="absolute top-4 right-4 bg-brand-primary text-white rounded-full p-1">
-                                        <Check className="w-4 h-4" />
-                                    </div>
-                                )}
-                            </button>
-                        ))}
+    const totalUploadedImages = imageUrls.filter(u => u.trim() !== '').length + uploadFiles.length + existingImages.length
+
+    return (
+        <div className="bg-[#F5F5F5] min-h-screen pb-20 pt-8 sm:pt-12">
+            <div className="container mx-auto px-4 max-w-2xl">
+
+                {/* Header */}
+                <div className="text-center mb-10">
+                    <div className="flex items-center justify-center gap-2 mb-2 text-sm text-gray-500 font-medium">
+                        <span onClick={() => router.back()} className="cursor-pointer hover:text-brand-primary">Marketplace</span>
+                        <span>/</span>
+                        <span className="text-gray-900">{editId ? 'Edit Advertisement' : 'Post New Advertisement'}</span>
                     </div>
-                )
+                    <h1 className="text-3xl md:text-4xl font-extrabold text-[#1A1A2E] tracking-tight mb-2">
+                        {editId ? 'Edit Your Ad' : 'What are you offering?'}
+                    </h1>
+                    <p className="text-gray-500">
+                        {editId ? 'Update your listing details below.' : 'Reach fellow students across your campus community in minutes.'}
+                    </p>
+                </div>
 
-            case 2:
-                return (
-                    <div className="space-y-6 bg-white p-6 md:p-8 rounded-2xl border border-gray-100 shadow-sm">
-                        <div className="grid gap-2">
-                            <Label htmlFor="title" className="text-gray-900">Ad Title <span className="text-red-500">*</span></Label>
-                            <Input id="title" placeholder="e.g. MacBook Pro M1 2020" value={adData.title} onChange={e => updateAdData('title', e.target.value)} />
+                {Object.keys(errors).length > 0 && (
+                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 font-medium text-sm">
+                        Please correct the errors below before submitting.
+                    </div>
+                )}
+
+                {/* Main Form Card */}
+                <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden p-6 sm:p-8 space-y-12">
+
+                    {/* SECTION 1: Select Type */}
+                    <div className="space-y-6">
+                        <h2 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-2">
+                            <span className="text-brand-primary mr-1">1.</span> Select Advertisement Type
+                        </h2>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            {adTypeCards.map(type => {
+                                const isSelected = adData.post_type === type.id
+                                return (
+                                    <button
+                                        type="button"
+                                        key={type.id}
+                                        onClick={() => handleTypeChange(type.id as PostType)}
+                                        className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all gap-2
+                                            ${isSelected
+                                                ? 'bg-brand-primary border-brand-primary text-white shadow-md scale-105'
+                                                : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900'
+                                            }`}
+                                    >
+                                        <div className={/* Always retain color if not selected, but white if selected? Demo says purple background, white icon. Let's just use current color inheritance */ "inherit"}>
+                                            {type.icon}
+                                        </div>
+                                        <span className="text-xs font-bold uppercase tracking-wider">{type.label}</span>
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    </div>
+
+                    {/* SECTION 2: About Your Ad */}
+                    <div className="space-y-6">
+                        <h2 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-2">
+                            <span className="text-brand-primary mr-1">2.</span> About Your Ad
+                        </h2>
+
+                        {/* Title */}
+                        <div className="space-y-2">
+                            <Label htmlFor="title" className="text-gray-700 font-bold">Ad Title</Label>
+                            <Input
+                                id="title"
+                                placeholder="e.g. 2nd Year Mechanical Engineering Books"
+                                value={adData.title}
+                                onChange={e => updateAdData('title', e.target.value)}
+                                className={`h-12 bg-gray-50 border-gray-200 ${errors.title ? 'border-red-500 focus-visible:ring-red-500' : 'focus-visible:ring-brand-primary'}`}
+                            />
+                            {errors.title && <p className="text-xs text-red-500 font-medium">{errors.title}</p>}
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="grid gap-2">
-                                <Label className="text-gray-900">Category <span className="text-red-500">*</span></Label>
+                        {/* Description */}
+                        <div className="space-y-2">
+                            <Label htmlFor="description" className="text-brand-primary font-bold">Description</Label>
+                            <Textarea
+                                id="description"
+                                placeholder="Tell us more about what you're offering..."
+                                rows={4}
+                                value={adData.description}
+                                onChange={e => updateAdData('description', e.target.value)}
+                                className={`resize-none bg-gray-50 border-gray-200 ${errors.description ? 'border-red-500 focus-visible:ring-red-500' : 'focus-visible:ring-brand-primary'}`}
+                            />
+                            <div className="flex justify-between items-center text-xs">
+                                {errors.description ? (
+                                    <span className="text-red-500 font-medium">{errors.description}</span>
+                                ) : <span />}
+                                <span className={`${adData.description.length > 1000 ? 'text-red-500 font-bold' : 'text-gray-400'}`}>
+                                    {adData.description.length} / 1000
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Category & Condition */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <Label className="text-gray-700 font-bold">Category</Label>
                                 <Select value={adData.category} onValueChange={val => updateAdData('category', val)}>
-                                    <SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger>
+                                    <SelectTrigger className={`h-12 bg-gray-50 border-gray-200 ${errors.category && !adData.category ? 'border-red-500' : ''}`}>
+                                        <SelectValue placeholder="Select Category" />
+                                    </SelectTrigger>
                                     <SelectContent>
-                                        {(categoriesMap[adData.post_type || 'buy'] || []).map(cat => (
+                                        {(categoriesMap[adData.post_type] || []).map(cat => (
                                             <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
+                                {errors.category && !adData.category && <p className="text-xs text-red-500 font-medium">{errors.category}</p>}
                             </div>
+
                             {(adData.post_type === 'buy' || adData.post_type === 'rental') && (
-                                <div className="grid gap-2">
-                                    <Label className="text-gray-900">Condition <span className="text-red-500">*</span></Label>
+                                <div className="space-y-2">
+                                    <Label className="text-gray-700 font-bold">Condition</Label>
                                     <Select value={adData.condition} onValueChange={val => updateAdData('condition', val)}>
-                                        <SelectTrigger><SelectValue placeholder="Select Condition" /></SelectTrigger>
+                                        <SelectTrigger className={`h-12 bg-gray-50 border-gray-200 ${errors.condition && !adData.condition ? 'border-red-500' : ''}`}>
+                                            <SelectValue placeholder="Select Condition" />
+                                        </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="NEW">New</SelectItem>
                                             <SelectItem value="USED-LIKE NEW">Used - Like New</SelectItem>
@@ -204,213 +374,202 @@ export default function PostAdPage() {
                                             <SelectItem value="USED-FAIR">Used - Fair</SelectItem>
                                         </SelectContent>
                                     </Select>
+                                    {errors.condition && !adData.condition && <p className="text-xs text-red-500 font-medium">{errors.condition}</p>}
                                 </div>
                             )}
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] items-end gap-6">
-                            <div className="grid gap-2 relative">
-                                <Label className="text-gray-900">Price <span className="text-red-500">*</span></Label>
-                                <span className="absolute left-3 bottom-[calc(0.5rem+3px)] text-gray-500 font-bold z-10">৳</span>
-                                <Input type="number" min="0" placeholder="0" value={adData.price} onChange={e => updateAdData('price', e.target.value)} className="pl-8" />
-                            </div>
-                            {(adData.post_type === 'rental' || adData.post_type === 'service') && (
-                                <div className="grid gap-2">
-                                    <Label className="text-gray-900">Price Unit <span className="text-red-500">*</span></Label>
-                                    <Select value={adData.price_unit} onValueChange={val => updateAdData('price_unit', val)}>
-                                        <SelectTrigger><SelectValue placeholder="e.g. per month" /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="hour">per Hour</SelectItem>
-                                            <SelectItem value="day">per Day</SelectItem>
-                                            <SelectItem value="week">per Week</SelectItem>
-                                            <SelectItem value="month">per Month</SelectItem>
-                                            <SelectItem value="job">per Job/Task</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            )}
-                            <div className="flex items-center gap-2 h-10 pb-2">
-                                <input type="checkbox" id="negotiable" checked={adData.is_negotiable} onChange={e => updateAdData('is_negotiable', e.target.checked)} className="rounded border-gray-300 w-4 h-4 text-brand-primary focus:ring-brand-primary" />
-                                <Label htmlFor="negotiable" className="cursor-pointer text-gray-700">Price Negotiable</Label>
-                            </div>
-                        </div>
-
-                        <div className="grid gap-2">
-                            <Label className="text-gray-900">Ad Duration <span className="text-red-500">*</span></Label>
-                            <Select value={adData.duration} onValueChange={val => updateAdData('duration', val)}>
-                                <SelectTrigger><SelectValue placeholder="How long should this ad run?" /></SelectTrigger>
-                                <SelectContent>
-                                    {durationOptions.map(dur => <SelectItem key={dur} value={dur}>{dur}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                            <p className="text-xs text-gray-500">Ad will automatically expire and hide after this duration if not renewed.</p>
-                        </div>
-
-                        <div className="grid gap-2">
-                            <Label htmlFor="description" className="text-gray-900">Detailed Description <span className="text-red-500">*</span></Label>
-                            <Textarea id="description" placeholder="Include specifications, dimensions, reason for selling, etc." rows={6} value={adData.description} onChange={e => updateAdData('description', e.target.value)} className="resize-none" />
-                            <p className="text-xs text-gray-500 text-right">{adData.description.length} / 5000 chars (min 20)</p>
                         </div>
                     </div>
-                )
 
-            case 3:
-                return (
-                    <div className="space-y-6 bg-white p-6 md:p-8 rounded-2xl border border-gray-100 shadow-sm">
-                        <div className="grid gap-2">
-                            <Label className="text-gray-900">Product Images (Up to 8) <span className="text-red-500">*</span></Label>
-                            <div className="border-2 border-dashed border-gray-200 rounded-2xl p-8 hover:border-brand-primary hover:bg-brand-primary/5 transition-colors text-center relative flex flex-col items-center justify-center">
-                                <input type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={handleImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" disabled={images.length >= 8} />
-                                <UploadCloud className="w-10 h-10 text-gray-400 mb-2" />
-                                <p className="font-semibold text-gray-700">Drag & drop or click to upload</p>
-                                <p className="text-xs text-gray-500 mt-1">First image becomes the cover thumbnail.</p>
+                    {/* SECTION 3: Add Photos */}
+                    <div className="space-y-6">
+                        <div className="border-b border-gray-100 pb-2 mb-4">
+                            <h2 className="text-lg font-bold text-gray-900 inline-flex items-center">
+                                <span className="text-brand-primary mr-1">3.</span> Add Photos
+                            </h2>
+                            <p className="text-sm text-gray-500 mt-1">High quality photos help you get more responses. Upload at least one image.</p>
+                        </div>
+
+                        {/* Toggle Mode */}
+                        <div className="inline-flex bg-gray-100 p-1 rounded-lg">
+                            <button type="button" onClick={() => setPhotoMode('url')} className={`px-4 py-1.5 text-sm font-bold rounded-md transition-colors ${photoMode === 'url' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Enter URL</button>
+                            <button type="button" onClick={() => setPhotoMode('upload')} className={`px-4 py-1.5 text-sm font-bold rounded-md transition-colors ${photoMode === 'upload' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Upload File</button>
+                        </div>
+
+                        {photoMode === 'url' ? (
+                            <div className="space-y-3 bg-gray-50 p-4 border border-gray-100 rounded-xl">
+                                {imageUrls.map((url, i) => (
+                                    <div key={i} className="flex items-start gap-2">
+                                        <div className="flex-1 space-y-1">
+                                            {i === 0 && <Label className="text-brand-primary font-bold text-xs uppercase">Main Image URL</Label>}
+                                            <Input
+                                                placeholder="https://image-hosting.com/my-photo.jpg"
+                                                value={url}
+                                                onChange={e => handleUrlChange(i, e.target.value)}
+                                                className="bg-white"
+                                            />
+                                        </div>
+                                        <div className={i === 0 ? "pt-5" : ""}>
+                                            <Button type="button" variant="ghost" size="icon" onClick={() => removeUrlRow(i)} className="text-gray-400 hover:text-red-500 hover:bg-red-50">
+                                                <X className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {totalUploadedImages < 8 && (
+                                    <button
+                                        type="button"
+                                        onClick={addUrlRow}
+                                        className="text-brand-primary font-bold text-sm hover:underline flex items-center gap-1 mt-2"
+                                    >
+                                        <Plus className="w-4 h-4" /> Add another photo
+                                    </button>
+                                )}
                             </div>
+                        ) : (
+                            <div className="space-y-4">
+                                <div className="border-2 border-dashed border-gray-300 rounded-2xl p-8 hover:border-brand-primary hover:bg-brand-primary/5 transition-colors text-center relative flex flex-col items-center justify-center bg-gray-50">
+                                    <input type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={handleFileUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" disabled={totalUploadedImages >= 8} />
+                                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm mb-3 text-brand-primary">
+                                        <Plus className="w-6 h-6" />
+                                    </div>
+                                    <p className="font-bold text-gray-900">Click to upload files</p>
+                                    <p className="text-xs text-gray-500 mt-1">JPG/PNG, max 5MB. Up to 8 photos.</p>
+                                </div>
+                            </div>
+                        )}
 
-                            {imagePreviews.length > 0 && (
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-                                    {imagePreviews.map((src, idx) => (
-                                        <div key={idx} className="relative aspect-square rounded-xl border border-gray-200 overflow-hidden group">
-                                            <Image src={src} alt="Preview" fill className="object-cover" />
-                                            {idx === 0 && <span className="absolute top-1 left-1 bg-brand-primary text-white text-[10px] uppercase font-bold px-1.5 py-0.5 rounded">Cover</span>}
-                                            <button type="button" onClick={() => removeImage(idx)} className="absolute top-1 right-1 bg-black/60 hover:bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                        {errors.images && <p className="text-sm font-bold text-red-500 mt-2">{errors.images}</p>}
+
+                        {/* Combined Previews */}
+                        {(uploadPreviews.length > 0 || imageUrls.some(u => u.trim() !== '') || existingImages.length > 0) && (
+                            <div className="pt-4">
+                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Image Previews</p>
+                                <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
+                                    {/* Existing Edit Images */}
+                                    {existingImages.map((img, i) => (
+                                        <div key={`existing-${img.id}`} className="relative aspect-square rounded-lg border border-gray-200 overflow-hidden group bg-white shadow-sm">
+                                            <Image src={img.image} alt="Preview" fill className="object-cover" />
+                                            <button type="button" onClick={() => removeExistingImage(i)} className="absolute top-1 right-1 bg-black/60 hover:bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                    ))}
+
+                                    {/* Valid URLs Previews */}
+                                    {imageUrls.map((u, i) => u.trim() !== '' && (
+                                        <div key={`url-${i}`} className="relative aspect-square rounded-lg border border-gray-200 overflow-hidden group bg-white shadow-sm">
+                                            <img src={u} alt="URL Preview" className="w-full h-full object-cover" onError={(e) => { (e.target as any).src = 'https://placehold.co/200x200?text=Invalid+URL' }} />
+                                            <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[9px] text-center py-0.5">URL</span>
+                                        </div>
+                                    ))}
+
+                                    {/* File Upload Previews */}
+                                    {uploadPreviews.map((src, i) => (
+                                        <div key={`upload-${i}`} className="relative aspect-square rounded-lg border border-gray-200 overflow-hidden group bg-white shadow-sm">
+                                            <Image src={src} alt="Upload Preview" fill className="object-cover" />
+                                            <button type="button" onClick={() => removeUploadFile(i)} className="absolute top-1 right-1 bg-black/60 hover:bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <X className="w-3 h-3" />
                                             </button>
                                         </div>
                                     ))}
                                 </div>
-                            )}
-                        </div>
-
-                        <div className="grid gap-2 pt-6 border-t border-gray-100">
-                            <Label htmlFor="meetup_location" className="text-gray-900">Safe Meetup Location (Optional)</Label>
-                            <Input id="meetup_location" placeholder="e.g. Inside University Library Campus 2" value={adData.meetup_location} onChange={e => updateAdData('meetup_location', e.target.value)} />
-                            <p className="text-xs text-brand-primary font-medium flex gap-1 items-center mt-1">
-                                <ShieldCheck className="w-3 h-3" /> We recommend public, well-lit university grounds for transactions.
-                            </p>
-                        </div>
+                            </div>
+                        )}
                     </div>
-                )
 
-            case 4:
-                // Generate a dummy object implementing MarketplaceListing for the preview
-                const previewListing: any = {
-                    id: 'preview',
-                    title: adData.title,
-                    price: adData.price,
-                    price_unit: adData.price_unit,
-                    images: imagePreviews.map((src) => ({ image: src })),
-                    condition: adData.condition,
-                    post_type: adData.post_type,
-                    category: adData.category,
-                    university_name: adData.campus_visibility === 'My University Only' ? (user?.university_name || 'Your University') : 'All Campuses',
-                    user: {
-                        first_name: user?.first_name || 'You',
-                        last_name: user?.last_name || '',
-                        avatar: user?.profile_picture
-                    },
-                    created_at: new Date().toISOString(),
-                    contact_visible: true
-                }
-
-                return (
+                    {/* SECTION 4: Pricing & Visibility */}
                     <div className="space-y-6">
-                        <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl text-amber-800 text-sm font-medium">
-                            Review your ad carefully. Once POSTED, it will be placed "Under Review" by a moderator before becoming publicly active in the Marketplace.
+                        <h2 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-2">
+                            <span className="text-brand-primary mr-1">4.</span> Pricing & Visibility
+                        </h2>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div className="space-y-2 relative">
+                                <Label htmlFor="price" className="text-gray-700 font-bold">Price <span className="text-gray-400 font-normal">(৳)</span></Label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">৳</span>
+                                    <Input
+                                        type="number"
+                                        id="price"
+                                        placeholder="0.00"
+                                        value={adData.price}
+                                        onChange={e => updateAdData('price', e.target.value)}
+                                        className={`pl-8 h-12 bg-gray-50 border-gray-200 ${errors.price ? 'border-red-500 focus-visible:ring-red-500' : 'focus-visible:ring-brand-primary'}`}
+                                    />
+                                </div>
+                                <p className="text-[11px] text-gray-500 font-medium">
+                                    {adData.post_type === 'service' ? 'Rate per session/hour' : adData.post_type === 'food' ? 'Price per portion/set' : 'Total price for the item.'}
+                                </p>
+                                {errors.price && <p className="text-xs text-red-500 font-medium">{errors.price}</p>}
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-gray-700 font-bold">Listing Duration</Label>
+                                <Select value={adData.duration_days} onValueChange={val => updateAdData('duration_days', val)}>
+                                    <SelectTrigger className="h-12 bg-gray-50 border-gray-200">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="7">7 Days</SelectItem>
+                                        <SelectItem value="15">15 Days</SelectItem>
+                                        <SelectItem value="30">30 Days</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-[11px] text-gray-500 font-medium">Your ad will automatically expire after this period.</p>
+                            </div>
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8">
-                            <div className="bg-white p-6 md:p-8 rounded-2xl border border-gray-100 shadow-sm space-y-4">
-                                <h3 className="text-lg font-bold text-gray-900 border-b pb-2">Ad Details Mapping</h3>
-                                <div className="grid grid-cols-2 gap-y-4 text-sm">
-                                    <div className="text-gray-500 uppercase tracking-wider text-[10px] font-bold">Category</div>
-                                    <div className="font-semibold text-gray-900">{adData.category}</div>
-
-                                    <div className="text-gray-500 uppercase tracking-wider text-[10px] font-bold">Price Negotiable</div>
-                                    <div className="font-semibold text-gray-900">{adData.is_negotiable ? 'Yes' : 'No'}</div>
-
-                                    <div className="text-gray-500 uppercase tracking-wider text-[10px] font-bold">Duration</div>
-                                    <div className="font-semibold text-gray-900">{adData.duration}</div>
-
-                                    <div className="text-gray-500 uppercase tracking-wider text-[10px] font-bold">Description Length</div>
-                                    <div className="font-semibold text-gray-900">{adData.description.length} Characters</div>
-                                </div>
+                        <div className="flex flex-row items-start space-x-3 space-y-0 rounded-xl border border-gray-200 p-4 shadow-sm bg-gray-50/50">
+                            <Checkbox
+                                id="anonymous"
+                                checked={adData.is_anonymous}
+                                onCheckedChange={(c: boolean | 'indeterminate') => updateAdData('is_anonymous', c === true)}
+                                className="mt-1"
+                            />
+                            <div className="space-y-1 leading-none">
+                                <Label htmlFor="anonymous" className="font-bold text-gray-900 cursor-pointer">Post Anonymously</Label>
+                                <p className="text-xs text-gray-500">
+                                    Hide your profile name and avatar from this listing. Your verified status badge will still be shown to build trust.
+                                </p>
                             </div>
-                            <div className="max-w-[400px] mx-auto w-full">
-                                <p className="text-sm font-bold text-gray-900 mb-2">Live Card Preview</p>
-                                <div className="pointer-events-none">
-                                    <MarketplaceAdCard listing={previewListing} />
-                                </div>
+                        </div>
+
+                        {/* Campus Detection Banner */}
+                        <div className="bg-blue-50 p-4 text-blue-800 rounded-xl flex items-start gap-3 border border-blue-100">
+                            <Info className="w-5 h-5 mt-0.5 shrink-0 text-blue-600" />
+                            <div>
+                                <p className="font-bold text-sm text-blue-900 mb-1">Automatic Campus Detection</p>
+                                <p className="text-xs leading-relaxed">
+                                    This ad will be listed for <span className="font-bold bg-blue-100 px-1 py-0.5 rounded">{user?.university_name || 'All Universities'}</span>.
+                                    Only verified users from your campus will see this in their local feed.
+                                </p>
                             </div>
+
                         </div>
                     </div>
-                )
-        }
-    }
-
-    return (
-        <div className="bg-[#F5F5F5] min-h-screen pb-20 pt-8">
-            <div className="container mx-auto px-4 max-w-4xl">
-                {/* Header & Progress */}
-                <div className="mb-8">
-                    <h1 className="text-3xl font-extrabold text-[#1A1A2E] tracking-tight mb-6">Post an Ad</h1>
-
-                    {/* Progress Bar (4 steps) */}
-                    <div className="relative flex justify-between">
-                        <div className="absolute top-1/2 left-0 w-full h-1 bg-gray-200 -translate-y-1/2 z-0 rounded-full overflow-hidden">
-                            <div className="h-full bg-brand-primary transition-all duration-500" style={{ width: `${((currentStep - 1) / 3) * 100}%` }} />
-                        </div>
-                        {['Ad Type', 'Details', 'Media', 'Review'].map((label, idx) => {
-                            const stepNumber = idx + 1
-                            const isActive = currentStep === stepNumber
-                            const isPast = currentStep > stepNumber
-
-                            return (
-                                <div key={label} className="relative z-10 flex flex-col items-center">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all duration-300 ${isActive ? 'bg-brand-primary border-brand-primary text-white scale-110 shadow-md' : isPast ? 'bg-brand-primary border-brand-primary text-white' : 'bg-white border-gray-300 text-gray-400'}`}>
-                                        {isPast ? <Check className="w-4 h-4" /> : stepNumber}
-                                    </div>
-                                    <span className={`text-[11px] font-bold uppercase mt-2 tracking-wide absolute -bottom-6 whitespace-nowrap ${isActive ? 'text-brand-primary' : 'text-gray-400'}`}>
-                                        {label}
-                                    </span>
-                                </div>
-                            )
-                        })}
-                    </div>
-                </div>
-
-                <div className="mt-12">
-                    {renderStepContent()}
-                </div>
+                </form>
 
                 {/* Footer Controls */}
-                <div className="mt-8 flex justify-between items-center py-4 border-t border-gray-200">
-                    <Button
-                        variant="outline"
-                        onClick={() => currentStep > 1 ? setCurrentStep(p => p - 1) : router.back()}
-                        className="bg-white border-gray-300 text-gray-700 font-bold gap-2"
+                <div className="mt-6 flex justify-between items-center px-2 py-4">
+                    <button
+                        type="button"
+                        onClick={() => router.back()}
+                        className="text-brand-primary font-bold hover:underline flex items-center gap-1"
                         disabled={isSubmitting}
                     >
-                        <ArrowLeft className="w-4 h-4" /> {currentStep === 1 ? 'Cancel' : 'Back'}
-                    </Button>
+                        <ArrowLeft className="w-4 h-4" /> Cancel
+                    </button>
 
-                    {currentStep < 4 ? (
-                        <Button
-                            onClick={handleNext}
-                            className="bg-brand-primary hover:bg-brand-dark text-white font-bold gap-2"
-                            disabled={currentStep === 1 && !adData.post_type}
-                        >
-                            Next Step <ArrowRight className="w-4 h-4" />
-                        </Button>
-                    ) : (
-                        <Button
-                            onClick={submitAd}
-                            className="bg-[#1A1A2E] hover:bg-black text-white px-8 font-bold gap-2"
-                            disabled={isSubmitting}
-                        >
-                            {isSubmitting ? 'Posting...' : 'Confirm & Post Ad'} <Check className="w-4 h-4" />
-                        </Button>
-                    )}
+                    <Button
+                        onClick={handleSubmit}
+                        disabled={isSubmitting}
+                        className="bg-[#059669] hover:bg-green-700 text-white shadow-xl h-12 px-8 font-bold text-base tracking-wide"
+                    >
+                        {isSubmitting ? 'Processing...' : editId ? 'Save Changes' : 'Submit for Review'}
+                    </Button>
                 </div>
+
             </div>
         </div>
     )
