@@ -7,9 +7,9 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          primary: '#4C3B8A',
-          dark: '#2D1B69',
-          light: '#EDE9FF',
+          primary: '#634C9F',
+          dark: '#523f8a',
+          light: '#F5F3FF',
           accent: '#1A1A2E',
         },
         marketplace: {
@@ -19,9 +19,9 @@ const config: Config = {
           food: '#D97706',
         },
         surface: {
-          base: '#F5F5F5',
+          base: '#F9FAFB',
           card: '#FFFFFF',
-          border: '#E5E7EB',
+          border: '#F3F4F6',
           muted: '#F9FAFB',
         },
         badge: {
@@ -75,9 +75,9 @@ const config: Config = {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
-        card: '12px',
-        badge: '4px',
-        btn: '8px',
+        card: '16px',
+        badge: '6px',
+        btn: '12px',
       },
       boxShadow: {
         card: '0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.04)',

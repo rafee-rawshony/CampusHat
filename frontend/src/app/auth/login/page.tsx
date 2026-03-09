@@ -124,171 +124,208 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-surface-base p-4">
-            <Card className="w-full max-w-md animate-fade-in">
-                <CardHeader className="text-center pb-4">
-                    <div className="flex items-center justify-center mb-2">
-                        <span className="text-2xl font-bold text-brand-primary">Campus</span>
-                        <span className="text-2xl font-bold text-brand-accent">Hat</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                        Unified access for students and faculty
-                    </p>
-                </CardHeader>
-                <CardContent>
-                    {/* Email Not Verified Banner */}
-                    {emailNotVerified && (
-                        <div className="mb-4 p-3 rounded-btn bg-badge-pending/10 border border-badge-pending text-sm">
-                            <p className="font-medium text-badge-pending">Email not verified</p>
-                            <p className="text-muted-foreground mt-1">
-                                Please verify your email address.{' '}
-                                <button
-                                    onClick={handleResendVerification}
-                                    className="text-brand-primary hover:underline font-medium"
-                                >
-                                    Resend verification
-                                </button>
-                            </p>
+        <div className="min-h-screen flex bg-surface-base">
+            <div className="flex-1 flex flex-col justify-center py-12 px-4 sm:px-6 lg:flex-none lg:w-1/2 lg:px-20 xl:px-24">
+                <div className="mx-auto w-full max-w-sm lg:max-w-md">
+                    <div className="mb-10 text-center lg:text-left">
+                        <div className="flex items-center justify-center lg:justify-start mb-4">
+                            <span className="text-3xl font-bold text-gray-800">Campus</span>
+                            <span className="text-3xl font-bold text-brand-primary">Hat</span>
                         </div>
-                    )}
+                        <h2 className="text-2xl font-bold text-gray-900 leading-tight">Welcome back</h2>
+                        <p className="text-sm text-gray-500 mt-2">
+                            Enter your credentials to access your account.
+                        </p>
+                    </div>
 
-                    {/* Login / Register Tabs */}
-                    <Tabs value={authTab} onValueChange={(v) => setAuthTab(v as 'login' | 'register')}>
-                        <TabsList className="w-full">
-                            <TabsTrigger value="login" className="flex-1">Login</TabsTrigger>
-                            <TabsTrigger value="register" className="flex-1" asChild>
-                                <Link href="/auth/register">Register</Link>
-                            </TabsTrigger>
-                        </TabsList>
+                    <div className="bg-white py-8 px-4 shadow-xl sm:rounded-2xl sm:px-10 border border-gray-100 animate-fade-in">
+                        {/* Email Not Verified Banner */}
+                        {emailNotVerified && (
+                            <div className="mb-4 p-3 rounded-btn bg-badge-pending/10 border border-badge-pending text-sm">
+                                <p className="font-medium text-badge-pending">Email not verified</p>
+                                <p className="text-muted-foreground mt-1">
+                                    Please verify your email address.{' '}
+                                    <button
+                                        onClick={handleResendVerification}
+                                        className="text-brand-primary hover:underline font-medium"
+                                    >
+                                        Resend verification
+                                    </button>
+                                </p>
+                            </div>
+                        )}
 
-                        <TabsContent value="login" className="mt-6">
-                            {/* Password / OTP sub-tabs */}
-                            <Tabs value={methodTab} onValueChange={(v) => setMethodTab(v as 'password' | 'otp')}>
-                                <TabsList className="w-full mb-4">
-                                    <TabsTrigger value="password" className="flex-1 gap-1.5">
-                                        <Eye className="h-3.5 w-3.5" /> Password
-                                    </TabsTrigger>
-                                    <TabsTrigger value="otp" className="flex-1 gap-1.5">
-                                        <Smartphone className="h-3.5 w-3.5" /> OTP
-                                    </TabsTrigger>
-                                </TabsList>
+                        {/* Login / Register Tabs */}
+                        <Tabs value={authTab} onValueChange={(v) => setAuthTab(v as 'login' | 'register')}>
+                            <TabsList className="w-full">
+                                <TabsTrigger value="login" className="flex-1">Login</TabsTrigger>
+                                <TabsTrigger value="register" className="flex-1" asChild>
+                                    <Link href="/auth/register">Register</Link>
+                                </TabsTrigger>
+                            </TabsList>
 
-                                {/* Password Login */}
-                                <TabsContent value="password">
-                                    <form onSubmit={loginForm.handleSubmit(handlePasswordLogin)} className="space-y-4">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="email">Email</Label>
-                                            <Input
-                                                id="email"
-                                                type="email"
-                                                placeholder="your@university.edu"
-                                                {...loginForm.register('email')}
-                                            />
-                                            {loginForm.formState.errors.email && (
-                                                <p className="text-xs text-destructive">{loginForm.formState.errors.email.message}</p>
-                                            )}
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="password">Password</Label>
-                                            <div className="relative">
-                                                <Input
-                                                    id="password"
-                                                    type={showPassword ? 'text' : 'password'}
-                                                    placeholder="••••••••"
-                                                    {...loginForm.register('password')}
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setShowPassword(!showPassword)}
-                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                                                >
-                                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                                </button>
-                                            </div>
-                                            {loginForm.formState.errors.password && (
-                                                <p className="text-xs text-destructive">{loginForm.formState.errors.password.message}</p>
-                                            )}
-                                        </div>
-                                        <Button type="submit" className="w-full" disabled={isLoading}>
-                                            {isLoading ? 'Signing in...' : 'Sign In'}
-                                        </Button>
-                                    </form>
-                                </TabsContent>
+                            <TabsContent value="login" className="mt-6">
+                                {/* Password / OTP sub-tabs */}
+                                <Tabs value={methodTab} onValueChange={(v) => setMethodTab(v as 'password' | 'otp')}>
+                                    <TabsList className="w-full mb-4">
+                                        <TabsTrigger value="password" className="flex-1 gap-1.5">
+                                            <Eye className="h-3.5 w-3.5" /> Password
+                                        </TabsTrigger>
+                                        <TabsTrigger value="otp" className="flex-1 gap-1.5">
+                                            <Smartphone className="h-3.5 w-3.5" /> OTP
+                                        </TabsTrigger>
+                                    </TabsList>
 
-                                {/* OTP Login */}
-                                <TabsContent value="otp">
-                                    {!otpSent ? (
-                                        <form onSubmit={otpForm.handleSubmit(handleSendOtp)} className="space-y-4">
+                                    {/* Password Login */}
+                                    <TabsContent value="password">
+                                        <form onSubmit={loginForm.handleSubmit(handlePasswordLogin)} className="space-y-4">
                                             <div className="space-y-2">
-                                                <Label htmlFor="identifier">Email or Phone</Label>
+                                                <Label htmlFor="email">Email</Label>
                                                 <Input
-                                                    id="identifier"
-                                                    placeholder="Email or phone number"
-                                                    {...otpForm.register('identifier')}
+                                                    id="email"
+                                                    type="email"
+                                                    placeholder="your@university.edu"
+                                                    {...loginForm.register('email')}
                                                 />
-                                                {otpForm.formState.errors.identifier && (
-                                                    <p className="text-xs text-destructive">{otpForm.formState.errors.identifier.message}</p>
+                                                {loginForm.formState.errors.email && (
+                                                    <p className="text-xs text-destructive">{loginForm.formState.errors.email.message}</p>
+                                                )}
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="password">Password</Label>
+                                                <div className="relative">
+                                                    <Input
+                                                        id="password"
+                                                        type={showPassword ? 'text' : 'password'}
+                                                        placeholder="••••••••"
+                                                        {...loginForm.register('password')}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowPassword(!showPassword)}
+                                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                                    >
+                                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                    </button>
+                                                </div>
+                                                {loginForm.formState.errors.password && (
+                                                    <p className="text-xs text-destructive">{loginForm.formState.errors.password.message}</p>
                                                 )}
                                             </div>
                                             <Button type="submit" className="w-full" disabled={isLoading}>
-                                                {isLoading ? 'Sending...' : 'Send OTP'}
+                                                {isLoading ? 'Signing in...' : 'Sign In'}
                                             </Button>
                                         </form>
-                                    ) : (
-                                        <div className="space-y-4">
-                                            <div className="space-y-2">
-                                                <Label>Enter 6-digit OTP</Label>
-                                                <Input
-                                                    value={otp}
-                                                    onChange={(e) => setOtp(e.target.value)}
-                                                    placeholder="000000"
-                                                    maxLength={6}
-                                                    className="text-center text-lg tracking-[0.5em]"
-                                                />
+                                    </TabsContent>
+
+                                    {/* OTP Login */}
+                                    <TabsContent value="otp">
+                                        {!otpSent ? (
+                                            <form onSubmit={otpForm.handleSubmit(handleSendOtp)} className="space-y-4">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="identifier">Email or Phone</Label>
+                                                    <Input
+                                                        id="identifier"
+                                                        placeholder="Email or phone number"
+                                                        {...otpForm.register('identifier')}
+                                                    />
+                                                    {otpForm.formState.errors.identifier && (
+                                                        <p className="text-xs text-destructive">{otpForm.formState.errors.identifier.message}</p>
+                                                    )}
+                                                </div>
+                                                <Button type="submit" className="w-full" disabled={isLoading}>
+                                                    {isLoading ? 'Sending...' : 'Send OTP'}
+                                                </Button>
+                                            </form>
+                                        ) : (
+                                            <div className="space-y-4">
+                                                <div className="space-y-2">
+                                                    <Label>Enter 6-digit OTP</Label>
+                                                    <Input
+                                                        value={otp}
+                                                        onChange={(e) => setOtp(e.target.value)}
+                                                        placeholder="000000"
+                                                        maxLength={6}
+                                                        className="text-center text-lg tracking-[0.5em]"
+                                                    />
+                                                </div>
+                                                <Button onClick={handleVerifyOtp} className="w-full" disabled={isLoading}>
+                                                    {isLoading ? 'Verifying...' : 'Verify OTP'}
+                                                </Button>
+                                                <button
+                                                    onClick={() => setOtpSent(false)}
+                                                    className="text-sm text-brand-primary hover:underline w-full text-center"
+                                                >
+                                                    Resend OTP
+                                                </button>
                                             </div>
-                                            <Button onClick={handleVerifyOtp} className="w-full" disabled={isLoading}>
-                                                {isLoading ? 'Verifying...' : 'Verify OTP'}
+                                        )}
+                                    </TabsContent>
+                                </Tabs>
+
+                                {/* Join as Seller */}
+                                <div className="mt-4">
+                                    <Button variant="outline" className="w-full gap-2" asChild>
+                                        <Link href="/auth/register?seller=true">
+                                            <Store className="h-4 w-4" /> Join as Seller
+                                        </Link>
+                                    </Button>
+                                </div>
+
+                                {/* Social Login */}
+                                <div className="mt-6">
+                                    <div className="relative">
+                                        <Separator />
+                                        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-surface-card px-2 text-xs text-muted-foreground">
+                                            or continue with
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-center gap-4 mt-4">
+                                        {['Google', 'Apple', 'Facebook'].map((provider) => (
+                                            <Button key={provider} variant="outline" size="icon" className="rounded-full">
+                                                <span className="text-xs font-semibold">{provider[0]}</span>
                                             </Button>
-                                            <button
-                                                onClick={() => setOtpSent(false)}
-                                                className="text-sm text-brand-primary hover:underline w-full text-center"
-                                            >
-                                                Resend OTP
-                                            </button>
-                                        </div>
-                                    )}
-                                </TabsContent>
-                            </Tabs>
-
-                            {/* Join as Seller */}
-                            <div className="mt-4">
-                                <Button variant="outline" className="w-full gap-2" asChild>
-                                    <Link href="/auth/register?seller=true">
-                                        <Store className="h-4 w-4" /> Join as Seller
-                                    </Link>
-                                </Button>
-                            </div>
-
-                            {/* Social Login */}
-                            <div className="mt-6">
-                                <div className="relative">
-                                    <Separator />
-                                    <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-surface-card px-2 text-xs text-muted-foreground">
-                                        or continue with
-                                    </span>
+                                        ))}
+                                    </div>
                                 </div>
-                                <div className="flex justify-center gap-4 mt-4">
-                                    {['Google', 'Apple', 'Facebook'].map((provider) => (
-                                        <Button key={provider} variant="outline" size="icon" className="rounded-full">
-                                            <span className="text-xs font-semibold">{provider[0]}</span>
-                                        </Button>
-                                    ))}
-                                </div>
+                            </TabsContent>
+                        </Tabs>
+                    </div>
+                </div>
+            </div>
+
+            <div className="hidden lg:flex flex-1 relative bg-gradient-to-br from-[#634C9F] to-[#45357A] items-center justify-center p-12 overflow-hidden">
+                {/* Decorative background elements */}
+                <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
+                    <div className="absolute -top-[20%] -right-[10%] w-[70%] h-[70%] rounded-full bg-white/5 blur-[120px]"></div>
+                    <div className="absolute -bottom-[20%] -left-[10%] w-[60%] h-[60%] rounded-full bg-[#8b76c4]/20 blur-[100px]"></div>
+                </div>
+
+                <div className="relative z-10 max-w-lg text-white">
+                    <div className="bg-white/10 backdrop-blur-md border border-white/20 p-8 rounded-3xl shadow-2xl">
+                        <div className="bg-white/20 w-12 h-12 rounded-xl flex items-center justify-center mb-6">
+                            <Store className="text-white h-6 w-6" />
+                        </div>
+                        <h3 className="text-3xl font-bold mb-4">Start your campus journey today</h3>
+                        <p className="text-white/80 text-lg leading-relaxed mb-8">
+                            Join thousands of students and faculty members buying, selling, and connecting on the ultimate campus marketplace.
+                        </p>
+
+                        <div className="flex items-center gap-4">
+                            <div className="flex -space-x-4">
+                                {[1, 2, 3, 4].map((i) => (
+                                    <div key={i} className="w-10 h-10 rounded-full border-2 border-[#45357A] bg-gray-200 overflow-hidden">
+                                        <img src={`https://i.pravatar.cc/100?img=${i + 10}`} alt="User" />
+                                    </div>
+                                ))}
                             </div>
-                        </TabsContent>
-                    </Tabs>
-                </CardContent>
-            </Card>
+                            <div className="text-sm font-medium">
+                                <span className="font-bold">4.9/5</span> rating from 10k+ users
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     )
 }

@@ -30,6 +30,7 @@ interface AuthState {
     logout: () => void
     isNormalUser: () => boolean
     isVerified: () => boolean
+    isVerifiedStudent: () => boolean
     isSeller: () => boolean
     isModerator: () => boolean
     isAdmin: () => boolean
@@ -50,6 +51,8 @@ export const useAuthStore = create<AuthState>()(
 
             isNormalUser: () => get().user?.role === 'normal_user',
             isVerified: () =>
+                ['student', 'faculty'].includes(get().user?.role || ''),
+            isVerifiedStudent: () =>
                 ['student', 'faculty'].includes(get().user?.role || ''),
             isSeller: () => get().user?.role === 'seller',
             isModerator: () => get().user?.role === 'moderator',
