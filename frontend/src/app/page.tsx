@@ -1,64 +1,112 @@
-"use client";
+'use client'
 
-import { useEffect, useState } from "react";
-import api from "@/services/api";
+import { MainLayout } from '@/components/layout/MainLayout'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { SkeletonCard } from '@/components/ui/skeleton-card'
+import {
+  ShoppingBag,
+  Shirt,
+  Laptop,
+  BookOpen,
+  Coffee,
+  Wrench,
+  Home as HomeIcon,
+  ArrowRight,
+} from 'lucide-react'
+import Link from 'next/link'
 
-export default function Home() {
-  const [backendStatus, setBackendStatus] = useState<string>("Checking...");
+const categories = [
+  { name: 'Electronics', icon: Laptop, href: '/categories/electronics', color: 'bg-blue-50 text-blue-600' },
+  { name: 'Clothing', icon: Shirt, href: '/categories/clothing', color: 'bg-pink-50 text-pink-600' },
+  { name: 'Books', icon: BookOpen, href: '/categories/books', color: 'bg-amber-50 text-amber-600' },
+  { name: 'Food', icon: Coffee, href: '/categories/food', color: 'bg-orange-50 text-orange-600' },
+  { name: 'Services', icon: Wrench, href: '/categories/services', color: 'bg-cyan-50 text-cyan-600' },
+  { name: 'Housing', icon: HomeIcon, href: '/categories/housing', color: 'bg-green-50 text-green-600' },
+]
 
-  useEffect(() => {
-    // Quick smoketest to hit the backend health endpoint (mapped in nginx)
-    api.get("/health/")
-      .then(() => setBackendStatus("Connected 🟢"))
-      .catch((err) => {
-        console.error(err);
-        setBackendStatus("Disconnected 🔴");
-      });
-  }, []);
-
+export default function HomePage() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-background">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-border bg-gradient-to-b from-card pb-6 pt-8 backdrop-blur-2xl lg:static lg:w-auto lg:rounded-xl lg:border lg:bg-card lg:p-4">
-          CampusHat Frontend API Layer&nbsp;
-          <code className="font-mono font-bold text-primary">Initialized</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-background via-background lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <div className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0 text-muted-foreground">
-            Backend Status: <span className="font-bold text-foreground">{backendStatus}</span>
+    <MainLayout>
+      {/* Hero Section */}
+      <section className="bg-gradient-to-br from-brand-primary to-brand-dark text-white">
+        <div className="container mx-auto px-4 py-16 md:py-24">
+          <div className="max-w-2xl">
+            <Badge className="bg-white/20 text-white border-none mb-4">
+              🎓 Campus Commerce Platform
+            </Badge>
+            <h1 className="text-3xl md:text-5xl font-bold mb-4 leading-tight">
+              Your Campus,{' '}
+              <span className="text-brand-light">Your Marketplace</span>
+            </h1>
+            <p className="text-lg text-white/80 mb-8">
+              Buy, sell, rent, and discover services across your campus. CampusHat
+              connects students and faculty in one unified platform.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Button size="lg" className="bg-white text-brand-primary hover:bg-white/90">
+                <ShoppingBag className="mr-2 h-5 w-5" /> Explore Mall
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-white/30 text-white hover:bg-white/10"
+                asChild
+              >
+                <Link href="/marketplace">
+                  Visit Marketplace <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-primary before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-secondary after:via-secondary after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-primary before:dark:opacity-10 after:dark:from-secondary after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px] animate-pulse my-32">
-        <h1 className="text-6xl font-display font-extrabold tracking-tight text-foreground drop-shadow-sm z-10">
-          Campus<span className="text-primary">Hat</span>
-        </h1>
-      </div>
+      {/* Categories */}
+      <section className="container mx-auto px-4 py-12">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold">Shop by Category</h2>
+          <Link href="/categories" className="text-sm text-brand-primary hover:underline flex items-center gap-1">
+            View All <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-4">
+          {categories.map((cat) => {
+            const Icon = cat.icon
+            return (
+              <Link key={cat.name} href={cat.href}>
+                <Card className="hover:shadow-card-hover transition-shadow cursor-pointer">
+                  <CardContent className="flex flex-col items-center justify-center p-4 gap-2">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${cat.color}`}>
+                      <Icon className="h-6 w-6" />
+                    </div>
+                    <span className="text-xs font-medium text-center">{cat.name}</span>
+                  </CardContent>
+                </Card>
+              </Link>
+            )
+          })}
+        </div>
+      </section>
 
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left gap-4">
-        {[
-          { title: "Marketplace", desc: "Buy, sell, and trade safely within your university." },
-          { title: "Mall", desc: "Shop directly from verified student-run businesses." },
-          { title: "Chat", desc: "Negotiate securely using our end-to-end encrypted messaging." },
-          { title: "Wallet", desc: "Manage fast and secure fiat payments on campus." },
-        ].map((item, i) => (
-          <div
-            key={i}
-            className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-border hover:bg-card/50 hover:dark:border-border hover:dark:bg-card/50"
-          >
-            <h2 className="mb-3 text-2xl font-semibold">
-              {item.title}{" "}
-              <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none text-primary">
-                -&gt;
-              </span>
-            </h2>
-            <p className="m-0 max-w-[30ch] text-sm opacity-50">
-              {item.desc}
-            </p>
-          </div>
-        ))}
-      </div>
-    </main>
-  );
+      {/* Featured Products Skeleton */}
+      <section className="container mx-auto px-4 py-12">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold">Featured Products</h2>
+          <Link href="/shop" className="text-sm text-brand-primary hover:underline flex items-center gap-1">
+            View All <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
+        <p className="text-center text-sm text-muted-foreground mt-6">
+          Products will appear here once sellers start listing items.
+        </p>
+      </section>
+    </MainLayout>
+  )
 }
