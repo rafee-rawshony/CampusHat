@@ -18,6 +18,7 @@ import {
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { VerificationRequiredCard, VerificationBanner } from '@/components/auth/VerificationRequiredCard'
+import { CartDrawer } from '@/components/mall/CartDrawer'
 import { Input } from '@/components/ui/input'
 import {
     DropdownMenu,
@@ -30,6 +31,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { useAuthStore } from '@/stores/auth.store'
+import { useCartStore } from '@/stores/cart.store'
 import { getInitials } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 
@@ -37,6 +39,7 @@ export function Navbar() {
     const pathname = usePathname()
     const { user, isAuthenticated, logout, isSeller, isAdmin, isModerator, isVerifiedStudent } =
         useAuthStore()
+    const { getItemCount, setIsOpen } = useCartStore()
     const isMarketplace = pathname?.startsWith('/marketplace')
 
     // Verification Modal State
@@ -135,11 +138,13 @@ export function Navbar() {
                                     <Button variant="ghost" size="icon" className="relative">
                                         <Heart className="h-5 w-5" />
                                     </Button>
-                                    <Button variant="ghost" size="icon" className="relative">
+                                    <Button variant="ghost" size="icon" className="relative" onClick={() => setIsOpen(true)}>
                                         <ShoppingCart className="h-5 w-5" />
-                                        <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px]">
-                                            0
-                                        </Badge>
+                                        {getItemCount() > 0 && (
+                                            <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px] bg-red-500 hover:bg-red-600 border-white">
+                                                {getItemCount()}
+                                            </Badge>
+                                        )}
                                     </Button>
 
                                     {/* User Menu */}
@@ -210,6 +215,9 @@ export function Navbar() {
                     isOpen={isVerificationModalOpen}
                     onClose={() => setIsVerificationModalOpen(false)}
                 />
+
+                {/* Global Cart Drawer */}
+                <CartDrawer />
             </nav>
         </>
     )

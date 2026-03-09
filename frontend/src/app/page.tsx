@@ -1,121 +1,322 @@
 'use client'
 
-import { MainLayout } from '@/components/layout/MainLayout'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { SkeletonCard } from '@/components/ui/skeleton-card'
-import {
-  ShoppingBag,
-  Shirt,
-  Laptop,
-  BookOpen,
-  Coffee,
-  Wrench,
-  Home as HomeIcon,
-  ArrowRight,
-} from 'lucide-react'
+import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
+import { ArrowRight, Flame, Store as StoreIcon, Laptop, Smartphone, Shirt, BookOpen, PenTool, Coffee, Home, Activity, Palette, FlaskConical } from 'lucide-react'
+import useEmblaCarousel from 'embla-carousel-react'
+import Autoplay from 'embla-carousel-autoplay'
 
-const categories = [
-  { name: 'Electronics', icon: Laptop, href: '/categories/electronics', color: 'bg-blue-50 text-blue-600' },
-  { name: 'Clothing', icon: Shirt, href: '/categories/clothing', color: 'bg-pink-50 text-pink-600' },
-  { name: 'Books', icon: BookOpen, href: '/categories/books', color: 'bg-amber-50 text-amber-600' },
-  { name: 'Food', icon: Coffee, href: '/categories/food', color: 'bg-orange-50 text-orange-600' },
-  { name: 'Services', icon: Wrench, href: '/categories/services', color: 'bg-cyan-50 text-cyan-600' },
-  { name: 'Housing', icon: HomeIcon, href: '/categories/housing', color: 'bg-green-50 text-green-600' },
+import { api } from '@/lib/api'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { ProductCard, ProductCardSkeleton, Product } from '@/components/mall/ProductCard'
+import { CountdownTimer } from '@/components/shared/CountdownTimer'
+import { cn } from '@/lib/utils'
+
+// Top Categories Data (Static for fast initial paint)
+const TOP_CATEGORIES = [
+  { name: 'Electronics', icon: Laptop, slug: 'electronics' },
+  { name: 'Smartphones', icon: Smartphone, slug: 'smartphones' },
+  { name: 'Fashion', icon: Shirt, slug: 'fashion' },
+  { name: 'Academic Books', icon: BookOpen, slug: 'books' },
+  { name: 'Stationery', icon: PenTool, slug: 'stationery' },
+  { name: 'Campus Lifestyle', icon: Coffee, slug: 'lifestyle' },
+  { name: 'Dorm Essentials', icon: Home, slug: 'dorm' },
+  { name: 'Sports', icon: Activity, slug: 'sports' },
+  { name: 'Art & Design', icon: Palette, slug: 'art' },
+  { name: 'Scientific', icon: FlaskConical, slug: 'scientific' },
 ]
 
-export default function HomePage() {
+// Mock Banners
+const BANNERS = [
+  {
+    id: 1,
+    title: 'Premium Noise Cancelling Headphones',
+    subtitle: 'Perfect for uninterrupted study sessions. High fidelity audio.',
+    price: '1,250',
+    originalPrice: '3,000',
+    imageUrl: '/test.jpg', // Will fallback visually since this might not exist
+    colorBg: 'bg-[#634C9F]',
+  },
+  {
+    id: 2,
+    title: 'Campus Style Winter Collection',
+    subtitle: 'Stay warm moving between classes. Up to 40% off today.',
+    price: '850',
+    originalPrice: '1,500',
+    imageUrl: '', // Intentional blank to test gradients
+    colorBg: 'bg-emerald-600',
+  },
+  {
+    id: 3,
+    title: 'Essential Lab Equipment Kit',
+    subtitle: 'Everything you need for Chemistry 101. Certified stock.',
+    price: '2,100',
+    originalPrice: '2,800',
+    imageUrl: '',
+    colorBg: 'bg-blue-600',
+  }
+]
+
+export default function MallHomePage() {
+  // State
+  const [products, setProducts] = useState<Product[]>([])
+  const [flashSales, setFlashSales] = useState<Product[]>([])
+  const [sellers, setSellers] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Carousel Hooks
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [Autoplay({ delay: 5000, stopOnInteraction: true })])
+  const [selectedIndex, setSelectedIndex] = useState(0)
+
+  useEffect(() => {
+    if (!emblaApi) return
+    emblaApi.on('select', () => setSelectedIndex(emblaApi.selectedScrollSnap()))
+  }, [emblaApi])
+
+  // Data Fetching
+  useEffect(() => {
+    const fetchHomepageData = async () => {
+      setIsLoading(true)
+      try {
+        // In production, these would be separate calls or optimized via a single /gateway endpoint
+        const [productsRes] = await Promise.all([
+          api.get('/mall/products/?page=1&limit=12').catch(() => ({ data: { results: [] } }))
+          // For demo fluidity, we won't strictly enforce API failures if endpoints don't exist yet
+        ])
+
+        // MOCK UP flash sales and best sellers since endpoints might be stubbed
+        setProducts(productsRes.data?.results || Array(12).fill(null).map((_, i) => ({
+          id: `mock-product-${i}`,
+          slug: `mock-product-${i}`,
+          name: 'Campus Hat Demo Product ' + (i + 1),
+          category_name: 'Electronics',
+          base_price: '500.00',
+          stock_quantity: 15,
+          has_variants: false,
+          rating_avg: 4.5,
+          rating_count: 24,
+          is_featured: false,
+          images: []
+        })))
+
+        // Just clone products for flash sales with fake discounts for UI
+        const pList = productsRes.data?.results?.length ? productsRes.data.results : []
+        if (pList.length > 0) {
+          setFlashSales(pList.slice(0, 6).map((p: any) => ({ ...p, discount_price: (parseFloat(p.base_price) * 0.8).toString(), stock_quantity: 5 })))
+        } else {
+          setFlashSales(Array(6).fill(null).map((_, i) => ({
+            id: `mock-flash-${i}`,
+            slug: `mock-flash-${i}`,
+            name: 'Flash Item ' + (i + 1),
+            category_name: 'Fashion',
+            base_price: '1000.00',
+            discount_price: '650.00',
+            stock_quantity: 3,
+            has_variants: false,
+            rating_avg: 4.8,
+            rating_count: 102,
+            is_featured: true,
+            images: []
+          })))
+        }
+
+        setSellers([
+          { id: '1', store_name: 'TechHub AU', slug: 'techhub', initials: 'TH', color: 'bg-blue-500' },
+          { id: '2', store_name: 'UniThreads', slug: 'unithreads', initials: 'UT', color: 'bg-yellow-500' },
+          { id: '3', store_name: 'SnackBox', slug: 'snackbox', initials: 'SB', color: 'bg-[#634C9F]' },
+          { id: '4', store_name: 'Print & Types', slug: 'print', initials: 'PT', color: 'bg-pink-500' },
+          { id: '5', store_name: 'Gadget Vault', slug: 'gadget', initials: 'GV', color: 'bg-emerald-500' },
+        ])
+
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchHomepageData()
+  }, [])
+
   return (
-    <MainLayout>
-      {/* Hero Section */}
-      <section className="container mx-auto px-4 mt-6">
-        <div className="bg-surface-muted rounded-3xl overflow-hidden shadow-sm border border-surface-border">
-          <div className="px-6 sm:px-10 lg:px-16 py-12 md:py-20">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-              <div className="text-left">
-                <span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-md uppercase tracking-wide">
-                  Student Exclusive Offer
-                </span>
-                <h1 className="text-4xl lg:text-5xl font-extrabold text-gray-900 mt-6 mb-4 leading-[1.2]">
-                  Gear up for success with the best campus essentials
-                </h1>
-                <p className="text-lg text-gray-600 mb-8 max-w-lg font-medium">
-                  Massive discounts on laptops, academic books, and trendy apparel for university students.
-                </p>
-                <div className="flex flex-wrap items-center gap-6">
-                  <Button size="lg" className="rounded-xl px-8 shadow-md">
-                    Shop Now
-                  </Button>
-                  <div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-3xl font-black text-red-500">৳1,250</span>
-                      <span className="text-lg text-gray-400 font-bold line-through">৳3,000</span>
+    <div className="bg-[#F5F5F5] min-h-screen pb-20 pt-4 md:pt-8 w-full overflow-x-hidden">
+
+      {/* SECTION 1: HERO BANNER (Carousel) */}
+      <div className="container mx-auto px-4 mb-12">
+        <div className="relative rounded-3xl overflow-hidden shadow-xl" ref={emblaRef}>
+          <div className="flex touch-pan-y">
+            {BANNERS.map((banner) => (
+              <div key={banner.id} className="flex-[0_0_100%] min-w-0">
+                <div className={cn("flex flex-col md:flex-row min-h-[400px] w-full relative", banner.colorBg)}>
+
+                  {/* Left Content */}
+                  <div className="flex-1 p-8 md:p-14 flex flex-col justify-center text-white z-10 relative">
+                    <Badge className="bg-white/20 hover:bg-white/30 text-white border-none self-start mb-6 px-3 py-1 text-xs">
+                      Student Exclusive Offer
+                    </Badge>
+                    <h2 className="text-4xl md:text-5xl lg:text-6xl font-black leading-[1.1] mb-6 tracking-tight max-w-xl">
+                      {banner.title}
+                    </h2>
+                    <p className="text-white/80 text-lg mb-8 max-w-md">
+                      {banner.subtitle}
+                    </p>
+
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 mb-8">
+                      <div className="flex items-baseline gap-3">
+                        <span className="text-3xl md:text-4xl font-bold">৳{banner.price}</span>
+                        <span className="text-lg text-white/50 line-through">৳{banner.originalPrice}</span>
+                      </div>
+                      <Button size="lg" className="rounded-full bg-white text-gray-900 hover:bg-gray-100 px-8 h-12 text-md shadow-lg font-bold">
+                        Shop Now
+                      </Button>
                     </div>
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">Limited time discount</p>
+                    <p className="text-xs text-white/50 font-medium">Limited time student discount • Verified campus delivery</p>
+                  </div>
+
+                  {/* Right Image/Graphic Area */}
+                  <div className="hidden md:flex flex-1 relative items-center justify-center p-8 overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-l from-black/20 to-transparent z-0"></div>
+                    {/* Abstract Shapes built with Tailwind instead of breaking if image lacks */}
+                    <div className="w-72 h-72 rounded-full bg-white/10 blur-3xl absolute top-10 right-10"></div>
+                    <div className="w-64 h-64 rounded-full bg-black/10 blur-3xl absolute bottom-10 left-10"></div>
+
+                    <div className="relative z-10 w-full max-w-sm aspect-square bg-white/10 rounded-full border border-white/20 shadow-2xl backdrop-blur-sm flex items-center justify-center">
+                      <span className="text-8xl">🎓</span>
+                    </div>
                   </div>
                 </div>
               </div>
-              <div className="hidden md:block">
-                <div className="w-full aspect-[4/3] bg-white rounded-3xl shadow-xl flex items-center justify-center p-2 border border-gray-100 rotate-2 hover:rotate-0 transition-all duration-500">
-                  <img src="https://placehold.co/600x400/634C9F/white?text=Campus+Essentials" alt="Student Essentials" className="w-full h-full object-cover rounded-2xl" />
-                </div>
-              </div>
+            ))}
+          </div>
+
+          {/* Dots */}
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+            {BANNERS.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => emblaApi?.scrollTo(index)}
+                className={cn(
+                  "w-2.5 h-2.5 rounded-full transition-all duration-300",
+                  selectedIndex === index ? "bg-white w-8" : "bg-white/50 hover:bg-white/80"
+                )}
+                aria-label={`Go to slide ${index + 1}`}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* SECTION 2: FLASH SALE */}
+      <div className="container mx-auto px-4 mb-14">
+        <div className="flex items-end justify-between mb-6">
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Flame className="h-6 w-6 text-red-500 fill-red-500" />
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Flash Sell</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-500 hidden sm:inline">Ends in:</span>
+              <CountdownTimer targetDate={new Date(new Date().getTime() + 2 * 60 * 60 * 1000 + 35 * 60 * 1000).toISOString()} />
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Categories */}
-      <section className="container mx-auto px-4 py-12 md:py-16">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Top Categories</h2>
-            <p className="text-gray-500 text-sm mt-1">New products with updated stocks.</p>
-          </div>
-          <Link href="/categories" className="hidden sm:inline-flex items-center gap-2 bg-white border border-gray-200 rounded-full px-5 py-2.5 text-sm font-bold text-brand-primary hover:bg-gray-50 transition-colors">
-            View All <ArrowRight className="h-4 w-4" />
+          <Link href="/mall/flash-sales" className="text-brand-primary font-bold hover:underline group flex items-center text-sm">
+            View All <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Link>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {categories.map((cat) => {
-            const Icon = cat.icon
-            return (
-              <Link
-                key={cat.name}
-                href={cat.href}
-                className="flex flex-col items-center text-center p-4 border border-gray-200 rounded-2xl hover:shadow-lg hover:border-brand-primary transition-all group bg-white h-full"
-              >
-                <div className="w-16 h-16 flex items-center justify-center bg-gray-50 rounded-xl mb-3 group-hover:bg-brand-primary/10 transition-colors">
-                  <Icon className="h-8 w-8 text-brand-primary group-hover:scale-110 transition-transform" />
+
+        <div className="overflow-x-auto pb-6 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar">
+          <div className="flex gap-4 sm:gap-6 min-w-max">
+            {isLoading
+              ? Array(6).fill(null).map((_, i) => (
+                <div key={i} className="w-[180px] sm:w-[220px] md:w-[240px] shrink-0">
+                  <ProductCardSkeleton />
                 </div>
-                <span className="text-xs font-bold text-gray-700 group-hover:text-brand-primary leading-tight mt-1">
-                  {cat.name}
+              ))
+              : flashSales.map((product) => (
+                <div key={product.id} className="w-[180px] sm:w-[220px] md:w-[240px] shrink-0">
+                  <ProductCard product={product} />
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      </div>
+
+      {/* SECTION 3: TOP CATEGORIES */}
+      <div className="container mx-auto px-4 mb-16">
+        <div className="flex items-end justify-between mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Top Categories</h2>
+          <Link href="/mall/categories" className="text-brand-primary font-bold hover:underline group flex items-center text-sm">
+            All Categories <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
+          </Link>
+        </div>
+
+        <div className="overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar">
+          <div className="flex sm:grid sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 lg:justify-between gap-4 min-w-max sm:min-w-0">
+            {TOP_CATEGORIES.map((cat, i) => {
+              const Icon = cat.icon
+              return (
+                <Link key={i} href={`/mall/category/${cat.slug}`} className="group flex flex-col items-center gap-3 w-24 shrink-0">
+                  <div className="w-20 h-20 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center group-hover:bg-brand-light/30 group-hover:border-brand-primary/30 transition-all duration-300 group-hover:-translate-y-1">
+                    <Icon className="h-8 w-8 text-gray-600 group-hover:text-brand-primary transition-colors" strokeWidth={1.5} />
+                  </div>
+                  <span className="text-xs font-semibold text-center text-gray-700 leading-tight group-hover:text-brand-primary transition-colors">
+                    {cat.name}
+                  </span>
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* SECTION 4: BEST SELLERS (STORES) */}
+      <div className="bg-white py-12 mb-16 border-y border-gray-200 shadow-sm">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight mb-2 flex items-center justify-center gap-3">
+            <StoreIcon className="h-6 w-6 text-emerald-500" /> Official Best Sellers
+          </h2>
+          <p className="text-gray-500 mb-10 text-sm">Top rated stores across completely verified campus vendors.</p>
+
+          <div className="flex justify-center gap-6 md:gap-12 flex-wrap">
+            {sellers.map((store) => (
+              <Link key={store.id} href={`/sellers/${store.slug}`} className="group flex flex-col items-center gap-3 w-24 md:w-32">
+                <div className={cn(
+                  "w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center text-2xl md:text-3xl font-black text-white shadow-md ring-4 ring-white group-hover:ring-brand-light transition-all duration-300 group-hover:scale-105",
+                  store.color
+                )}>
+                  {store.initials}
+                </div>
+                <span className="font-bold text-gray-900 text-sm md:text-base text-center line-clamp-1 group-hover:text-brand-primary transition-colors">
+                  {store.store_name}
                 </span>
               </Link>
-            )
-          })}
+            ))}
+          </div>
         </div>
-      </section>
+      </div>
 
-      {/* Featured Products Skeleton */}
-      <section className="container mx-auto px-4 py-12">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold">Featured Products</h2>
-          <Link href="/shop" className="text-sm text-brand-primary hover:underline flex items-center gap-1">
-            View All <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
+      {/* SECTION 5: OUR PRODUCTS */}
+      <div className="container mx-auto px-4 mb-20">
+        <div className="mb-8 text-center sm:text-left">
+          <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Our Products</h2>
+          <p className="text-gray-500 mt-2">Discover completely verified, quality listings ready for checkout.</p>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <SkeletonCard key={i} />
-          ))}
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 sm:gap-6">
+          {isLoading
+            ? Array(12).fill(null).map((_, i) => <ProductCardSkeleton key={i} />)
+            : products.map((product) => <ProductCard key={product.id} product={product} />)
+          }
         </div>
-        <p className="text-center text-sm text-muted-foreground mt-6">
-          Products will appear here once sellers start listing items.
-        </p>
-      </section>
-    </MainLayout>
+
+        <div className="mt-12 text-center">
+          <Button variant="outline" className="border-gray-200 shadow-sm rounded-xl px-12 py-6 font-bold text-gray-700 hover:text-brand-primary hover:bg-gray-50">
+            Load More Products
+          </Button>
+        </div>
+      </div>
+
+      {/* Newsletter is handled globally in Footer.tsx per Phase 02 spec, so no need to duplicate here */}
+    </div>
   )
 }
