@@ -42,6 +42,12 @@ export function UpgradePrompt({
                     </DialogDescription>
                 </DialogHeader>
 
+                {/* New content added here, outside of the onClick handler */}
+                <div className="mt-4 text-sm text-gray-700">
+                    <p>To keep the Marketplace safe, new users are set to &quot;Unverified&quot;, which limits interaction tools.</p>
+                    <p className="mt-2 text-gray-500 text-xs">Verification is fast and requires standard valid academic credentials.</p>
+                </div>
+
                 <div className="flex flex-col gap-3 mt-6">
                     <Button
                         onClick={() => {

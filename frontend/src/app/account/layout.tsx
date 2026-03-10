@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { User as UserIcon, ShoppingBag, Grid, LogOut, Upload, AlertCircle } from 'lucide-react'
+import { User as UserIcon, ShoppingBag, Grid, LogOut, Upload } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth.store'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { getInitials } from '@/lib/utils'

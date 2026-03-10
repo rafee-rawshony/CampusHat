@@ -1,6 +1,7 @@
 'use client'
+export const dynamic = 'force-dynamic'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { ShoppingBag, Key, Briefcase, Utensils, X, Info, Plus, ArrowLeft } from 'lucide-react'
@@ -17,7 +18,7 @@ import { UpgradePrompt } from '@/components/marketplace/UpgradePrompt'
 
 type PostType = 'buy' | 'rental' | 'service' | 'food'
 
-export default function PostAdPage() {
+function PostAdContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const editId = searchParams?.get('edit')
@@ -81,7 +82,7 @@ export default function PostAdPage() {
                     setExistingImages(data.images || [])
                     setPhotoMode('upload') // Assume if editing, show the rich preview gallery
                 })
-                .catch(err => {
+                .catch(() => {
                     toast({ title: "Error Loading Ad", description: "Could not fetch existing ad data.", variant: "destructive" })
                 })
                 .finally(() => setIsLoadingEdit(false))
@@ -204,7 +205,7 @@ export default function PostAdPage() {
                 toast({ title: 'Success', description: 'Your ad has been updated and is back Under Review.' })
             } else {
                 await api.post('/marketplace/listings/', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
-                toast({ title: 'Success', description: "Your ad has been posted and is currently Under Review." })
+                toast({ title: 'Success', description: "Ad submitted for review. We'll notify you when it's approved." })
             }
             router.push('/marketplace/my-ads')
 
@@ -459,7 +460,7 @@ export default function PostAdPage() {
                                     {/* Valid URLs Previews */}
                                     {imageUrls.map((u, i) => u.trim() !== '' && (
                                         <div key={`url-${i}`} className="relative aspect-square rounded-lg border border-gray-200 overflow-hidden group bg-white shadow-sm">
-                                            <img src={u} alt="URL Preview" className="w-full h-full object-cover" onError={(e) => { (e.target as any).src = 'https://placehold.co/200x200?text=Invalid+URL' }} />
+                                            <Image src={u} alt="URL Preview" fill className="object-cover" unoptimized />
                                             <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[9px] text-center py-0.5">URL</span>
                                         </div>
                                     ))}
@@ -572,5 +573,13 @@ export default function PostAdPage() {
 
             </div>
         </div>
+    )
+}
+
+export default function PostAdPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen pt-20 text-center animate-pulse text-gray-500">Loading form...</div>}>
+            <PostAdContent />
+        </Suspense>
     )
 }

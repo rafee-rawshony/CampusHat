@@ -14,7 +14,6 @@ import {
     ChevronDown,
     ChevronUp,
     User,
-    CalendarClock,
     Tag
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -280,7 +279,7 @@ export default function MarketplaceAdDetailPage({ params }: { params: { id: stri
                                         </h4>
                                         <div className="flex items-center gap-1 mt-0.5">
                                             <div className="flex items-center bg-green-50 text-green-700 px-1.5 py-0.5 rounded text-[10px] font-bold">
-                                                ★ {listing.user.reputation_score?.toFixed(1) || '0.0'}
+                                                ★ {listing.user.reputation_score?.toFixed(1) || "0.0"}
                                             </div>
                                             <span className="text-xs font-medium text-gray-500">Verified Member</span>
                                         </div>

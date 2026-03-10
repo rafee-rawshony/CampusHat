@@ -17,7 +17,7 @@ import {
 
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
-import { ProductCard, ProductCardSkeleton, Product } from '@/components/mall/ProductCard'
+import { ProductCard, Product } from '@/components/mall/ProductCard'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 
@@ -271,7 +271,7 @@ export default function SellerStorePage() {
                             <div className="bg-white rounded-3xl p-12 text-center border border-gray-100 shadow-sm">
                                 <Package className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                                 <h3 className="text-lg font-bold text-gray-900">No products found</h3>
-                                <p className="text-gray-500 mt-2">Try adjusting your filters to find what you're looking for.</p>
+                                <p className="text-gray-500 mt-2">Try adjusting your filters to find what you&apos;re looking for.</p>
                             </div>
                         ) : (
                             <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">

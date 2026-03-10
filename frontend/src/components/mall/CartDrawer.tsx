@@ -1,6 +1,6 @@
 'use client'
 
-import { ShoppingBag, X, Plus, Minus, Trash2 } from 'lucide-react'
+import { ShoppingBag, X, Plus, Minus } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -13,10 +13,9 @@ import {
     SheetContent,
     SheetHeader,
     SheetTitle,
-    SheetFooter,
 } from '@/components/ui/sheet'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Separator } from '@/components/ui/separator'
+
 
 export function CartDrawer() {
     const { items, isOpen, setIsOpen, removeItem, updateQuantity, getCartTotal, getItemCount } = useCartStore()
@@ -52,7 +51,7 @@ export function CartDrawer() {
                         </div>
                         <h3 className="text-xl font-bold text-gray-900 mb-2">Your cart is empty</h3>
                         <p className="text-gray-500 mb-8 max-w-[250px]">
-                            Looks like you haven't added anything to your cart yet.
+                            Looks like you haven&apos;t added anything to your cart yet.
                         </p>
                         <Button
                             className="w-full sm:w-auto px-8"

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -12,7 +13,6 @@ import toast from 'react-hot-toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { api } from '@/lib/api'
@@ -315,7 +315,7 @@ export default function LoginPage() {
                             <div className="flex -space-x-4">
                                 {[1, 2, 3, 4].map((i) => (
                                     <div key={i} className="w-10 h-10 rounded-full border-2 border-[#45357A] bg-gray-200 overflow-hidden">
-                                        <img src={`https://i.pravatar.cc/100?img=${i + 10}`} alt="User" />
+                                        <Image src={`https://i.pravatar.cc/100?img=${i + 10}`} alt="User" width={40} height={40} className="w-full h-full object-cover" />
                                     </div>
                                 ))}
                             </div>

@@ -1,0 +1,115 @@
+﻿
+C:\Parsonal Website\CampusHat\frontend\src\app\account\layout.tsx
+  6:63  warning  'AlertCircle' is defined but never used  no-unused-vars
+
+C:\Parsonal Website\CampusHat\frontend\src\app\account\page.tsx
+  34:11  warning  'router' is assigned a value but never used  no-unused-vars
+
+C:\Parsonal Website\CampusHat\frontend\src\app\admin\approvals\page.tsx
+    4:8   warning  'Image' is defined but never used                                                                                                                                                                                                                               no-unused-vars
+    5:27  warning  'X' is defined but never used                                                                                                                                                                                                                                   no-unused-vars
+   13:10  warning  'api' is defined but never used                                                                                                                                                                                                                                 no-unused-vars
+  154:37  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  182:45  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Parsonal Website\CampusHat\frontend\src\app\admin\campuses\page.tsx
+  18:10  warning  'api' is defined but never used  no-unused-vars
+
+C:\Parsonal Website\CampusHat\frontend\src\app\admin\categories\page.tsx
+  19:10  warning  'api' is defined but never used  no-unused-vars
+
+C:\Parsonal Website\CampusHat\frontend\src\app\admin\layout.tsx
+  47:8  warning  React Hook useEffect has missing dependencies: 'isAdmin' and 'isModerator'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Parsonal Website\CampusHat\frontend\src\app\admin\page.tsx
+  6:10  warning  'api' is defined but never used  no-unused-vars
+
+C:\Parsonal Website\CampusHat\frontend\src\app\auth\login\page.tsx
+   15:10  warning  'Card' is defined but never used                                                                                                                                                                                                                                no-unused-vars
+   15:16  warning  'CardContent' is defined but never used                                                                                                                                                                                                                         no-unused-vars
+   15:29  warning  'CardHeader' is defined but never used                                                                                                                                                                                                                          no-unused-vars
+  318:41  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Parsonal Website\CampusHat\frontend\src\app\auth\register\page.tsx
+  88:40  warning  'type' is defined but never used  no-unused-vars
+
+C:\Parsonal Website\CampusHat\frontend\src\app\checkout\page.tsx
+   6:37  warning  'Check' is defined but never used                    no-unused-vars
+   6:44  warning  'ChevronRight' is defined but never used             no-unused-vars
+   8:10  warning  'useForm' is defined but never used                  no-unused-vars
+   8:19  warning  'Controller' is defined but never used               no-unused-vars
+  23:10  warning  'CurrencyDisplay' is defined but never used          no-unused-vars
+  53:25  warning  'setDeliveryFee' is assigned a value but never used  no-unused-vars
+  57:60  warning  'setValue' is assigned a value but never used        no-unused-vars
+
+C:\Parsonal Website\CampusHat\frontend\src\app\marketplace\chat\page.tsx
+    7:77  warning  'ArrowRight' is defined but never used                                                                             no-unused-vars
+   64:12  warning  'loading' is assigned a value but never used                                                                       no-unused-vars
+  120:8   warning  React Hook useEffect has a missing dependency: 'activeThreadId'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Parsonal Website\CampusHat\frontend\src\app\marketplace\listings\[id]\page.tsx
+  17:5  warning  'CalendarClock' is defined but never used  no-unused-vars
+
+C:\Parsonal Website\CampusHat\frontend\src\app\marketplace\my-ads\page.tsx
+  10:10  warning  'Switch' is defined but never used     no-unused-vars
+  11:10  warning  'Label' is defined but never used      no-unused-vars
+  14:10  warning  'RoleGuard' is defined but never used  no-unused-vars
+
+C:\Parsonal Website\CampusHat\frontend\src\app\marketplace\post\page.tsx
+   84:24  warning  'err' is defined but never used                                                                                                                                                                                                                                 no-unused-vars
+   89:8   warning  React Hook useEffect has a missing dependency: 'toast'. Either include it or remove the dependency array                                                                                                                                                        react-hooks/exhaustive-deps
+  462:45  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Parsonal Website\CampusHat\frontend\src\app\page.tsx
+  4:8  warning  'Image' is defined but never used  no-unused-vars
+
+C:\Parsonal Website\CampusHat\frontend\src\app\products\[slug]\page.tsx
+  11:5   warning  'Share2' is defined but never used           no-unused-vars
+  70:11  warning  'router' is assigned a value but never used  no-unused-vars
+
+C:\Parsonal Website\CampusHat\frontend\src\app\seller\register\page.tsx
+  30:11  warning  'router' is assigned a value but never used  no-unused-vars
+
+C:\Parsonal Website\CampusHat\frontend\src\app\sellers\[slug]\page.tsx
+  20:23  warning  'ProductCardSkeleton' is defined but never used  no-unused-vars
+
+C:\Parsonal Website\CampusHat\frontend\src\components\auth\VerificationRequiredCard.tsx
+   6:10  warning  'useRouter' is defined but never used      no-unused-vars
+  64:13  warning  'user' is assigned a value but never used  no-unused-vars
+
+C:\Parsonal Website\CampusHat\frontend\src\components\mall\CartDrawer.tsx
+   3:39  warning  'Trash2' is defined but never used                               no-unused-vars
+  16:5   warning  'SheetFooter' is defined but never used                          no-unused-vars
+  19:10  warning  'Separator' is defined but never used                            no-unused-vars
+  55:49  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\Parsonal Website\CampusHat\frontend\src\components\mall\ProductCard.tsx
+  170:43  warning  'e' is defined but never used  no-unused-vars
+
+C:\Parsonal Website\CampusHat\frontend\src\components\marketplace\UpgradePrompt.tsx
+  9:5  warning  'DialogFooter' is defined but never used  no-unused-vars
+
+C:\Parsonal Website\CampusHat\frontend\src\hooks\use-toast.ts
+  132:25  warning  'state' is defined but never used  no-unused-vars
+
+C:\Parsonal Website\CampusHat\frontend\src\lib\api.ts
+  20:15  warning  'value' is defined but never used   no-unused-vars
+  21:14  warning  'reason' is defined but never used  no-unused-vars
+
+C:\Parsonal Website\CampusHat\frontend\src\stores\auth.store.ts
+  30:15  warning  'user' is defined but never used   no-unused-vars
+  31:22  warning  'token' is defined but never used  no-unused-vars
+
+C:\Parsonal Website\CampusHat\frontend\src\stores\campus.store.ts
+  7:17  warning  'id' is defined but never used    no-unused-vars
+  7:36  warning  'name' is defined but never used  no-unused-vars
+
+C:\Parsonal Website\CampusHat\frontend\src\stores\cart.store.ts
+  23:17  warning  'isOpen' is defined but never used    no-unused-vars
+  26:15  warning  'item' is defined but never used      no-unused-vars
+  27:18  warning  'id' is defined but never used        no-unused-vars
+  28:22  warning  'id' is defined but never used        no-unused-vars
+  28:34  warning  'quantity' is defined but never used  no-unused-vars
+
+Γ£û 58 problems (1 error, 57 warnings)
+

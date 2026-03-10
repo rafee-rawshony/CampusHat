@@ -85,7 +85,7 @@ function RegisterContent() {
         fetchUniversities()
     }, [])
 
-    const onSubmit = async (data: any, type: 'customer' | 'student') => {
+    const onSubmit = async (data: any) => {
         setIsLoading(true)
         try {
             const payload = {
@@ -182,7 +182,7 @@ function RegisterContent() {
 
                             {/* Customer Form */}
                             <TabsContent value="customer">
-                                <form onSubmit={customerForm.handleSubmit((d) => onSubmit(d, 'customer'))} className="space-y-4">
+                                <form onSubmit={customerForm.handleSubmit((d) => onSubmit(d))} className="space-y-4">
                                     <SharedFields form={customerForm} />
                                     <Button type="submit" className="w-full mt-2" disabled={isLoading}>
                                         {isLoading ? 'Creating account...' : 'Create Account'}
@@ -192,7 +192,7 @@ function RegisterContent() {
 
                             {/* Student Form */}
                             <TabsContent value="student">
-                                <form onSubmit={studentForm.handleSubmit((d) => onSubmit(d, 'student'))} className="space-y-4">
+                                <form onSubmit={studentForm.handleSubmit((d) => onSubmit(d))} className="space-y-4">
                                     <SharedFields form={studentForm} />
 
                                     <div className="space-y-2">

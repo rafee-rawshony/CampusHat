@@ -8,7 +8,6 @@ import {
     Heart,
     Minus,
     Plus,
-    Share2,
     ShieldCheck,
     Truck,
     RotateCcw,

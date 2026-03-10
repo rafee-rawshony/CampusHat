@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+
 import Link from 'next/link'
 import { Info, AlertTriangle } from 'lucide-react'
 import { useForm } from 'react-hook-form'
@@ -31,7 +31,7 @@ interface University {
 
 export default function AccountPage() {
     const { user, setUser } = useAuthStore()
-    const router = useRouter()
+
     const [universities, setUniversities] = useState<University[]>([])
     const [isLoading, setIsLoading] = useState(false)
 

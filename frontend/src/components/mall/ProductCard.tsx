@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Heart, ShoppingBag } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import toast from 'react-hot-toast'
 
 import { Card } from '@/components/ui/card'
@@ -145,10 +146,15 @@ export function ProductCard({ product }: ProductCardProps) {
                             className="text-lg font-bold text-gray-900"
                         />
                         {product.discount_price && (
-                            <CurrencyDisplay
-                                amount={parseFloat(product.base_price)}
-                                className="text-sm text-gray-400 line-through"
-                            />
+                            <>
+                                <CurrencyDisplay
+                                    amount={parseFloat(product.base_price)}
+                                    className="text-sm text-gray-400 line-through"
+                                />
+                                <div className="ml-auto">
+                                    <p className="text-xs text-gray-500 font-medium">Sale ends soon. Don&apos;t miss out!</p>
+                                </div>
+                            </>
                         )}
                     </div>
 
@@ -161,7 +167,7 @@ export function ProductCard({ product }: ProductCardProps) {
                         ) : product.has_variants ? (
                             <Button
                                 className="w-full bg-[#1A1A2E] hover:bg-[#2A2A4E] text-white"
-                                onClick={(e) => {
+                                onClick={() => {
                                     // Let default navigation happen
                                 }}
                             >

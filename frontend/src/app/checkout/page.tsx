@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { CreditCard, Wallet, Truck, Check, ChevronRight, Tag, Info } from 'lucide-react'
+import { CreditCard, Wallet, Truck, Tag, Info } from 'lucide-react'
 import { toast } from 'react-hot-toast'
-import { useForm, Controller } from 'react-form-hook' // React Hook Form is in package.json from Phase 01
+
 // Actually, using the standard import map:
 import { useForm as useRHForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -20,7 +20,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Separator } from '@/components/ui/separator'
-import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
+
 import { cn } from '@/lib/utils'
 
 // Zod Schema for Address
@@ -50,15 +50,15 @@ export default function CheckoutPage() {
     const [isLoading, setIsLoading] = useState(false)
     const [couponCode, setCouponCode] = useState('')
     const [discount, setDiscount] = useState(0)
-    const [deliveryFee, setDeliveryFee] = useState(60) // Static 60 BDT for now
+    const [deliveryFee] = useState(60) // Static 60 BDT for now
     const [walletBalance, setWalletBalance] = useState(2500) // Mock base balance for demo
 
     // Form Hooks
-    const { register, handleSubmit, formState: { errors }, setValue } = useRHForm<AddressFormValues>({
+    const { register, handleSubmit, formState: { errors } } = useRHForm<AddressFormValues>({
         resolver: zodResolver(addressSchema),
         defaultValues: {
             full_name: user?.full_name || '',
-            phone: user?.phone_number || ''
+            phone: ''
         }
     })
 
@@ -73,15 +73,15 @@ export default function CheckoutPage() {
             toast.error('Your cart is empty.')
             router.replace('/marketplace')
         }
-        
+
         // Fetch actual wallet balance 
         const fetchWallet = async () => {
-             try {
-                 const { data } = await api.get('/wallet/')
-                 if (data?.balance) setWalletBalance(parseFloat(data.balance))
-             } catch {
-                 // Fallback to mock value if unmapped
-             }
+            try {
+                const { data } = await api.get('/wallet/')
+                if (data?.balance) setWalletBalance(parseFloat(data.balance))
+            } catch {
+                // Fallback to mock value if unmapped
+            }
         }
         fetchWallet()
     }, [isAuthenticated, items.length, router])
@@ -91,7 +91,7 @@ export default function CheckoutPage() {
 
     const applyCoupon = async () => {
         if (!couponCode) return
-        
+
         // Demo Code
         if (couponCode.toUpperCase() === 'TESTCODE20') {
             const disc = subtotal * 0.2
@@ -129,7 +129,7 @@ export default function CheckoutPage() {
             }
 
             await api.post('/orders/checkout/', payload)
-            
+
             // Success Pipeline
             clearCart()
             router.push(`/orders/success-${Date.now()}?success=1`) // Assuming a routing structure for confirmation
@@ -150,14 +150,14 @@ export default function CheckoutPage() {
     return (
         <div className="min-h-screen bg-surface-base pb-20 pt-6">
             <div className="container mx-auto px-4 max-w-6xl">
-                
+
                 <h1 className="text-3xl font-black text-gray-900 mb-8">Checkout</h1>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    
+
                     {/* LEFT COLUMN: Forms */}
                     <div className="lg:col-span-7 space-y-8">
-                        
+
                         <form id="checkout-form" onSubmit={handleSubmit(onSubmit)}>
                             {/* STEP 1: Address */}
                             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8">
@@ -165,7 +165,7 @@ export default function CheckoutPage() {
                                     <span className="flex items-center justify-center w-8 h-8 rounded-full bg-brand-light text-brand-primary text-sm">1</span>
                                     Delivery Details
                                 </h2>
-                                
+
                                 <div className="space-y-5">
                                     <div className="grid sm:grid-cols-2 gap-5">
                                         <div className="space-y-2">
@@ -179,7 +179,7 @@ export default function CheckoutPage() {
                                             {errors.phone && <p className="text-red-500 text-xs">{errors.phone.message}</p>}
                                         </div>
                                     </div>
-                                    
+
                                     <div className="grid sm:grid-cols-2 gap-5">
                                         <div className="space-y-2">
                                             <Label>Campus Building / Hall</Label>
@@ -213,19 +213,19 @@ export default function CheckoutPage() {
                                         const isInsufficient = isWallet && walletBalance < finalTotal
 
                                         return (
-                                            <label 
-                                                key={method.id} 
+                                            <label
+                                                key={method.id}
                                                 className={cn(
                                                     "flex items-start gap-4 p-4 rounded-xl border-2 transition-all cursor-pointer relative",
-                                                    paymentMethod === method.id 
-                                                        ? "border-brand-primary bg-brand-light/10" 
+                                                    paymentMethod === method.id
+                                                        ? "border-brand-primary bg-brand-light/10"
                                                         : "border-gray-200 hover:border-brand-primary/50 bg-white",
                                                     isInsufficient && "opacity-60 cursor-not-allowed hover:border-gray-200"
                                                 )}
                                             >
-                                                <RadioGroupItem 
-                                                    value={method.id} 
-                                                    id={method.id} 
+                                                <RadioGroupItem
+                                                    value={method.id}
+                                                    id={method.id}
                                                     disabled={isInsufficient}
                                                     className="mt-1"
                                                 />
@@ -240,7 +240,7 @@ export default function CheckoutPage() {
                                                         )}
                                                     </div>
                                                     <p className="text-sm text-gray-500 mt-1">{method.description}</p>
-                                                    
+
                                                     {isInsufficient && (
                                                         <div className="flex items-center gap-1 text-xs text-red-500 font-bold mt-2 bg-red-50 p-2 rounded-md">
                                                             <Info className="h-4 w-4" /> Insufficient balance. Top up required.
@@ -259,7 +259,7 @@ export default function CheckoutPage() {
                     <div className="lg:col-span-5 relative">
                         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8 sticky top-24">
                             <h2 className="text-xl font-bold text-gray-900 mb-6">Order Summary</h2>
-                            
+
                             {/* Items List */}
                             <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2 hide-scrollbar mb-6">
                                 {items.map(item => (
@@ -293,15 +293,15 @@ export default function CheckoutPage() {
                             <div className="flex gap-2 mb-6">
                                 <div className="relative flex-1">
                                     <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                    <Input 
-                                        placeholder="Promo Code" 
-                                        className="pl-9 bg-gray-50 uppercase" 
+                                    <Input
+                                        placeholder="Promo Code"
+                                        className="pl-9 bg-gray-50 uppercase"
                                         value={couponCode}
                                         onChange={(e) => setCouponCode(e.target.value)}
                                         disabled={discount > 0}
                                     />
                                 </div>
-                                <Button 
+                                <Button
                                     variant={discount > 0 ? "outline" : "default"}
                                     onClick={discount > 0 ? () => { setDiscount(0); setCouponCode(''); } : applyCoupon}
                                 >
@@ -326,7 +326,7 @@ export default function CheckoutPage() {
                             </div>
 
                             <Separator className="my-6" />
-                            
+
                             <div className="flex justify-between items-end mb-8">
                                 <div>
                                     <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Total Fixed Price</p>
@@ -336,9 +336,9 @@ export default function CheckoutPage() {
                                 </div>
                             </div>
 
-                            <Button 
+                            <Button
                                 form="checkout-form"
-                                type="submit" 
+                                type="submit"
                                 className="w-full h-14 text-lg font-bold shadow-md rounded-xl bg-[#1A1A2E] hover:bg-[#2A2A4E] text-white"
                                 disabled={isLoading}
                             >

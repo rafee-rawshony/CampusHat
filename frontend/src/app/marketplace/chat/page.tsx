@@ -1,11 +1,14 @@
 'use client'
+export const dynamic = 'force-dynamic'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { Search, Send, Image as ImageIcon, CheckCircle, XCircle, ArrowLeft, ArrowRight, CornerDownRight } from 'lucide-react'
+import Link from 'next/link'
+import { Search, Send, Image as ImageIcon, CheckCircle, XCircle, ArrowLeft, CornerDownRight, MessageCircle } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { useAuthStore } from '@/stores/auth.store'
 import { api } from '@/lib/api'
 import { formatDistanceToNow, format } from 'date-fns'
@@ -45,7 +48,7 @@ interface ChatMessage {
     image?: string
 }
 
-export default function RealtimeChatPage() {
+function ChatContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const urlListingId = searchParams?.get('listing')
@@ -59,7 +62,7 @@ export default function RealtimeChatPage() {
     const [messages, setMessages] = useState<ChatMessage[]>([])
     const [newMessage, setNewMessage] = useState('')
     const [searchQuery, setSearchQuery] = useState('')
-    const [loading, setLoading] = useState(true)
+
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -88,7 +91,7 @@ export default function RealtimeChatPage() {
         ]
 
         setThreads(mockThreads)
-        setLoading(false)
+
 
         // Automatically create/open active thread if params passed
         if (urlListingId && urlUserId) {
@@ -115,7 +118,7 @@ export default function RealtimeChatPage() {
                 setActiveThreadId(mockThreads[0].id)
             }
         }
-    }, [canAccessMarketplace, urlListingId, urlUserId])
+    }, [canAccessMarketplace, urlListingId, urlUserId, activeThreadId])
 
     // Load Messages
     useEffect(() => {
@@ -313,7 +316,7 @@ export default function RealtimeChatPage() {
                                                             {msg.offer_status === 'accepted' && <Badge className="bg-green-100 text-green-800">Accepted</Badge>}
                                                             {msg.offer_status === 'declined' && <Badge variant="destructive">Declined</Badge>}
                                                         </div>
-                                                        <p className="text-sm text-gray-700 font-medium leading-relaxed mb-4">"{msg.text}"</p>
+                                                        <p className="text-sm text-gray-700 font-medium leading-relaxed mb-4">&quot;{msg.text}&quot;</p>
 
                                                         {msg.offer_status === 'pending' && !isMe && (
                                                             <div className="flex gap-2">
@@ -395,5 +398,13 @@ export default function RealtimeChatPage() {
                 </div>
             </div>
         </div>
+    )
+}
+
+export default function ChatPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-[#F5F5F5] pt-20 text-center text-gray-500 animate-pulse">Loading discussion...</div>}>
+            <ChatContent />
+        </Suspense>
     )
 }

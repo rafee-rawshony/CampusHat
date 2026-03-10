@@ -7,8 +7,10 @@ import { Plus, Edit2, EyeOff, Eye, Trash2, CheckCircle, RotateCcw, Search, EyeIc
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { useToast } from '@/components/ui/use-toast'
+
+import { useToast } from '@/hooks/use-toast'
 import { api } from '@/lib/api'
+
 import {
     AlertDialog,
     AlertDialogAction,
