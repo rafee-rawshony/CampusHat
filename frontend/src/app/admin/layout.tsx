@@ -4,9 +4,8 @@ import React, { useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
-    LayoutDashboard, Users, ShieldCheck, Store,
-    ShoppingBag, CreditCard, BarChart3,
-    Settings, LogOut, ArrowLeft, Bell
+    BarChart3, RefreshCw, Store, Grid, ShoppingBag,
+    Users, Building2, Tags, CodeSquare, LogOut, Plus
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth.store'
 import { useAdminStore } from '@/stores/admin.store'
@@ -15,7 +14,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const router = useRouter()
     const pathname = usePathname()
     const { user, isAuthenticated, isAdmin, isModerator, logout } = useAuthStore()
-    const { permissions, setPermissions, setPendingCounts, hasPermission } = useAdminStore()
+    const { permissions, setPermissions, setPendingCounts, pendingCounts } = useAdminStore()
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -27,98 +26,105 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             return
         }
 
-        // Fetch permissions from API: GET /api/v1/admin/my-permissions/
-        // Mock: admin gets all permissions, moderators get role-specific ones
-        const mockPerms = isAdmin()
-            ? ['admin']
-            : isModerator()
-                ? ['seller_moderator'] // or 'marketplace_moderator'
-                : []
+        const mockPerms = isAdmin() ? ['admin'] : isModerator() ? ['seller_moderator'] : []
         setPermissions(mockPerms)
-
-        // Fetch pending counts: GET /api/v1/admin/pending-counts/
-        setPendingCounts({
-            sellers: 4,
-            marketplace: 7,
-            verifications: 12,
-            refunds: 2,
-        })
+        setPendingCounts({ total: 12 }) // student + seller + marketplace
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isAuthenticated])
 
     if (!isAuthenticated || (!isAdmin() && !isModerator())) return null
 
-    const navItems = [
-        { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard, perm: null },
-        { label: 'Users', href: '/admin/users', icon: Users, perm: 'admin' },
-        { label: 'Verifications', href: '/admin/verifications', icon: ShieldCheck, perm: 'admin' },
-        { label: 'Seller Approvals', href: '/admin/sellers', icon: Store, perm: 'seller_moderator' },
-        { label: 'Marketplace', href: '/admin/marketplace', icon: ShoppingBag, perm: 'marketplace_moderator' },
-        { label: 'Refunds', href: '/admin/refunds', icon: CreditCard, perm: 'finance_moderator' },
-        { label: 'Analytics', href: '/admin/analytics', icon: BarChart3, perm: 'admin' },
-        { label: 'Settings', href: '/admin/settings', icon: Settings, perm: 'admin' },
+    const totalPending = pendingCounts.total || 0
+
+    const navSections = [
+        {
+            label: 'MAIN',
+            items: [
+                { label: 'Analytics', href: '/admin', icon: BarChart3 },
+                { label: 'Pending Approvals', href: '/admin/approvals', icon: RefreshCw, badge: totalPending },
+            ]
+        },
+        {
+            label: 'COMMERCE',
+            items: [
+                { label: 'Mall Products', href: '/admin/mall-products', icon: Store },
+                { label: 'Marketplace', href: '/admin/marketplace', icon: Grid },
+                { label: 'Orders', href: '/admin/orders', icon: ShoppingBag },
+            ]
+        },
+        {
+            label: 'SYSTEM',
+            items: [
+                { label: 'User Directory', href: '/admin/users', icon: Users },
+                { label: 'Campuses', href: '/admin/campuses', icon: Building2 },
+                { label: 'Categories', href: '/admin/categories', icon: Tags },
+                { label: 'Activity Logs', href: '/admin/activity', icon: CodeSquare },
+            ]
+        }
     ]
 
-    const visibleItems = navItems.filter(item => {
-        if (!item.perm) return true // always shown (Dashboard)
-        return hasPermission(item.perm)
-    })
-
     const isActive = (href: string) =>
-        pathname === href || (href !== '/admin/dashboard' && pathname.startsWith(href))
+        pathname === href || (href !== '/admin' && pathname.startsWith(href))
 
     return (
-        <div className="flex h-screen overflow-hidden bg-[#F5F5F5] font-sans">
-
+        <div className="flex h-screen overflow-hidden bg-[#F8FAFC] font-sans">
             {/* Sidebar */}
-            <aside className="w-[240px] flex-shrink-0 bg-[#2D1B69] text-white flex flex-col h-full shadow-2xl z-20">
-
+            <aside className="w-[240px] flex-shrink-0 bg-[#2D1B69] text-white flex flex-col h-full z-20 overflow-y-auto custom-scrollbar">
                 {/* Identity block */}
-                <div className="p-5 border-b border-white/10 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-orange-500 flex items-center justify-center font-black text-lg shadow-inner shrink-0">
-                        {user?.full_name?.[0]?.toUpperCase() || 'A'}
-                    </div>
-                    <div>
-                        <p className="font-bold text-sm leading-tight truncate max-w-[140px]">{user?.full_name || 'Admin'}</p>
-                        <p className="text-[10px] uppercase tracking-widest text-white/50 font-bold mt-0.5">
-                            {isAdmin() ? 'Super Admin' : 'Moderator'}
-                        </p>
+                <div className="p-6 pb-2">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="w-12 h-12 rounded-xl bg-orange-600 flex items-center justify-center font-black text-xl shadow-inner shrink-0">
+                            {user?.full_name?.[0]?.toUpperCase() || 'A'}
+                        </div>
+                        <div>
+                            <p className="font-bold text-base leading-tight">Admin Console</p>
+                            <p className="text-[10px] uppercase tracking-widest text-white/50 font-bold mt-0.5">
+                                {isAdmin() ? 'Super Admin' : 'Moderator'}
+                            </p>
+                        </div>
                     </div>
                 </div>
 
-                {/* Nav */}
-                <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1">
-                    <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.15em] mb-3 px-3">Navigation</p>
-                    {visibleItems.map((item) => {
-                        const active = isActive(item.href)
-                        const Icon = item.icon
-                        return (
-                            <Link
-                                key={item.href}
-                                href={item.href}
-                                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all relative
-                                    ${active ? 'bg-white/15 text-white font-bold' : 'text-white/65 hover:bg-white/8 hover:text-white'}`}
-                            >
-                                {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-purple-300 rounded-r-full" />}
-                                <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-purple-300' : 'text-white/40'}`} />
-                                {item.label}
-                            </Link>
-                        )
-                    })}
+                {/* Nav Sections */}
+                <nav className="flex-1 px-3 space-y-6 pb-6">
+                    {navSections.map((section, idx) => (
+                        <div key={idx}>
+                            <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.15em] mb-2 px-3">
+                                {section.label}
+                            </p>
+                            <div className="space-y-0.5">
+                                {section.items.map((item) => {
+                                    const active = isActive(item.href)
+                                    const Icon = item.icon
+                                    return (
+                                        <Link
+                                            key={item.href}
+                                            href={item.href}
+                                            className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all group
+                                                ${active ? 'bg-white/10 text-white font-bold border-l-4 border-purple-400 -ml-[4px] pl-[15px]' : 'text-white/60 hover:bg-white/5 hover:text-white border-l-4 border-transparent'}`}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-purple-300' : 'text-white/40 group-hover:text-white/70'}`} />
+                                                {item.label}
+                                            </div>
+                                            {item.badge ? (
+                                                <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm">
+                                                    {item.badge}
+                                                </span>
+                                            ) : null}
+                                        </Link>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    ))}
                 </nav>
 
                 {/* Bottom Actions */}
-                <div className="p-3 border-t border-white/10 space-y-1">
-                    <Link
-                        href="/"
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/65 hover:bg-white/8 hover:text-white transition-all"
-                    >
-                        <ArrowLeft className="w-4 h-4 text-white/40" />
-                        Back to Site
-                    </Link>
+                <div className="p-4 border-t border-white/10">
                     <button
                         onClick={() => logout()}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all"
+                        className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold text-red-400 bg-red-500/10 hover:bg-red-500/20 transition-all"
                     >
                         <LogOut className="w-4 h-4" />
                         Log Out
@@ -126,32 +132,27 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </div>
             </aside>
 
-            {/* Main */}
-            <main className="flex-1 flex flex-col h-full overflow-hidden">
-
+            {/* Main Content Area */}
+            <main className="flex-1 flex flex-col h-full overflow-hidden relative">
                 {/* Top Bar */}
                 <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0 shadow-sm z-10">
-                    <div className="flex items-center gap-3">
-                        <span className="text-xs font-black text-gray-400 uppercase tracking-wider">CampusHat</span>
-                        <span className="text-gray-300">·</span>
-                        <span className="text-sm font-bold text-gray-800">Admin Console</span>
+                    <div className="flex items-center gap-2 text-sm">
+                        <span className="font-bold text-gray-800">Welcome to CampusHat Marketplace</span>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <button className="relative p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-colors">
-                            <Bell className="w-4 h-4" />
-                            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-                        </button>
-                        <div className="h-6 w-px bg-gray-200"></div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-orange-500 text-white text-xs font-black flex items-center justify-center">
-                                {user?.full_name?.[0]?.toUpperCase() || 'A'}
-                            </div>
-                            <span className="text-sm font-bold text-gray-700 hidden sm:block">{user?.full_name || 'Admin'}</span>
-                        </div>
+                    <div className="flex items-center gap-4">
+                        <span className="text-sm font-medium text-gray-600 hidden sm:block">
+                            Hi, <span className="font-bold text-gray-900">{user?.full_name?.split(' ')[0] || 'Super'}</span>
+                        </span>
+                        <Link
+                            href="/marketplace/post"
+                            className="inline-flex items-center gap-1.5 bg-brand-primary text-white px-4 py-1.5 rounded-full text-xs font-bold hover:bg-brand-dark transition-colors shadow-sm"
+                        >
+                            <Plus className="w-3.5 h-3.5" /> Post Ad
+                        </Link>
                     </div>
                 </header>
 
-                {/* Content */}
+                {/* Scrollable Content */}
                 <div className="flex-1 overflow-y-auto">
                     {children}
                 </div>

@@ -1,289 +1,322 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import Image from 'next/image'
-import { FileText, Check, Store } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+import { CheckCircle2, XCircle, FileText, Image as ImageIcon } from 'lucide-react'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { useToast } from '@/hooks/use-toast'
+import { Button } from '@/components/ui/button'
+import { toast } from 'react-hot-toast'
+import Image from 'next/image'
 
-import { format } from 'date-fns'
+type TabType = 'student' | 'marketplace' | 'seller'
 
-type TabType = 'students' | 'ads' | 'sellers'
+const BADGE_OPTIONS = ['Verified Seller', 'Student Seller', 'Official Store']
 
-export default function ApprovalsPage() {
-    const { toast } = useToast()
-    const [activeTab, setActiveTab] = useState<TabType>('students')
+export default function AdminReviewCenter() {
+    const [activeTab, setActiveTab] = useState<TabType>('student')
+    const [isLoading, setIsLoading] = useState(true)
 
-    // MOCK DATA STATES (would normally come from API)
+    // Data stores
     const [students, setStudents] = useState<any[]>([])
     const [ads, setAds] = useState<any[]>([])
     const [sellers, setSellers] = useState<any[]>([])
-    const [isLoading, setIsLoading] = useState(true)
 
-    // Dialog States
-    const [rejectReject, setRejectReject] = useState<{ isOpen: boolean, id: string | null, type: TabType | null }>({ isOpen: false, id: null, type: null })
+    // Modal state
+    const [approveModal, setApproveModal] = useState<{ type: TabType; item: any } | null>(null)
+    const [rejectModal, setRejectModal] = useState<{ type: TabType; item: any } | null>(null)
     const [rejectReason, setRejectReason] = useState('')
     const [rejectNotes, setRejectNotes] = useState('')
-
-    const [approveModal, setApproveModal] = useState<{ isOpen: boolean, id: string | null, type: TabType | null, name: string }>({ isOpen: false, id: null, type: null, name: '' })
+    const [sellerBadge, setSellerBadge] = useState(BADGE_OPTIONS[0])
+    const [lightboxMedia, setLightboxMedia] = useState<{ url: string; isPdf?: boolean } | null>(null)
 
     useEffect(() => {
-        // Mocking API fetch
-        setIsLoading(true)
+        // API Mocks:
+        // GET /api/v1/admin/verifications/pending/
+        // GET /api/v1/admin/marketplace/pending/
+        // GET /api/v1/admin/sellers/pending/
         setTimeout(() => {
             setStudents([
-                { id: '1', name: 'Rahim Uddin', uni_code: 'NSU', date: '2024-06-22', image: null, is_pdf: false },
-                { id: '2', name: 'Sadia Rahman', uni_code: 'BRACU', date: '2024-06-25', image: 'https://placehold.co/400x250/orange/white?text=ID+Card', is_pdf: false },
+                { id: 'v1', name: 'Rahim Uddin', university: 'Du', date: '2024-06-22', docUrl: 'https://placehold.co/600x400/indigo/white?text=ID+Card' },
+                { id: 'v2', name: 'Sadia Rahman', university: 'NSU', date: '2024-06-21', docUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', isPdf: true },
             ])
             setAds([
-                { id: '101', title: 'Calculus 8th Edition', type: 'Buy', seller: 'Karim', date: '2024-06-26T10:00:00Z', image: 'https://placehold.co/400x250/purple/white?text=Book' }
+                { id: 'a1', title: 'iPhone 14 Pro Max', type: 'item_for_sale', poster: 'Rahim U.', date: '2024-06-23', imgUrl: 'https://placehold.co/600x400/purple/white?text=iPhone' },
             ])
             setSellers([
-                { id: '201', store_name: 'Tech Gadgets BD', applicant: 'Fahim', uni_code: 'AIUB', date: '2024-06-20' }
+                { id: 's1', store: 'TechHub Store', applicant: 'Rahim U.', university: 'BUET', date: '2024-06-20', type: 'Business' },
             ])
             setIsLoading(false)
-        }, 800)
+        }, 600)
     }, [])
 
-    const handleRejectSubmit = async () => {
-        if (!rejectReason) {
-            toast({ title: 'Error', description: 'Please select a reason for rejection.', variant: 'destructive' })
-            return
-        }
+    const handleApprove = () => {
+        if (!approveModal) return
+        const { type, item } = approveModal
 
-        // Mock API call
-        // await api.post(`/admin/${rejectReject.type}/${rejectReject.id}/review/`, { action: 'reject', reason: rejectReason, notes: rejectNotes })
+        if (type === 'student') setStudents(prev => prev.filter(s => s.id !== item.id))
+        if (type === 'marketplace') setAds(prev => prev.filter(a => a.id !== item.id))
+        if (type === 'seller') setSellers(prev => prev.filter(s => s.id !== item.id))
 
-        toast({ title: 'Request Rejected', description: `Notification sent to the user.` })
+        toast.success(`${type === 'student' ? 'Student verified' : type === 'marketplace' ? 'Ad approved' : 'Seller approved'}`)
+        setApproveModal(null)
+    }
 
-        // Remove locally
-        if (rejectReject.type === 'students') setStudents(s => s.filter(x => x.id !== rejectReject.id))
-        else if (rejectReject.type === 'ads') setAds(a => a.filter(x => x.id !== rejectReject.id))
-        else if (rejectReject.type === 'sellers') setSellers(s => s.filter(x => x.id !== rejectReject.id))
+    const handleReject = () => {
+        if (!rejectModal || !rejectReason) { toast.error('Please select a reason'); return }
+        const { type, item } = rejectModal
 
-        setRejectReject({ isOpen: false, id: null, type: null })
+        if (type === 'student') setStudents(prev => prev.filter(s => s.id !== item.id))
+        if (type === 'marketplace') setAds(prev => prev.filter(a => a.id !== item.id))
+        if (type === 'seller') setSellers(prev => prev.filter(s => s.id !== item.id))
+
+        toast.success(`${type === 'student' ? 'Verification' : type === 'marketplace' ? 'Ad' : 'Application'} rejected`)
+        setRejectModal(null)
         setRejectReason('')
         setRejectNotes('')
     }
 
-    const handleApproveSubmit = async () => {
-        // Mock API Call
-        toast({ title: 'Approved successfully', description: `${approveModal.name} is now active.` })
-
-        if (approveModal.type === 'students') setStudents(s => s.filter(x => x.id !== approveModal.id))
-        else if (approveModal.type === 'ads') setAds(a => a.filter(x => x.id !== approveModal.id))
-        else if (approveModal.type === 'sellers') setSellers(s => s.filter(x => x.id !== approveModal.id))
-
-        setApproveModal({ isOpen: false, id: null, type: null, name: '' })
-    }
-
-    const openReject = (id: string, type: TabType) => setRejectReject({ isOpen: true, id, type })
-    const openApprove = (id: string, type: TabType, name: string) => setApproveModal({ isOpen: true, id, type, name })
+    const unassignedCount = students.length + ads.length + sellers.length
 
     return (
-        <div className="p-8 max-w-7xl mx-auto min-h-full">
-
-            {/* Header */}
-            <div className="mb-8">
-                <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Review Center</h1>
-                <p className="text-gray-500 mt-1">Action pending requests across the platform</p>
+        <div className="p-6 lg:p-8 space-y-8 max-w-7xl mx-auto">
+            <div>
+                <h1 className="text-3xl font-black text-gray-900 tracking-tight">Review Center</h1>
+                <p className="text-gray-500 text-sm mt-1">Action pending requests across the platform</p>
             </div>
 
             {/* Tabs */}
-            <div className="flex space-x-8 border-b border-gray-200 mb-8">
+            <div className="flex gap-6 border-b border-gray-200">
                 {[
-                    { id: 'students', label: 'Student Verification', count: students.length },
-                    { id: 'ads', label: 'Marketplace Ads', count: ads.length },
-                    { id: 'sellers', label: 'Seller Applications', count: sellers.length },
-                ].map(tab => (
+                    { id: 'student', label: 'Student Verification', count: students.length },
+                    { id: 'marketplace', label: 'Marketplace Ads', count: ads.length },
+                    { id: 'seller', label: 'Seller Applications', count: sellers.length },
+                ].map((tab) => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as TabType)}
-                        className={`pb-4 text-sm font-bold relative transition-colors ${activeTab === tab.id ? 'text-brand-primary' : 'text-gray-500 hover:text-gray-800'
-                            }`}
+                        className={`pb-3 text-sm font-bold border-b-2 transition-all flex items-center gap-2
+                            ${activeTab === tab.id ? 'border-brand-primary text-brand-primary' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
                     >
                         {tab.label}
                         {tab.count > 0 && (
-                            <span className="ml-2 inline-flex items-center justify-center bg-gray-100 text-gray-600 text-[10px] px-2 py-0.5 rounded-full font-black">
+                            <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${activeTab === tab.id ? 'bg-brand-primary/10 text-brand-primary' : 'bg-gray-100 text-gray-500'}`}>
                                 {tab.count}
                             </span>
-                        )}
-                        {activeTab === tab.id && (
-                            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-brand-primary rounded-t-full" />
                         )}
                     </button>
                 ))}
             </div>
 
-            {/* Loading State */}
-            {isLoading && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-pulse">
-                    {[1, 2, 3, 4].map(i => <div key={i} className="h-64 bg-gray-200 rounded-2xl" />)}
+            {/* Content Grids */}
+            {isLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
+                    {[1, 2, 3].map(i => <div key={i} className="h-80 bg-gray-200 rounded-2xl"></div>)}
                 </div>
-            )}
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-            {/* Empty State */}
-            {!isLoading && ((activeTab === 'students' && students.length === 0) || (activeTab === 'ads' && ads.length === 0) || (activeTab === 'sellers' && sellers.length === 0)) && (
-                <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 border-dashed">
-                    <Check className="w-12 h-12 text-green-400 mx-auto mb-3" />
-                    <h3 className="text-lg font-bold text-gray-900">All caught up!</h3>
-                    <p className="text-sm text-gray-500">There are no pending requests in this queue.</p>
-                </div>
-            )}
+                    {/* STUDENT VERIFICATION TAB */}
+                    {activeTab === 'student' && (students.length === 0 ? <p className="text-gray-500 font-medium p-8 bg-white rounded-2xl text-center border col-span-full">No pending verifications.</p> :
+                        students.map((student) => (
+                            <div key={student.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col group hover:shadow-md transition-all">
+                                {/* Image Preview */}
+                                <div
+                                    className="aspect-video bg-gray-100 relative cursor-pointer flex items-center justify-center overflow-hidden"
+                                    onClick={() => setLightboxMedia({ url: student.docUrl, isPdf: student.isPdf })}
+                                >
+                                    {student.isPdf ? (
+                                        <div className="flex flex-col items-center text-gray-400 group-hover:text-brand-primary transition-colors">
+                                            <FileText className="w-10 h-10 mb-2" />
+                                            <span className="text-xs font-bold uppercase tracking-wider">View PDF Document</span>
+                                        </div>
+                                    ) : student.docUrl ? (
+                                        <Image src={student.docUrl} alt="ID Document" fill className="object-cover group-hover:scale-105 transition-transform duration-500" unoptimized />
+                                    ) : (
+                                        <div className="flex flex-col items-center text-gray-400">
+                                            <ImageIcon className="w-8 h-8 mb-2 opacity-50" />
+                                            <span className="text-xs font-bold">No Preview</span>
+                                        </div>
+                                    )}
+                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                                </div>
 
-            {/* Tab Contents */}
-            {!isLoading && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                    {/* STUDENTS */}
-                    {activeTab === 'students' && students.map((s) => (
-                        <div key={s.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
-                            {/* ID Preview Area */}
-                            <div className="aspect-video bg-gray-100 relative group flex items-center justify-center overflow-hidden border-b border-gray-100">
-                                {s.is_pdf ? (
-                                    <div className="text-center">
-                                        <FileText className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                                        <span className="text-xs font-bold text-gray-500">PDF DOCUMENT</span>
+                                <div className="p-5 flex-1 flex flex-col">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <h3 className="font-black text-gray-900 text-lg leading-tight">{student.name}</h3>
+                                            <Badge variant="outline" className="text-[10px] bg-indigo-50 text-indigo-700 border-indigo-200 uppercase tracking-widest px-1.5">{student.university}</Badge>
+                                        </div>
+                                        <p className="text-[10px] text-gray-400 uppercase tracking-widest font-black">Requested on: {student.date}</p>
                                     </div>
-                                ) : s.image ? (
-                                    <Image src={s.image} alt="ID Card" fill className="object-cover group-hover:scale-105 transition-transform duration-500" unoptimized />
-                                ) : (
-                                    <span className="text-sm font-bold text-gray-400 underline cursor-pointer hover:text-gray-600">Click to view ID Card</span>
-                                )}
-                            </div>
-
-                            {/* Details */}
-                            <div className="p-5 flex-1 flex flex-col">
-                                <div className="mb-4">
-                                    <div className="flex items-center justify-between">
-                                        <h3 className="text-lg font-black text-gray-900">{s.name}</h3>
-                                        <span className="text-[10px] font-bold tracking-widest text-gray-400 uppercase">REQUESTED: {s.date}</span>
+                                    <div className="flex gap-2 mt-5">
+                                        <Button onClick={() => { setRejectReason(''); setRejectNotes(''); setRejectModal({ type: 'student', item: student }) }} variant="outline" className="flex-1 border-red-200 text-red-600 hover:bg-red-50 font-bold rounded-xl gap-2 h-10">
+                                            <XCircle className="w-4 h-4" /> Reject
+                                        </Button>
+                                        <Button onClick={() => setApproveModal({ type: 'student', item: student })} className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl gap-2 h-10 shadow-sm">
+                                            <CheckCircle2 className="w-4 h-4" /> Approve
+                                        </Button>
                                     </div>
-                                    <p className="text-sm text-gray-500 font-medium">{s.uni_code} University</p>
-                                </div>
-
-                                <div className="mt-auto grid grid-cols-2 gap-3 pt-4 border-t border-gray-50">
-                                    <Button variant="outline" onClick={() => openReject(s.id, 'students')} className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700">Reject</Button>
-                                    <Button onClick={() => openApprove(s.id, 'students', s.name)} className="bg-green-600 hover:bg-green-700 text-white">Approve</Button>
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        ))
+                    )}
 
-                    {/* MARKETPLACE ADS */}
-                    {activeTab === 'ads' && ads.map((ad) => (
-                        <div key={ad.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
-                            <div className="aspect-video bg-gray-100 relative group flex items-center justify-center overflow-hidden border-b border-gray-100">
-                                {ad.image ? <Image src={ad.image} alt="Ad" fill className="object-cover" unoptimized /> : <div className="text-gray-400 text-sm font-bold">No Image</div>}
-                                <div className="absolute top-3 left-3">
-                                    <Badge className="bg-purple-600 text-white border-0 shadow-sm">{ad.type}</Badge>
+                    {/* MARKETPLACE ADS TAB */}
+                    {activeTab === 'marketplace' && (ads.length === 0 ? <p className="text-gray-500 font-medium p-8 bg-white rounded-2xl text-center border col-span-full">No pending ads.</p> :
+                        ads.map((ad) => (
+                            <div key={ad.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col group hover:shadow-md transition-all">
+                                <div className="aspect-video bg-gray-100 relative overflow-hidden" onClick={() => setLightboxMedia({ url: ad.imgUrl })}>
+                                    {ad.imgUrl ? <Image src={ad.imgUrl} alt={ad.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer" unoptimized /> : <div className="flex h-full items-center justify-center text-gray-300"><ImageIcon className="w-8 h-8" /></div>}
+                                </div>
+                                <div className="p-5 flex-1 flex flex-col">
+                                    <div className="flex-1">
+                                        <h3 className="font-black text-gray-900 leading-tight mb-2 line-clamp-1">{ad.title}</h3>
+                                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                                            <Badge variant="outline" className="text-[10px] bg-gray-100 text-gray-600 border-gray-200 uppercase tracking-wider">{ad.type.replace(/_/g, ' ')}</Badge>
+                                            <span className="text-xs text-brand-primary font-bold">{ad.poster}</span>
+                                        </div>
+                                        <p className="text-[10px] text-gray-400 uppercase tracking-widest font-black">Posted: {ad.date}</p>
+                                    </div>
+                                    <div className="flex gap-2 mt-5">
+                                        <Button onClick={() => { setRejectReason(''); setRejectNotes(''); setRejectModal({ type: 'marketplace', item: ad }) }} variant="outline" className="flex-1 border-red-200 text-red-600 hover:bg-red-50 font-bold rounded-xl gap-2 h-10">
+                                            <XCircle className="w-4 h-4" /> Reject
+                                        </Button>
+                                        <Button onClick={() => setApproveModal({ type: 'marketplace', item: ad })} className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl gap-2 h-10 shadow-sm">
+                                            <CheckCircle2 className="w-4 h-4" /> Approve
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
+                        ))
+                    )}
 
-                            <div className="p-5 flex-1 flex flex-col">
-                                <div className="mb-4">
-                                    <h3 className="text-lg font-black text-gray-900 line-clamp-1">{ad.title}</h3>
-                                    <p className="text-sm text-gray-500">Posted by <span className="font-bold text-gray-700">{ad.seller}</span></p>
-                                    <p className="text-xs text-gray-400 mt-1">Submitted on {format(new Date(ad.date), 'MMM dd, yyyy')}</p>
+                    {/* SELLER APPLICATIONS TAB */}
+                    {activeTab === 'seller' && (sellers.length === 0 ? <p className="text-gray-500 font-medium p-8 bg-white rounded-2xl text-center border col-span-full">No pending applications.</p> :
+                        sellers.map((seller) => (
+                            <div key={seller.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-all p-5">
+                                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-700 text-white flex items-center justify-center font-black text-2xl shadow-sm mb-4">
+                                    {seller.store[0]}
                                 </div>
-                                <div className="mt-auto grid grid-cols-2 gap-3 pt-4 border-t border-gray-50">
-                                    <Button variant="outline" onClick={() => openReject(ad.id, 'ads')} className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700">Reject</Button>
-                                    <Button onClick={() => openApprove(ad.id, 'ads', ad.title)} className="bg-green-600 hover:bg-green-700 text-white">Approve Listing</Button>
+                                <div className="flex-1">
+                                    <h3 className="font-black text-gray-900 text-lg leading-tight mb-1">{seller.store}</h3>
+                                    <p className="text-xs text-gray-500 font-medium mb-3">{seller.applicant} · {seller.university}</p>
+                                    <Badge variant="outline" className="text-[10px] bg-gray-100 text-gray-600 border-gray-200 uppercase tracking-wider">{seller.type}</Badge>
+                                    <p className="text-[10px] text-gray-400 uppercase tracking-widest font-black mt-3">Submitted: {seller.date}</p>
+                                </div>
+                                <div className="flex gap-2 mt-5">
+                                    <Button onClick={() => { setRejectReason(''); setRejectNotes(''); setRejectModal({ type: 'seller', item: seller }) }} variant="outline" className="flex-1 border-red-200 text-red-600 hover:bg-red-50 font-bold rounded-xl gap-2 h-10">
+                                        <XCircle className="w-4 h-4" /> Reject
+                                    </Button>
+                                    <Button onClick={() => { setSellerBadge(BADGE_OPTIONS[0]); setApproveModal({ type: 'seller', item: seller }) }} className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl gap-2 h-10 shadow-sm">
+                                        <CheckCircle2 className="w-4 h-4" /> Approve
+                                    </Button>
                                 </div>
                             </div>
-                        </div>
-                    ))}
-
-                    {/* SELLERS */}
-                    {activeTab === 'sellers' && sellers.map((sel) => (
-                        <div key={sel.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col">
-                            <div className="mb-4 flex items-start justify-between">
-                                <div>
-                                    <h3 className="text-xl font-black text-gray-900">{sel.store_name}</h3>
-                                    <p className="text-sm text-gray-500 mt-1">Applicant: <span className="font-bold text-gray-800">{sel.applicant}</span> ({sel.uni_code})</p>
-                                </div>
-                                <Store className="w-8 h-8 text-teal-600 opacity-20" />
-                            </div>
-                            <p className="text-xs text-gray-400 mb-6">Submitted on {sel.date}</p>
-
-                            <div className="mt-auto grid grid-cols-2 gap-3 pt-4 border-t border-gray-50">
-                                <Button variant="outline" onClick={() => openReject(sel.id, 'sellers')} className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700">Reject</Button>
-                                <Button onClick={() => openApprove(sel.id, 'sellers', sel.store_name)} className="bg-green-600 hover:bg-green-700 text-white">Approve Seller</Button>
-                            </div>
-                        </div>
-                    ))}
-
+                        ))
+                    )}
                 </div>
             )}
 
-            {/* === DIALOGS === */}
-
-            {/* Reject Dialog */}
-            <Dialog open={rejectReject.isOpen} onOpenChange={(o) => !o && setRejectReject({ isOpen: false, id: null, type: null })}>
-                <DialogContent className="sm:max-w-[425px]">
-                    <DialogHeader>
-                        <DialogTitle className="text-xl font-black text-gray-900">Reject Request</DialogTitle>
-                    </DialogHeader>
-                    <div className="grid gap-6 py-4">
-                        <div className="space-y-2">
-                            <Label className="font-bold">Reason for Rejection</Label>
+            {/* Reject Modal */}
+            <Dialog open={!!rejectModal} onOpenChange={() => setRejectModal(null)}>
+                <DialogContent className="max-w-sm rounded-2xl">
+                    <DialogTitle className="font-black text-gray-900">
+                        Reject {rejectModal?.type === 'student' ? 'Verification' : rejectModal?.type === 'marketplace' ? 'Ad' : 'Application'}
+                    </DialogTitle>
+                    <div className="space-y-4 pt-2">
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-black text-gray-500 uppercase tracking-wider">Rejection Reason</label>
                             <Select value={rejectReason} onValueChange={setRejectReason}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select a reason" />
-                                </SelectTrigger>
+                                <SelectTrigger className="bg-gray-50 border-gray-200 rounded-xl"><SelectValue placeholder="Select reason..." /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="ID not clear">ID not clear</SelectItem>
-                                    <SelectItem value="Wrong document">Wrong document type</SelectItem>
-                                    <SelectItem value="Expired ID">Expired identification</SelectItem>
-                                    <SelectItem value="Name mismatch">Name does not match profile</SelectItem>
-                                    <SelectItem value="Policy Violation">Platform policy violation</SelectItem>
+                                    <SelectItem value="Wrong document">Wrong document</SelectItem>
+                                    <SelectItem value="Expired ID">Expired ID</SelectItem>
+                                    <SelectItem value="Name mismatch">Name mismatch</SelectItem>
+                                    <SelectItem value="Inappropriate content">Inappropriate content</SelectItem>
                                     <SelectItem value="Other">Other</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="space-y-2">
-                            <Label className="font-bold">Additional Notes (Optional)</Label>
-                            <Textarea
-                                placeholder="Explain specifically what needs to be fixed..."
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-black text-gray-500 uppercase tracking-wider">Additional Notes (Optional)</label>
+                            <textarea
                                 value={rejectNotes}
-                                onChange={(e) => setRejectNotes(e.target.value)}
-                                className="h-24 resize-none"
+                                onChange={e => setRejectNotes(e.target.value)}
+                                placeholder="Explain what the user needs to fix..."
+                                className="w-full border border-gray-200 rounded-xl p-3 text-sm bg-gray-50 min-h-[80px] focus:outline-none focus:ring-2 focus:ring-brand-primary"
                             />
                         </div>
                     </div>
-                    <DialogFooter>
-                        <Button variant="ghost" onClick={() => setRejectReject({ isOpen: false, id: null, type: null })}>Cancel</Button>
-                        <Button onClick={handleRejectSubmit} className="bg-red-600 hover:bg-red-700 text-white">Send Rejection</Button>
-                    </DialogFooter>
+                    <div className="flex gap-3 justify-end mt-2">
+                        <Button variant="outline" onClick={() => setRejectModal(null)} className="border-gray-200 rounded-xl">Cancel</Button>
+                        <Button onClick={handleReject} className="bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl shadow-sm">Send Rejection</Button>
+                    </div>
                 </DialogContent>
             </Dialog>
 
-            {/* Approve Confirmation Dialog */}
-            <Dialog open={approveModal.isOpen} onOpenChange={(o) => !o && setApproveModal({ isOpen: false, id: null, type: null, name: '' })}>
-                <DialogContent className="sm:max-w-[400px]">
-                    <DialogHeader>
-                        <DialogTitle className="text-xl font-black text-gray-900 border-b pb-4 mb-2 border-gray-100 flex items-center gap-2">
-                            <Check className="w-5 h-5 text-green-500" /> Confirm Approval
-                        </DialogTitle>
-                    </DialogHeader>
-                    <p className="text-gray-600">
-                        Are you sure you want to approve <span className="font-bold text-gray-900">{approveModal.name}</span>?
-                        {approveModal.type === 'students' && ' This user will gain full access to the marketplace and student privileges.'}
-                        {approveModal.type === 'ads' && ' This listing will immediately go live on the public marketplace feed.'}
-                        {approveModal.type === 'sellers' && ' This user will instantly be converted into a recognized Seller.'}
-                    </p>
-                    <DialogFooter className="mt-6">
-                        <Button variant="ghost" onClick={() => setApproveModal({ isOpen: false, id: null, type: null, name: '' })}>Cancel</Button>
-                        <Button onClick={handleApproveSubmit} className="bg-green-600 hover:bg-green-700 text-white">Confirm Approval</Button>
-                    </DialogFooter>
+            {/* Approve Modal */}
+            <Dialog open={!!approveModal} onOpenChange={() => setApproveModal(null)}>
+                <DialogContent className="max-w-sm rounded-2xl">
+                    <DialogTitle className="font-black text-gray-900">Confirm Approval</DialogTitle>
+
+                    {approveModal?.type === 'student' && (
+                        <p className="text-sm text-gray-600 leading-relaxed py-2">
+                            Approve <strong>{approveModal.item.name}</strong> as a verified student at <strong>{approveModal.item.university}</strong>?
+                        </p>
+                    )}
+
+                    {approveModal?.type === 'marketplace' && (
+                        <p className="text-sm text-gray-600 leading-relaxed py-2">
+                            Approve listing <strong>&ldquo;{approveModal.item.title}&rdquo;</strong> to go live on the marketplace?
+                        </p>
+                    )}
+
+                    {approveModal?.type === 'seller' && (
+                        <div className="space-y-4 py-2">
+                            <p className="text-sm text-gray-600">
+                                Select a storefront badge for <strong>{approveModal.item.store}</strong>:
+                            </p>
+                            <Select value={sellerBadge} onValueChange={setSellerBadge}>
+                                <SelectTrigger className="bg-gray-50 border-gray-200 rounded-xl"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    {BADGE_OPTIONS.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
+
+                    <div className="flex gap-3 justify-end mt-2">
+                        <Button variant="outline" onClick={() => setApproveModal(null)} className="border-gray-200 rounded-xl">Cancel</Button>
+                        <Button onClick={handleApprove} className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-sm">
+                            {approveModal?.type === 'seller' ? `Approve as ${sellerBadge}` : 'Approve'}
+                        </Button>
+                    </div>
                 </DialogContent>
             </Dialog>
 
+            {/* Lightbox */}
+            {lightboxMedia && (
+                <div className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center p-4 md:p-10" onClick={() => setLightboxMedia(null)}>
+                    <Button
+                        variant="ghost"
+                        onClick={() => setLightboxMedia(null)}
+                        className="absolute top-4 right-4 text-white/50 hover:text-white hover:bg-white/10 rounded-full w-12 h-12 p-0"
+                    >
+                        <XCircle className="w-8 h-8" />
+                    </Button>
+                    <div className="w-full max-w-5xl md:h-[80vh] flex items-center justify-center" onClick={e => e.stopPropagation()}>
+                        {lightboxMedia.isPdf ? (
+                            <iframe src={lightboxMedia.url} className="w-full h-full bg-white rounded-xl shadow-2xl" />
+                        ) : (
+                            <div className="relative w-full h-full">
+                                <Image src={lightboxMedia.url} alt="Document View" fill className="object-contain" unoptimized />
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
