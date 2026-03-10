@@ -1,34 +1,21 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
-    BarChart3,
-    RefreshCcw,
-    Store,
-    Grid,
-    ShoppingBag,
-    Users,
-    Building2,
-    Tags,
-    TerminalSquare,
-    Plus
+    LayoutDashboard, Users, ShieldCheck, Store,
+    ShoppingBag, CreditCard, BarChart3,
+    Settings, LogOut, ArrowLeft, Bell
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth.store'
-import { api } from '@/lib/api'
+import { useAdminStore } from '@/stores/admin.store'
 
-export default function AdminLayout({
-    children,
-}: {
-    children: React.ReactNode
-}) {
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter()
     const pathname = usePathname()
-    const { user, isAuthenticated, isAdmin, isModerator } = useAuthStore()
-
-    // Track pending items for the red badge
-    const [pendingCount, setPendingCount] = useState(0)
+    const { user, isAuthenticated, isAdmin, isModerator, logout } = useAuthStore()
+    const { permissions, setPermissions, setPendingCounts, hasPermission } = useAdminStore()
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -36,147 +23,139 @@ export default function AdminLayout({
             return
         }
         if (!isAdmin() && !isModerator()) {
-            router.push('/') // Redirect normal users away
+            router.push('/unauthorized')
             return
         }
 
-        // Fetch hypothetical aggregated pending count
-        api.get('/admin/approvals/pending-count/')
-            .then(res => setPendingCount(res.data.total || 0))
-            .catch(() => setPendingCount(0)) // fail silently on layout
-    }, [isAuthenticated, router, isAdmin, isModerator])
+        // Fetch permissions from API: GET /api/v1/admin/my-permissions/
+        // Mock: admin gets all permissions, moderators get role-specific ones
+        const mockPerms = isAdmin()
+            ? ['admin']
+            : isModerator()
+                ? ['seller_moderator'] // or 'marketplace_moderator'
+                : []
+        setPermissions(mockPerms)
 
-    if (!isAuthenticated || (!isAdmin() && !isModerator())) {
-        return null // or loading spinner
-    }
+        // Fetch pending counts: GET /api/v1/admin/pending-counts/
+        setPendingCounts({
+            sellers: 4,
+            marketplace: 7,
+            verifications: 12,
+            refunds: 2,
+        })
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isAuthenticated])
 
-    const navLinks = [
-        {
-            section: 'MAIN',
-            items: [
-                { label: 'Analytics', href: '/admin', icon: <BarChart3 className="w-5 h-5" /> },
-                { label: 'Pending Approvals', href: '/admin/approvals', icon: <RefreshCcw className="w-5 h-5" />, badge: pendingCount },
-            ]
-        },
-        {
-            section: 'COMMERCE',
-            items: [
-                { label: 'Mall Products', href: '/admin/mall-products', icon: <Store className="w-5 h-5" /> },
-                { label: 'Marketplace', href: '/admin/marketplace', icon: <Grid className="w-5 h-5" /> },
-                { label: 'Orders', href: '/admin/orders', icon: <ShoppingBag className="w-5 h-5" /> },
-            ]
-        },
-        {
-            section: 'SYSTEM',
-            items: [
-                { label: 'User Directory', href: '/admin/users', icon: <Users className="w-5 h-5" /> },
-                { label: 'Campuses', href: '/admin/campuses', icon: <Building2 className="w-5 h-5" /> },
-                { label: 'Categories', href: '/admin/categories', icon: <Tags className="w-5 h-5" /> },
-                { label: 'Activity Logs', href: '/admin/activity', icon: <TerminalSquare className="w-5 h-5" /> },
-            ]
-        }
+    if (!isAuthenticated || (!isAdmin() && !isModerator())) return null
+
+    const navItems = [
+        { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard, perm: null },
+        { label: 'Users', href: '/admin/users', icon: Users, perm: 'admin' },
+        { label: 'Verifications', href: '/admin/verifications', icon: ShieldCheck, perm: 'admin' },
+        { label: 'Seller Approvals', href: '/admin/sellers', icon: Store, perm: 'seller_moderator' },
+        { label: 'Marketplace', href: '/admin/marketplace', icon: ShoppingBag, perm: 'marketplace_moderator' },
+        { label: 'Refunds', href: '/admin/refunds', icon: CreditCard, perm: 'finance_moderator' },
+        { label: 'Analytics', href: '/admin/analytics', icon: BarChart3, perm: 'admin' },
+        { label: 'Settings', href: '/admin/settings', icon: Settings, perm: 'admin' },
     ]
+
+    const visibleItems = navItems.filter(item => {
+        if (!item.perm) return true // always shown (Dashboard)
+        return hasPermission(item.perm)
+    })
+
+    const isActive = (href: string) =>
+        pathname === href || (href !== '/admin/dashboard' && pathname.startsWith(href))
 
     return (
         <div className="flex h-screen overflow-hidden bg-[#F5F5F5] font-sans">
 
-            {/* Sidebar - Fixed */}
-            <aside className="w-[240px] flex-shrink-0 bg-[#2D1B69] text-white flex flex-col h-full shadow-xl z-20">
+            {/* Sidebar */}
+            <aside className="w-[240px] flex-shrink-0 bg-[#2D1B69] text-white flex flex-col h-full shadow-2xl z-20">
 
-                {/* Admin Identity Card */}
-                <div className="p-6 border-b border-white/10 flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-orange-600 flex items-center justify-center font-bold text-xl shadow-inner">
-                        {user?.full_name ? user.full_name[0].toUpperCase() : 'A'}
+                {/* Identity block */}
+                <div className="p-5 border-b border-white/10 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-orange-500 flex items-center justify-center font-black text-lg shadow-inner shrink-0">
+                        {user?.full_name?.[0]?.toUpperCase() || 'A'}
                     </div>
-                    <div className="flex flex-col">
-                        <span className="font-bold text-base leading-tight">Admin Console</span>
-                        <span className="text-[10px] uppercase tracking-wider text-white/60 font-medium mt-0.5">
-                            {isAdmin() ? 'SUPER ADMIN' : 'MODERATOR'}
-                        </span>
+                    <div>
+                        <p className="font-bold text-sm leading-tight truncate max-w-[140px]">{user?.full_name || 'Admin'}</p>
+                        <p className="text-[10px] uppercase tracking-widest text-white/50 font-bold mt-0.5">
+                            {isAdmin() ? 'Super Admin' : 'Moderator'}
+                        </p>
                     </div>
                 </div>
 
-                {/* Navigation Menu */}
-                <div className="flex-1 overflow-y-auto py-6 px-3 space-y-8 scrollbar-thin scrollbar-thumb-white/20">
-                    {navLinks.map((group, i) => (
-                        <div key={i}>
-                            <h3 className="text-[10px] font-bold text-white/40 uppercase tracking-[0.15em] mb-3 px-3">
-                                {group.section}
-                            </h3>
-                            <ul className="space-y-1">
-                                {group.items.map((item) => {
-                                    const isActive = pathname === item.href
-                                    return (
-                                        <li key={item.href}>
-                                            <Link
-                                                href={item.href}
-                                                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors relative
-                          ${isActive
-                                                        ? 'bg-white/10 text-white font-medium'
-                                                        : 'text-white/70 hover:bg-white/5 hover:text-white'
-                                                    }`}
-                                            >
-                                                {isActive && (
-                                                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-purple-400 rounded-r-full" />
-                                                )}
-                                                <span className={isActive ? 'text-purple-300' : 'text-white/50'}>
-                                                    {item.icon}
-                                                </span>
-                                                <span className="text-sm">{item.label}</span>
+                {/* Nav */}
+                <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1">
+                    <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.15em] mb-3 px-3">Navigation</p>
+                    {visibleItems.map((item) => {
+                        const active = isActive(item.href)
+                        const Icon = item.icon
+                        return (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all relative
+                                    ${active ? 'bg-white/15 text-white font-bold' : 'text-white/65 hover:bg-white/8 hover:text-white'}`}
+                            >
+                                {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-purple-300 rounded-r-full" />}
+                                <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-purple-300' : 'text-white/40'}`} />
+                                {item.label}
+                            </Link>
+                        )
+                    })}
+                </nav>
 
-                                                {item.badge !== undefined && item.badge > 0 && (
-                                                    <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
-                                                        {item.badge > 99 ? '99+' : item.badge}
-                                                    </span>
-                                                )}
-                                            </Link>
-                                        </li>
-                                    )
-                                })}
-                            </ul>
-                        </div>
-                    ))}
+                {/* Bottom Actions */}
+                <div className="p-3 border-t border-white/10 space-y-1">
+                    <Link
+                        href="/"
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/65 hover:bg-white/8 hover:text-white transition-all"
+                    >
+                        <ArrowLeft className="w-4 h-4 text-white/40" />
+                        Back to Site
+                    </Link>
+                    <button
+                        onClick={() => logout()}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all"
+                    >
+                        <LogOut className="w-4 h-4" />
+                        Log Out
+                    </button>
                 </div>
             </aside>
 
-            {/* Main Content Area */}
-            <main className="flex-1 flex flex-col h-full overflow-hidden relative">
+            {/* Main */}
+            <main className="flex-1 flex flex-col h-full overflow-hidden">
 
-                {/* Top Bar matching Marketplace styling */}
-                <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0 z-10 shadow-sm">
-                    <div className="text-sm font-semibold text-gray-800">
-                        Welcome to CampusHat Marketplace
+                {/* Top Bar */}
+                <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0 shadow-sm z-10">
+                    <div className="flex items-center gap-3">
+                        <span className="text-xs font-black text-gray-400 uppercase tracking-wider">CampusHat</span>
+                        <span className="text-gray-300">·</span>
+                        <span className="text-sm font-bold text-gray-800">Admin Console</span>
                     </div>
-
-                    <div className="flex items-center gap-4">
-                        <span className="text-sm text-gray-600">
-                            Hi, <span className="font-bold">{user?.full_name || 'Admin'}</span>
-                        </span>
-                        <Button onClick={() => router.push('/marketplace/post')} size="sm" className="bg-brand-primary hover:bg-brand-primary-hover text-white rounded-full font-bold shadow-md shadow-purple-500/20">
-                            <Plus className="w-4 h-4 mr-1" /> Post Ad
-                        </Button>
+                    <div className="flex items-center gap-3">
+                        <button className="relative p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-colors">
+                            <Bell className="w-4 h-4" />
+                            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                        </button>
+                        <div className="h-6 w-px bg-gray-200"></div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-orange-500 text-white text-xs font-black flex items-center justify-center">
+                                {user?.full_name?.[0]?.toUpperCase() || 'A'}
+                            </div>
+                            <span className="text-sm font-bold text-gray-700 hidden sm:block">{user?.full_name || 'Admin'}</span>
+                        </div>
                     </div>
                 </header>
 
-                {/* Scrollable Page Content */}
-                <div className="flex-1 overflow-x-hidden overflow-y-auto scroll-smooth">
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto">
                     {children}
                 </div>
-
             </main>
-
         </div>
-    )
-}
-
-// Inline fallback for layout Button if shared one causes client-tree issues
-function Button({ children, onClick, className, size = 'default' }: any) {
-    return (
-        <button
-            onClick={onClick}
-            className={`inline-flex items-center justify-center transition-colors focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 ${className} ${size === 'sm' ? 'h-9 px-4 text-xs' : 'h-10 px-4 py-2 text-sm'}`}
-        >
-            {children}
-        </button>
     )
 }
