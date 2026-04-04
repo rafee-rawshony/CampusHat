@@ -51,7 +51,7 @@ interface DetailListing {
 
 export default function MarketplaceAdDetailPage({ params }: { params: { id: string } }) {
     const router = useRouter()
-    const { isAuthenticated, isVerifiedStudent } = useAuthStore()
+    const { isAuthenticated, isVerifiedStudent, canAccessMarketplace } = useAuthStore()
     const [listing, setListing] = useState<DetailListing | null>(null)
     const [loading, setLoading] = useState(true)
     const [activeImage, setActiveImage] = useState(0)
@@ -357,6 +357,20 @@ export default function MarketplaceAdDetailPage({ params }: { params: { id: stri
                 entityId={listing.id}
                 entityType="listing"
             />
+
+            {/* Mobile Sticky Bar - Only for verified users */}
+            {canAccessMarketplace() && (
+                <div className='fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-white border-t px-4 py-3 flex gap-3 pb-[calc(12px+env(safe-area-inset-bottom))] shadow-[0_-4px_10px_rgba(0,0,0,0.05)]'>
+                    <button onClick={() => router.push(`/marketplace/chat?user=${listing.user.id}&listing=${listing.id}`)}
+                        className='flex-1 border-2 border-[#1A1A2E] text-[#1A1A2E] font-bold py-2.5 rounded-xl text-sm'>
+                        Message
+                    </button>
+                    <button onClick={() => setOfferModalOpen(true)}
+                        className='flex-1 bg-brand-primary text-white font-bold py-2.5 rounded-xl text-sm shadow-md'>
+                        Make Offer
+                    </button>
+                </div>
+            )}
         </div>
     )
 }

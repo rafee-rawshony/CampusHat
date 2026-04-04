@@ -209,6 +209,13 @@ export default function ProductDetailPage() {
         toast.success(`Added ${quantity} ${quantity > 1 ? 'items' : 'item'} to your cart`)
     }
 
+    const handleBuyNow = () => {
+        handleAddToCart()
+        // Assuming there is a checkout or cart drawer to open/push to
+        // For now let's just open the cart
+        useCartStore.getState().setIsOpen(true)
+    }
+
     if (isLoading) {
         return <div className="min-h-screen bg-surface-base animate-pulse py-12 px-4 flex justify-center"><div className="w-full max-w-6xl h-[600px] bg-white rounded-2xl"></div></div>
     }
@@ -507,6 +514,24 @@ export default function ProductDetailPage() {
                         </TabsContent>
                     </Tabs>
                 </div>
+            </div>
+
+            {/* Mobile sticky bottom bar — hidden on sm+ */}
+            <div className='fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-white border-t px-4 py-3 flex gap-3 pb-[calc(12px+env(safe-area-inset-bottom))] shadow-[0_-4px_10px_rgba(0,0,0,0.05)]'>
+                <div className='flex-1 overflow-hidden'>
+                    <p className='text-xs text-gray-500'>Price</p>
+                    <p className='font-bold text-brand-primary text-lg truncate'>
+                        ৳{parseFloat(currentPrice).toLocaleString()}
+                    </p>
+                </div>
+                <button onClick={handleAddToCart}
+                    className='px-4 border-2 border-brand-primary text-brand-primary font-bold py-2 rounded-xl text-sm'>
+                    Add to Cart
+                </button>
+                <button onClick={handleBuyNow}
+                    className='px-6 bg-brand-primary text-white font-bold py-2 rounded-xl text-sm shadow-md'>
+                    Buy Now
+                </button>
             </div>
         </div>
     )

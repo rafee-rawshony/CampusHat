@@ -2,8 +2,11 @@
 
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ShoppingBag, Key, Briefcase, Utensils, ArrowRight } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { ShoppingBag, Key, Briefcase, Utensils, ArrowRight, Plus } from 'lucide-react'
 import { MarketplaceAdCard, MarketplaceListing } from '@/components/marketplace/MarketplaceAdCard'
+import { VerificationRequiredCard } from '@/components/auth/VerificationRequiredCard'
+import { useAuthStore } from '@/stores/auth.store'
 import { api } from '@/lib/api'
 import { useCampusStore } from '@/stores/campus.store'
 
@@ -27,7 +30,10 @@ const generateDummyListings = (type: 'buy' | 'rental' | 'service' | 'food', coun
 }
 
 export default function MarketplaceHomepage() {
+    const router = useRouter()
+    const { canAccessMarketplace } = useAuthStore()
     const { selectedCampusId } = useCampusStore()
+    const [showVerificationCard, setShowVerificationCard] = useState(false)
     const [buyItems, setBuyItems] = useState<MarketplaceListing[]>([])
     const [rentalItems, setRentalItems] = useState<MarketplaceListing[]>([])
     const [serviceItems, setServiceItems] = useState<MarketplaceListing[]>([])
@@ -192,6 +198,31 @@ export default function MarketplaceHomepage() {
                     )}
                 </section>
             </div>
+
+            {/* FAB — Mobile only, visible on marketplace pages */}
+            <button
+                onClick={() => {
+                if (!canAccessMarketplace()) {
+                    setShowVerificationCard(true)
+                    return
+                }
+                router.push('/marketplace/post')
+                }}
+                className='fixed sm:hidden z-40
+                        right-4 bottom-[76px]
+                        w-14 h-14 rounded-full
+                        bg-brand-primary text-white
+                        shadow-lg shadow-brand-primary/30
+                        flex items-center justify-center
+                        active:scale-95 transition-transform'
+                aria-label='Post new ad'>
+                <Plus className='w-7 h-7' />
+            </button>
+
+            <VerificationRequiredCard
+                isOpen={showVerificationCard}
+                onClose={() => setShowVerificationCard(false)}
+            />
         </div>
     )
 }

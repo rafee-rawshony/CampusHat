@@ -310,42 +310,49 @@ export default function VerifyPage() {
                                     <p className="text-sm text-gray-500 mt-1">Upload a photo or PDF of your student ID card.</p>
                                 </div>
 
-                                <div className="mt-4">
-                                    <input
-                                        type="file"
-                                        className="hidden"
-                                        ref={fileInputRef}
-                                        onChange={handleFileSelect}
-                                        accept="image/jpeg,image/png,application/pdf"
-                                    />
-
-                                    <div
-                                        onClick={() => fileInputRef.current?.click()}
-                                        className={cn(
-                                            "cursor-pointer border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center transition-colors bg-gray-50",
-                                            selectedFile ? "border-brand-primary/50 bg-brand-light/30" : "border-gray-200 hover:border-brand-primary hover:bg-brand-light/20"
-                                        )}
-                                    >
-                                        <div className="h-12 w-12 rounded-full bg-brand-light flex items-center justify-center mb-4">
-                                            {selectedFile ? (
-                                                selectedFile.type === 'application/pdf' ? <FileText className="h-6 w-6 text-brand-primary" /> : <IdCard className="h-6 w-6 text-brand-primary" />
-                                            ) : (
-                                                <UploadCloud className="h-6 w-6 text-brand-primary" />
-                                            )}
+                                <div className="mt-4 space-y-3">
+                                    {/* Take Photo — mobile camera (works on Android/iOS) */}
+                                    <label className='flex items-center gap-3 w-full p-4 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-brand-primary hover:bg-brand-light/10 bg-gray-50 transition-colors'>
+                                        <span className='text-2xl'>📷</span>
+                                        <div>
+                                            <p className='font-semibold text-sm text-gray-900'>Take Photo</p>
+                                            <p className='text-xs text-gray-500'>Use your camera</p>
                                         </div>
+                                        <input type='file' accept='image/*' capture='environment'
+                                            className='hidden' onChange={handleFileSelect} />
+                                    </label>
 
-                                        {selectedFile ? (
-                                            <div className="text-center">
-                                                <p className="font-semibold text-gray-900 text-sm truncate max-w-[200px]">{selectedFile.name}</p>
-                                                <p className="text-xs text-gray-500 mt-1">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
-                                            </div>
-                                        ) : (
-                                            <div className="text-center">
-                                                <p className="font-medium text-gray-700">Click to browse files</p>
-                                                <p className="text-xs text-gray-500 mt-2">Supported Formats: JPG, PNG, PDF (Max 5MB)</p>
-                                            </div>
-                                        )}
-                                    </div>
+                                    {/* Choose from Gallery */}
+                                    <label className='flex items-center gap-3 w-full p-4 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-brand-primary bg-gray-50 transition-colors'>
+                                        <span className='text-2xl'>🖼</span>
+                                        <div>
+                                            <p className='font-semibold text-sm text-gray-900'>Choose from Gallery</p>
+                                            <p className='text-xs text-gray-500'>Select an existing photo</p>
+                                        </div>
+                                        <input type='file' accept='image/jpeg,image/png,image/webp'
+                                            className='hidden' onChange={handleFileSelect} />
+                                    </label>
+
+                                    {/* Upload PDF */}
+                                    <label className='flex items-center gap-3 w-full p-4 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-brand-primary bg-gray-50 transition-colors'>
+                                        <span className='text-2xl'>📄</span>
+                                        <div>
+                                            <p className='font-semibold text-sm text-gray-900'>Upload PDF</p>
+                                            <p className='text-xs text-gray-500'>Max 5MB</p>
+                                        </div>
+                                        <input type='file' accept='application/pdf'
+                                            className='hidden' onChange={handleFileSelect} />
+                                    </label>
+
+                                    {/* Show selected file name */}
+                                    {selectedFile && (
+                                        <div className='flex items-center gap-2 p-3 bg-green-50 rounded-lg'>
+                                            <span className='text-green-600 text-sm font-bold'>✓</span>
+                                            <span className='text-sm text-green-700 truncate font-medium'>
+                                                {selectedFile.name}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4 mt-8">

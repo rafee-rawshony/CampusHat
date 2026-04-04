@@ -5,8 +5,9 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
     Home, Package, ShoppingBag, MessageSquare, Settings,
-    Bell, LogOut, Search, Plus, X, AlertTriangle, CheckCircle, Star
+    Bell, LogOut, Search, Plus, X, AlertTriangle, CheckCircle, Star, Menu
 } from 'lucide-react'
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 import { useAuthStore } from '@/stores/auth.store'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -113,8 +114,8 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
                 </div>
             </nav>
 
-            {/* === Header Bar === */}
-            <div className="bg-white border-b border-gray-200 shadow-sm z-30 relative">
+            {/* Desktop Header */}
+            <div className="hidden sm:flex bg-white border-b border-gray-200 shadow-sm z-30 relative">
                 <div className="container mx-auto px-4 h-14 flex items-center justify-between">
                     <div>
                         <h1 className="text-sm md:text-base font-bold text-gray-900 flex items-center gap-2">
@@ -134,8 +135,41 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
                 </div>
             </div>
 
+            {/* Mobile Header (replaces standard header on small screens) */}
+            <div className='sm:hidden flex items-center justify-between p-4 bg-white border-b sticky top-0 z-50'>
+                <h1 className='font-bold text-lg text-gray-900'>Seller Center</h1>
+                <Sheet>
+                    <SheetTrigger asChild>
+                        <button className='p-2 -mr-2 text-gray-500 hover:bg-gray-50 rounded-lg'>
+                            <Menu className='w-6 h-6' />
+                        </button>
+                    </SheetTrigger>
+                    <SheetContent side='bottom' className='h-auto rounded-t-3xl'>
+                        <SheetTitle className="sr-only">Menu</SheetTitle>
+                        <div className="py-2">
+                            <h2 className="px-4 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Menu</h2>
+                            {sidebarLinks.map(item => {
+                                const Icon = item.icon
+                                return (
+                                    <Link key={item.href} href={item.href}
+                                        className='flex items-center gap-3 p-4 hover:bg-gray-50 rounded-xl transition-colors'>
+                                        <Icon className='w-5 h-5 text-brand-primary' />
+                                        <span className='font-bold text-gray-700'>{item.name}</span>
+                                    </Link>
+                                )
+                            })}
+                            <div className="border-t border-gray-100 my-2"></div>
+                            <button onClick={logout} className='w-full flex items-center gap-3 p-4 hover:bg-red-50 text-red-500 rounded-xl transition-colors'>
+                                <LogOut className='w-5 h-5' />
+                                <span className='font-bold'>Log Out</span>
+                            </button>
+                        </div>
+                    </SheetContent>
+                </Sheet>
+            </div>
+
             {/* === 3-Column Layout Wrapper === */}
-            <div className="flex-1 container mx-auto px-4 py-6">
+            <div className="flex-1 container mx-auto px-0 sm:px-4 py-0 sm:py-6 relative">
                 <div className="flex items-start gap-4 sm:gap-6 relative">
 
                     {/* COLUMN 1: Seller Sidebar (200px) */}

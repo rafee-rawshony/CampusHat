@@ -107,7 +107,25 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
                                 )}
                             </div>
 
-                            <nav className="flex flex-col gap-1">
+                            {/* Mobile tab navigation — sm:hidden */}
+                            <div className='sm:hidden flex border-b border-gray-100 overflow-x-auto no-scrollbar -mx-6 px-4 mb-4 pb-2'>
+                                {[
+                                    { label: 'Profile',  href: '/account' },
+                                    { label: 'Orders',   href: '/account/orders' },
+                                    { label: 'Listings', href: '/account/listings' },
+                                ].map(tab => (
+                                <Link key={tab.href} href={tab.href}
+                                    className={`shrink-0 px-5 py-3 text-sm font-semibold border-b-2 transition
+                                    ${pathname === tab.href
+                                        ? 'border-brand-primary text-brand-primary'
+                                        : 'border-transparent text-gray-500'}`}
+                                >
+                                    {tab.label}
+                                </Link>
+                                ))}
+                            </div>
+
+                            <nav className="hidden sm:flex flex-col gap-1">
                                 {navigation.map((item) => {
                                     const isActive = pathname === item.href
                                     const Icon = item.icon

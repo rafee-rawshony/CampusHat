@@ -259,7 +259,7 @@ function ChatContent() {
                     </div>
 
                     {/* RIGHT PANEL: Active Chat Window */}
-                    <div className={`flex-1 flex flex-col bg-[#FDFDFD] relative ${!activeThreadId ? 'hidden md:flex items-center justify-center' : 'flex'}`}>
+                    <div className={`flex-1 flex flex-col bg-[#FDFDFD] relative ${!activeThreadId ? 'hidden md:flex items-center justify-center' : 'flex'}`} style={{ height: '100dvh' }}>
                         {!activeThreadId ? (
                             <div className="text-center text-gray-400">
                                 <MessageCircle className="w-16 h-16 mx-auto mb-4 opacity-20" />
@@ -269,7 +269,7 @@ function ChatContent() {
                         ) : activeThread ? (
                             <>
                                 {/* Chat Header */}
-                                <div className="h-16 md:h-20 border-b border-gray-100 bg-white flex items-center px-4 justify-between shrink-0 shadow-sm z-10">
+                                <div className="shrink-0 h-16 md:h-20 border-b border-gray-100 bg-white flex items-center px-4 justify-between shadow-sm z-10">
                                     <div className="flex items-center gap-3 w-full">
                                         <button onClick={() => setActiveThreadId(null)} className="md:hidden w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-900">
                                             <ArrowLeft className="w-5 h-5" />
@@ -370,7 +370,7 @@ function ChatContent() {
                                 </div>
 
                                 {/* Input Area */}
-                                <div className="p-4 bg-white border-t border-gray-100">
+                                <div className="shrink-0 p-3 bg-white border-t border-gray-100 pb-[max(12px,env(safe-area-inset-bottom))]">
                                     <form onSubmit={handleSendMessage} className="flex gap-2">
                                         <div className="relative flex-1">
                                             <Button type="button" variant="ghost" size="icon" className="absolute left-1 top-1/2 -translate-y-1/2 w-8 h-8 text-gray-400 hover:text-brand-primary hover:bg-brand-primary/10 rounded-full">

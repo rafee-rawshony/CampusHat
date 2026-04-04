@@ -20,6 +20,8 @@ import { Button } from '@/components/ui/button'
 import { VerificationRequiredCard, VerificationBanner } from '@/components/auth/VerificationRequiredCard'
 import { UpgradePrompt } from '@/components/marketplace/UpgradePrompt'
 import { CartDrawer } from '@/components/mall/CartDrawer'
+import { MobileDrawer } from '@/components/layout/MobileDrawer'
+import { MobileSearchOverlay } from '@/components/layout/MobileSearchOverlay'
 import { Input } from '@/components/ui/input'
 import {
     DropdownMenu,
@@ -43,6 +45,9 @@ export function Navbar() {
     const { getItemCount, setIsOpen } = useCartStore()
     const isMarketplace = pathname?.startsWith('/marketplace')
     const router = useRouter()
+
+    // Mobile Search State
+    const [isSearchOpen, setIsSearchOpen] = useState(false)
 
     // Verification Modal State
     const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false)
@@ -68,7 +73,9 @@ export function Navbar() {
             <nav className="bg-white shadow-nav sticky top-0 z-40">
                 <div className="container mx-auto px-4">
                     {/* Top Row */}
-                    <div className="flex items-center gap-4 h-16">
+                    <div className="flex items-center gap-2 sm:gap-4 h-16">
+                        <MobileDrawer />
+
                         {/* Logo */}
                         <Link href="/" className="flex items-center shrink-0 mr-4">
                             <span className="text-2xl md:text-3xl font-bold text-gray-800">Campus</span>
@@ -116,6 +123,10 @@ export function Navbar() {
 
                         {/* Right Actions */}
                         <div className="flex items-center gap-2 ml-auto">
+                            <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsSearchOpen(true)}>
+                                <Search className="h-5 w-5" />
+                            </Button>
+                            
                             {!isAuthenticated ? (
                                 <Link href="/auth/login">
                                     <Button variant="outline" size="sm" className="gap-2">
@@ -225,6 +236,9 @@ export function Navbar() {
 
                 {/* Global Cart Drawer */}
                 <CartDrawer />
+
+                {/* Mobile Search Overlay */}
+                <MobileSearchOverlay open={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
             </nav>
         </>
     )
