@@ -10,6 +10,8 @@ import toast from 'react-hot-toast'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useCartStore } from '@/stores/cart.store'
+import { useAuthStore } from '@/stores/auth.store'
+import { useRouter } from 'next/navigation'
 import { DiscountBadge } from '@/components/shared/DiscountBadge'
 import { StockBadge } from '@/components/shared/StockBadge'
 import { StarRating } from '@/components/shared/StarRating'
@@ -38,6 +40,7 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
     const { addItem } = useCartStore()
+    const router = useRouter()
     const [isWishlisted, setIsWishlisted] = useState(false) // Optimistic state for now
 
     const primaryImage = product.images.find(img => img.is_primary)?.image_url || product.images[0]?.image_url
@@ -50,6 +53,14 @@ export function ProductCard({ product }: ProductCardProps) {
             // In a robust implementation, this might open a quick-view modal.
             // Since we're navigating to the product page instead, we just let the link wrapping act,
             // or we could explicitly push here. We will just use the link in this setup.
+            return
+        }
+
+        const { isAuthenticated } = useAuthStore.getState()
+        if (!isAuthenticated) {
+            // Preserve the current URL as redirect destination
+            const currentPath = window.location.pathname
+            router.push(`/auth/login?redirect=${encodeURIComponent(currentPath)}`)
             return
         }
 

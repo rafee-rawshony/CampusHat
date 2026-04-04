@@ -1,7 +1,16 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-const protectedRoutes = ['/seller', '/admin', '/moderator']
+const protectedRoutes = [
+    '/seller', 
+    '/admin', 
+    '/moderator', 
+    '/account', 
+    '/marketplace/post', 
+    '/marketplace/chat', 
+    '/checkout', 
+    '/orders'
+]
 const authRoutes = ['/auth/login', '/auth/register']
 
 export function middleware(request: NextRequest) {
@@ -36,5 +45,16 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-    matcher: ['/seller/:path*', '/admin/:path*', '/moderator/:path*', '/auth/:path*'],
+    matcher: [
+        '/seller/:path*', 
+        '/admin/:path*', 
+        '/account/:path*', 
+        '/marketplace/post', 
+        '/marketplace/post/:path*', 
+        '/marketplace/chat', 
+        '/marketplace/chat/:path*', 
+        '/checkout', 
+        '/orders/:path*', 
+        '/auth/:path*'
+    ],
 }
