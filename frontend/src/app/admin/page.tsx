@@ -1,6 +1,9 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import { useEffect } from 'react'
+
+
+
 import {
     DollarSign, Users, Store, Grid, ShoppingBag,
     ArrowRight
@@ -10,6 +13,15 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 
 export default function AdminDashboardPage() {
+    const { isAdmin } = useAuthStore()
+    const router = useRouter()
+
+    useEffect(() => {
+        if (!isAdmin()) {
+            router.replace('/admin/approvals')
+        }
+    }, [])
+
     const { data: adminStats, isLoading } = useQuery({
         queryKey: ['admin-dashboard-stats'],
         queryFn: () => api.get('/admin/dashboard/stats/').then(r => r.data?.data || r.data),

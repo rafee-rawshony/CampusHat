@@ -10,13 +10,22 @@ import { toast } from 'react-hot-toast'
 import Image from 'next/image'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { useAuthStore } from '@/stores/auth.store'
 
 type TabType = 'student' | 'marketplace' | 'seller'
 
 const BADGE_OPTIONS = ['Verified Seller', 'Student Seller', 'Official Store']
 
 export default function AdminReviewCenter() {
-    const [activeTab, setActiveTab] = useState<TabType>('student')
+    const { isAdmin, isSellerModerator, isMarketplaceModerator } = useAuthStore()
+
+    const visibleTabs = [
+        { id: 'student', label: 'Student Verification', show: isAdmin() },
+        { id: 'marketplace', label: 'Marketplace Ads', show: isAdmin() || isMarketplaceModerator() },
+        { id: 'seller', label: 'Seller Applications', show: isAdmin() || isSellerModerator() }
+    ].filter(tab => tab.show)
+
+    const [activeTab, setActiveTab] = useState<TabType | string>(visibleTabs[0]?.id || '')
     // Student Verification tab:
     const { data: verifications, refetch: refetchVerifications, isLoading: pendingStLoading } = useQuery({
         queryKey: ['admin-verifications-pending'],
@@ -126,25 +135,24 @@ export default function AdminReviewCenter() {
 
             {/* Tabs */}
             <div className="flex gap-6 border-b border-gray-200">
-                {[
-                    { id: 'student', label: 'Student Verification', count: students.length },
-                    { id: 'marketplace', label: 'Marketplace Ads', count: ads.length },
-                    { id: 'seller', label: 'Seller Applications', count: sellers.length },
-                ].map((tab) => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id as TabType)}
-                        className={`pb-3 text-sm font-bold border-b-2 transition-all flex items-center gap-2
-                            ${activeTab === tab.id ? 'border-brand-primary text-brand-primary' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
-                    >
-                        {tab.label}
-                        {tab.count > 0 && (
-                            <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${activeTab === tab.id ? 'bg-brand-primary/10 text-brand-primary' : 'bg-gray-100 text-gray-500'}`}>
-                                {tab.count}
-                            </span>
-                        )}
-                    </button>
-                ))}
+                {visibleTabs.map((tab) => {
+                    const count = tab.id === 'student' ? students.length : tab.id === 'marketplace' ? ads.length : sellers.length
+                    return (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id as TabType)}
+                            className={`pb-3 text-sm font-bold border-b-2 transition-all flex items-center gap-2
+                                ${activeTab === tab.id ? 'border-brand-primary text-brand-primary' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+                        >
+                            {tab.label}
+                            {count > 0 && (
+                                <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${activeTab === tab.id ? 'bg-brand-primary/10 text-brand-primary' : 'bg-gray-100 text-gray-500'}`}>
+                                    {count}
+                                </span>
+                            )}
+                        </button>
+                    )
+                })}
             </div>
 
             {/* Content Grids */}

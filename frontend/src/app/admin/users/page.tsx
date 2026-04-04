@@ -1,6 +1,8 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import { useAuthStore } from '@/stores/auth.store'
+
+
 import {
     Search, Filter, MoreHorizontal, X,
     ChevronRight, ShieldAlert, Mail
@@ -23,6 +25,15 @@ const roleColors: Record<string, string> = {
 }
 
 export default function AdminUsersPage() {
+    const { isAdmin } = useAuthStore()
+    const router = useRouter()
+
+    useEffect(() => {
+        if (!isAdmin()) {
+            router.replace('/admin/approvals')
+        }
+    }, [])
+
     const [users, setUsers] = useState<any[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')

@@ -1,9 +1,21 @@
 'use client'
 
-import React from 'react'
+import { useEffect } from 'react'
+
+
+
 import { ShoppingBag } from 'lucide-react'
 
 export default function AdminOrdersPage() {
+    const { isAdmin } = useAuthStore()
+    const router = useRouter()
+
+    useEffect(() => {
+        if (!isAdmin()) {
+            router.replace('/admin/approvals')
+        }
+    }, [])
+
     return (
         <div className="p-6 lg:p-8 space-y-8 max-w-5xl mx-auto flex flex-col h-full items-center justify-center">
             <div className="flex flex-col items-center justify-center text-gray-400 p-8 text-center">

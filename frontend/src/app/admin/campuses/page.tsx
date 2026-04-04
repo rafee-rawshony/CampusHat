@@ -1,6 +1,8 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import { useAuthStore } from '@/stores/auth.store'
+
+
 import { Plus, Search, Building2, MapPin, Hash, CheckCircle2, XCircle } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -9,6 +11,15 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { toast } from 'react-hot-toast'
 
 export default function AdminCampusesPage() {
+    const { isAdmin } = useAuthStore()
+    const router = useRouter()
+
+    useEffect(() => {
+        if (!isAdmin()) {
+            router.replace('/admin/approvals')
+        }
+    }, [])
+
     const [campuses, setCampuses] = useState<any[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')

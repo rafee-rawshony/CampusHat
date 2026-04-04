@@ -1,6 +1,8 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import { useAuthStore } from '@/stores/auth.store'
+
+
 import { Plus, Tags, Save, Trash2, Power, PowerOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,6 +13,15 @@ import { toast } from 'react-hot-toast'
 type CatTab = 'mall' | 'marketplace'
 
 export default function AdminCategoriesPage() {
+    const { isAdmin } = useAuthStore()
+    const router = useRouter()
+
+    useEffect(() => {
+        if (!isAdmin()) {
+            router.replace('/admin/approvals')
+        }
+    }, [])
+
     const [tab, setTab] = useState<CatTab>('mall')
     const [categories, setCategories] = useState<any[]>([])
     const [isLoading, setIsLoading] = useState(true)

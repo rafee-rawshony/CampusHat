@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
+import { api } from '@/lib/api'
 import Link from 'next/link'
 import {
     BarChart3, RefreshCw, Store, Grid, ShoppingBag,
@@ -13,8 +14,9 @@ import { useAdminStore } from '@/stores/admin.store'
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter()
     const pathname = usePathname()
-    const { user, isAuthenticated, isAdmin, isModerator, logout } = useAuthStore()
-    const { permissions, setPermissions, setPendingCounts, pendingCounts } = useAdminStore()
+    const { user, isAuthenticated, isAdmin, isModerator, isSellerModerator, isMarketplaceModerator, logout } = useAuthStore()
+    const [permissions, setPermissions] = useState<string[]>([])
+    const { setPendingCounts, pendingCounts } = useAdminStore()
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -26,8 +28,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             return
         }
 
-        const mockPerms = isAdmin() ? ['admin'] : isModerator() ? ['seller_moderator'] : []
-        setPermissions(mockPerms)
+        if (isModerator() && !isAdmin()) {
+            api.get('/admin/my-permissions/')
+                .then(r => setPermissions(r.data?.data?.permissions || r.data?.permissions || []))
+                .catch(() => setPermissions([]))
+        }
+
+        setPendingCounts({ total: 12 }) // student + seller + marketplace
         setPendingCounts({ total: 12 }) // student + seller + marketplace
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isAuthenticated])
@@ -36,31 +43,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     const totalPending = pendingCounts.total || 0
 
-    const navSections = [
-        {
-            label: 'MAIN',
-            items: [
-                { label: 'Analytics', href: '/admin', icon: BarChart3 },
-                { label: 'Pending Approvals', href: '/admin/approvals', icon: RefreshCw, badge: totalPending },
-            ]
-        },
-        {
-            label: 'COMMERCE',
-            items: [
-                { label: 'Mall Products', href: '/admin/mall-products', icon: Store },
-                { label: 'Marketplace', href: '/admin/marketplace', icon: Grid },
-                { label: 'Orders', href: '/admin/orders', icon: ShoppingBag },
-            ]
-        },
-        {
-            label: 'SYSTEM',
-            items: [
-                { label: 'User Directory', href: '/admin/users', icon: Users },
-                { label: 'Campuses', href: '/admin/campuses', icon: Building2 },
-                { label: 'Categories', href: '/admin/categories', icon: Tags },
-                { label: 'Activity Logs', href: '/admin/activity', icon: CodeSquare },
-            ]
-        }
+    const sidebarItems = [
+        { label: 'Analytics', href: '/admin', icon: BarChart3, show: isAdmin() },
+        { label: 'Pending Approvals', href: '/admin/approvals', icon: RefreshCw, badge: totalPending, show: isAdmin() || isModerator() },
+        { label: 'Mall Products', href: '/admin/mall-products', icon: Store, show: isAdmin() },
+        { label: 'Marketplace', href: '/admin/marketplace', icon: Grid, show: isAdmin() },
+        { label: 'Orders', href: '/admin/orders', icon: ShoppingBag, show: isAdmin() },
+        { label: 'User Directory', href: '/admin/users', icon: Users, show: isAdmin() },
+        { label: 'Campuses', href: '/admin/campuses', icon: Building2, show: isAdmin() },
+        { label: 'Categories', href: '/admin/categories', icon: Tags, show: isAdmin() },
+        { label: 'Activity Logs', href: '/admin/activity', icon: CodeSquare, show: isAdmin() },
     ]
 
     const isActive = (href: string) =>
@@ -86,38 +78,29 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </div>
 
                 {/* Nav Sections */}
-                <nav className="flex-1 px-3 space-y-6 pb-6">
-                    {navSections.map((section, idx) => (
-                        <div key={idx}>
-                            <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.15em] mb-2 px-3">
-                                {section.label}
-                            </p>
-                            <div className="space-y-0.5">
-                                {section.items.map((item) => {
-                                    const active = isActive(item.href)
-                                    const Icon = item.icon
-                                    return (
-                                        <Link
-                                            key={item.href}
-                                            href={item.href}
-                                            className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all group
-                                                ${active ? 'bg-white/10 text-white font-bold border-l-4 border-purple-400 -ml-[4px] pl-[15px]' : 'text-white/60 hover:bg-white/5 hover:text-white border-l-4 border-transparent'}`}
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-purple-300' : 'text-white/40 group-hover:text-white/70'}`} />
-                                                {item.label}
-                                            </div>
-                                            {item.badge ? (
-                                                <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm">
-                                                    {item.badge}
-                                                </span>
-                                            ) : null}
-                                        </Link>
-                                    )
-                                })}
-                            </div>
-                        </div>
-                    ))}
+                <nav className="flex-1 px-3 space-y-2 pb-6 pt-4">
+                    {sidebarItems.filter(item => item.show).map((item) => {
+                        const active = isActive(item.href)
+                        const Icon = item.icon
+                        return (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all group
+                                    ${active ? 'bg-white/10 text-white font-bold border-l-4 border-purple-400 -ml-[4px] pl-[15px]' : 'text-white/60 hover:bg-white/5 hover:text-white border-l-4 border-transparent'}`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-purple-300' : 'text-white/40 group-hover:text-white/70'}`} />
+                                    {item.label}
+                                </div>
+                                {item.badge ? (
+                                    <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm">
+                                        {item.badge}
+                                    </span>
+                                ) : null}
+                            </Link>
+                        )
+                    })}
                 </nav>
 
                 {/* Bottom Actions */}
