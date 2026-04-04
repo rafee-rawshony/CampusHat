@@ -85,6 +85,26 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
                                 </div>
                                 <h3 className="mt-3 font-bold text-gray-900 text-lg">{user.full_name}</h3>
                                 {renderStatusBadge()}
+                                {user?.role === 'normal_user' && (
+                                    <div className='mx-4 mt-4 p-4 bg-yellow-50 border border-yellow-200
+                                                    rounded-lg flex items-start gap-3 text-left'>
+                                        <span className='text-yellow-500 text-xl mt-0.5'>⚠</span>
+                                        <div>
+                                            <p className='font-semibold text-yellow-800 text-sm'>
+                                                Your account is not verified
+                                            </p>
+                                            <p className='text-yellow-700 text-sm mt-0.5'>
+                                                Verify your student status to unlock Marketplace features
+                                                — post ads, chat, and see contact info.
+                                            </p>
+                                            <a href='/account/verify'
+                                               className='inline-block mt-2 text-sm font-semibold
+                                                          text-brand-primary hover:underline'>
+                                                Verify Now →
+                                            </a>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             <nav className="flex flex-col gap-1">

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -41,6 +41,14 @@ export default function LoginPage() {
     const [isLoading, setIsLoading] = useState(false)
     const [emailNotVerified, setEmailNotVerified] = useState(false)
     const [unverifiedEmail, setUnverifiedEmail] = useState('')
+
+    useEffect(() => {
+        if (sessionStorage.getItem('session_expired')) {
+            sessionStorage.removeItem('session_expired')
+            toast.error('Your session expired. Please sign in again.')
+        }
+    }, [])
+
 
     const loginForm = useForm<LoginForm>({
         resolver: zodResolver(loginSchema),

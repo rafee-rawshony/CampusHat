@@ -66,6 +66,7 @@ api.interceptors.response.use(
                 processQueue(refreshError, null)
                 useAuthStore.getState().logout()
                 if (typeof window !== 'undefined') {
+                    sessionStorage.setItem('session_expired', '1')
                     window.location.href = '/auth/login'
                 }
                 return Promise.reject(refreshError)
