@@ -21,16 +21,37 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
     useEffect(() => {
         if (!isAuthenticated) {
             router.push('/auth/login')
-        } else if (!isSeller() && pathname !== '/seller/apply') {
+        } else if (!isSeller() && user?.seller_application_status !== 'pending' && pathname !== '/seller/apply') {
             router.push('/seller/apply')
         }
-    }, [isAuthenticated, isSeller, pathname, router])
+    }, [isAuthenticated, isSeller, pathname, router, user?.seller_application_status])
 
     if (!isAuthenticated) return null
 
     // Don't show layout for apply page, it has its own standalone UI
     if (pathname === '/seller/apply') {
         return <>{children}</>
+    }
+
+    if (!isSeller() && user?.seller_application_status === 'pending') {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+                <div className="max-w-md w-full bg-white rounded-3xl p-8 shadow-sm border border-gray-100 text-center">
+                    <div className="w-16 h-16 bg-brand-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <CheckCircle className="w-8 h-8 text-brand-primary" />
+                    </div>
+                    <h2 className="text-2xl font-black text-gray-900 mb-2">Application Under Review</h2>
+                    <p className="text-gray-500 mb-8">
+                        Your application to become a seller is currently being reviewed by our moderation team. You will receive an email once it is approved.
+                    </p>
+                    <Link href="/">
+                        <Button className="w-full bg-brand-primary hover:bg-brand-dark text-white font-bold rounded-xl h-12 shadow-md">
+                            Return to Homepage
+                        </Button>
+                    </Link>
+                </div>
+            </div>
+        )
     }
 
     if (!isSeller()) return null

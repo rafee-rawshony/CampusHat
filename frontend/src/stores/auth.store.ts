@@ -24,6 +24,7 @@ export interface User {
     reputation_score?: number
     verification_status: 'not_submitted' | 'pending' | 'approved' | 'rejected' | null
     verification_rejection_reason?: string
+    seller_application_status?: 'pending' | 'approved' | 'rejected' | null
 }
 
 interface AuthState {
@@ -99,6 +100,7 @@ export const useAuthStore = create<AuthState>()(
                     profile_picture: state.user.profile_picture,
                     is_email_verified: state.user.is_email_verified,
                     verification_status: state.user.verification_status,
+                    seller_application_status: state.user.seller_application_status,
                 } : null,
             }),
         }

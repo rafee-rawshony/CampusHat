@@ -12,13 +12,14 @@ import { Dialog, DialogContent, DialogTitle, DialogFooter } from '@/components/u
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'react-hot-toast'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { api } from '@/lib/api'
 
 type OrderStatus = 'all' | 'pending' | 'confirmed' | 'packed' | 'shipped' | 'delivered' | 'cancelled'
 
 export default function SellerOrdersPage() {
-    const [orders, setOrders] = useState<any[]>([])
-    const [isLoading, setIsLoading] = useState(true)
-    const [currentTab, setCurrentTab] = useState<OrderStatus>('all')
+    const queryClient = useQueryClient()
+    const [currentTab, setCurrentTab] = useState('all')
     const [searchTerm, setSearchTerm] = useState('')
 
     // Modals
@@ -29,65 +30,32 @@ export default function SellerOrdersPage() {
     // Expanded Orders
     const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null)
 
-    useEffect(() => {
-        // Mock API Fetch
-        setTimeout(() => {
-            setOrders([
-                {
-                    id: 'ORD-100234', date: '2024-06-25 14:30', status: 'pending', total: 6400,
-                    buyer: { name: 'Rahim Uddin', phone: '01711000000' },
-                    address: 'Room 304, Surja Sen Hall, Dhaka University',
-                    items: [
-                        { name: 'Mechanical Keyboard Blue Switch', price: 4200, qty: 1, image: 'https://placehold.co/40x40/blue/white' },
-                        { name: 'Campus Backpack 2024', price: 2200, qty: 1, image: 'https://placehold.co/40x40/purple/white' }
-                    ]
-                },
-                {
-                    id: 'ORD-100233', date: '2024-06-25 09:15', status: 'confirmed', total: 1500,
-                    buyer: { name: 'Sadia Rahman', phone: '01822000000' },
-                    address: 'Sector 4, Road 11, Uttara, Dhaka',
-                    items: [
-                        { name: 'Calculus 8th Edition', price: 1500, qty: 1, image: 'https://placehold.co/40x40/orange/white' }
-                    ]
-                },
-                {
-                    id: 'ORD-100232', date: '2024-06-24 18:45', status: 'packed', total: 850,
-                    buyer: { name: 'Karim Hasan', phone: '01933000000' },
-                    address: 'Block C, Bashundhara R/A',
-                    items: [
-                        { name: 'University Hoodie (Black, M)', price: 850, qty: 1, image: 'https://placehold.co/40x40/gray/white' }
-                    ]
-                },
-                {
-                    id: 'ORD-100230', date: '2024-06-22 11:20', status: 'shipped', total: 105000,
-                    courier: 'Pathao', tracking: 'PTH-99887766',
-                    buyer: { name: 'Jamil Ahmed', phone: '01644000000' },
-                    address: 'Gulshan 2, Dhaka',
-                    items: [
-                        { name: 'Sony WH-1000XM4', price: 105000, qty: 1, image: 'https://placehold.co/40x40/orange/white' }
-                    ]
-                },
-                {
-                    id: 'ORD-100225', date: '2024-06-20 16:00', status: 'delivered', total: 450,
-                    buyer: { name: 'Ayesha Siddika', phone: '01555000000' },
-                    address: 'Mirpur 10, Dhaka',
-                    items: [
-                        { name: 'Data Structures Notes', price: 450, qty: 1, image: 'https://placehold.co/40x40/red/white' }
-                    ]
-                }
-            ])
-            setIsLoading(false)
-        }, 600)
-    }, [])
+    const { data: ordersData, isLoading } = useQuery({
+        queryKey: ['seller-orders', currentTab],
+        queryFn: () => {
+            const params = currentTab === 'all' ? {} : { status: currentTab }
+            return api.get('/seller/orders/', { params }).then(r => r.data?.results || r.data?.data || r.data || [])
+        }
+    })
+    
+    // Counts optionally fetched or calculated. We will calculate from all if possible, or assume counts from a separate endpoint if needed.
+    // For now, if we filter on the backend, we don't know the remote count for other tabs without an endpoint.
+    // Let's create an endpoint specifically for counts if it exists, but we'll use a local fallback if we have to.
+    const { data: counts = {} } = useQuery({
+        queryKey: ['seller-orders-counts'],
+        queryFn: () => api.get('/seller/orders/counts/').then(r => r.data).catch(() => ({}))
+    })
 
-    const filteredOrders = orders.filter(o =>
-        (currentTab === 'all' || o.status === currentTab) &&
-        (o.id.toLowerCase().includes(searchTerm.toLowerCase()) || o.buyer.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    const orders = ordersData || []
+
+    const filteredOrders = orders.filter((o: any) =>
+        (o.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
+         o.buyer?.name?.toLowerCase().includes(searchTerm.toLowerCase()))
     )
 
-    const tabs: { id: OrderStatus, label: string }[] = [
+    const tabs = [
         { id: 'all', label: 'All Orders' },
-        { id: 'pending', label: 'Pending' },
+        { id: 'placed', label: 'Pending' },
         { id: 'confirmed', label: 'Confirmed' },
         { id: 'packed', label: 'Packed' },
         { id: 'shipped', label: 'Shipped' },
@@ -97,7 +65,7 @@ export default function SellerOrdersPage() {
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'pending': return 'bg-amber-50 text-amber-700 border-amber-200'
+            case 'placed': return 'bg-amber-50 text-amber-700 border-amber-200'
             case 'confirmed': return 'bg-blue-50 text-blue-700 border-blue-200'
             case 'packed': return 'bg-indigo-50 text-indigo-700 border-indigo-200'
             case 'shipped': return 'bg-purple-50 text-purple-700 border-purple-200'
@@ -107,9 +75,17 @@ export default function SellerOrdersPage() {
         }
     }
 
-    const updateOrderStatus = (id: string, newStatus: OrderStatus) => {
-        setOrders(orders.map(o => o.id === id ? { ...o, status: newStatus } : o))
-        toast.success(`Order ${id} marked as ${newStatus}`)
+    const { mutateAsync: updateStatus } = useMutation({
+        mutationFn: ({ id, status }: { id: string, status: string }) => api.post(`/seller/orders/${id}/status/`, { status }),
+        onSuccess: (_, variables) => {
+            toast.success(`Order marked as ${variables.status}`)
+            queryClient.invalidateQueries({ queryKey: ['seller-orders'] })
+            queryClient.invalidateQueries({ queryKey: ['seller-orders-counts'] })
+        }
+    })
+
+    const updateOrderStatus = (id: string, newStatus: string) => {
+        updateStatus({ id, status: newStatus }).catch(() => toast.error('Failed to update status'))
     }
 
     const openShipModal = (order: any) => {
@@ -118,14 +94,23 @@ export default function SellerOrdersPage() {
         setIsShipModalOpen(true)
     }
 
+    const { mutateAsync: shipOrder } = useMutation({
+        mutationFn: ({ id, data }: { id: string, data: any }) => api.post(`/seller/orders/${id}/ship/`, data),
+        onSuccess: () => {
+            toast.success('Order marked as shipped')
+            setIsShipModalOpen(false)
+            setSelectedOrder(null)
+            queryClient.invalidateQueries({ queryKey: ['seller-orders'] })
+            queryClient.invalidateQueries({ queryKey: ['seller-orders-counts'] })
+        }
+    })
+
     const handleShipOrder = () => {
         if (!shipData.courier || !shipData.tracking_code) {
             toast.error("Please provide both courier and tracking code")
             return
         }
-        setOrders(orders.map(o => o.id === selectedOrder.id ? { ...o, status: 'shipped', courier: shipData.courier, tracking: shipData.tracking_code } : o))
-        toast.success(`Order ${selectedOrder.id} has been shipped via ${shipData.courier}`)
-        setIsShipModalOpen(false)
+        shipOrder({ id: selectedOrder.id, data: shipData }).catch(() => toast.error('Failed to dispatch order'))
     }
 
     return (
@@ -140,19 +125,19 @@ export default function SellerOrdersPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                     <p className="text-sm font-bold text-gray-500 mb-1">To Confirm</p>
-                    <p className="text-2xl font-black text-amber-600">{orders.filter(o => o.status === 'pending').length}</p>
+                    <p className="text-2xl font-black text-amber-600">{orders.filter((o: any) => o.status === 'pending').length}</p>
                 </div>
                 <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                     <p className="text-sm font-bold text-gray-500 mb-1">To Pack</p>
-                    <p className="text-2xl font-black text-blue-600">{orders.filter(o => o.status === 'confirmed').length}</p>
+                    <p className="text-2xl font-black text-blue-600">{orders.filter((o: any) => o.status === 'confirmed').length}</p>
                 </div>
                 <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                     <p className="text-sm font-bold text-gray-500 mb-1">To Ship</p>
-                    <p className="text-2xl font-black text-indigo-600">{orders.filter(o => o.status === 'packed').length}</p>
+                    <p className="text-2xl font-black text-indigo-600">{orders.filter((o: any) => o.status === 'packed').length}</p>
                 </div>
                 <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                     <p className="text-sm font-bold text-gray-500 mb-1">In Transit</p>
-                    <p className="text-2xl font-black text-purple-600">{orders.filter(o => o.status === 'shipped').length}</p>
+                    <p className="text-2xl font-black text-purple-600">{orders.filter((o: any) => o.status === 'shipped').length}</p>
                 </div>
             </div>
 
@@ -160,7 +145,7 @@ export default function SellerOrdersPage() {
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
                 <div className="flex border-b border-gray-100 overflow-x-auto no-scrollbar">
                     {tabs.map(tab => {
-                        const count = tab.id === 'all' ? orders.length : orders.filter(o => o.status === tab.id).length
+                        const count = counts[tab.id] || 0
                         return (
                             <button
                                 key={tab.id}
@@ -173,9 +158,11 @@ export default function SellerOrdersPage() {
                                 `}
                             >
                                 {tab.label}
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] ${currentTab === tab.id ? 'bg-brand-primary text-white' : 'bg-gray-100 text-gray-600'}`}>
-                                    {count}
-                                </span>
+                                {count > 0 && (
+                                    <span className={`px-2 py-0.5 rounded-full text-[10px] ${currentTab === tab.id ? 'bg-brand-primary text-white' : 'bg-gray-100 text-gray-600'}`}>
+                                        {count}
+                                    </span>
+                                )}
                             </button>
                         )
                     })}
@@ -203,7 +190,7 @@ export default function SellerOrdersPage() {
                         <p className="font-bold text-gray-900">No orders found</p>
                         <p className="text-sm text-gray-500 mt-1">There are no orders matching this status or search.</p>
                     </div>
-                ) : filteredOrders.map(order => (
+                ) : filteredOrders.map((order: any) => (
                     <div key={order.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden transition-all hover:border-gray-300">
                         {/* Summary Header */}
                         <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100">
@@ -228,7 +215,7 @@ export default function SellerOrdersPage() {
 
                             {/* Action Buttons based on status */}
                             <div className="flex flex-wrap gap-2 mt-2 sm:mt-0">
-                                {order.status === 'pending' && (
+                                {order.status === 'placed' && (
                                     <Button onClick={() => updateOrderStatus(order.id, 'confirmed')} className="bg-blue-600 hover:bg-blue-700 text-white font-bold h-9">
                                         <CheckCircle2 className="w-4 h-4 mr-1.5" /> Confirm Order
                                     </Button>

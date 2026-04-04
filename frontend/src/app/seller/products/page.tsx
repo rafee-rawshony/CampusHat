@@ -14,8 +14,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { toast } from 'react-hot-toast'
 import Image from 'next/image'
+import { api } from '@/lib/api'
+import { useQueryClient } from '@tanstack/react-query'
 
 export default function SellerProductsPage() {
+    const queryClient = useQueryClient()
     const [products, setProducts] = useState<any[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
@@ -85,10 +88,16 @@ export default function SellerProductsPage() {
         setIsAddMode(true)
     }
 
-    const deleteProduct = (id: string, name: string) => {
-        if (confirm(`Are you sure you want to delete ${name}?`)) {
-            setProducts(prev => prev.filter(p => p.id !== id))
-            toast.success("Product deleted successfully")
+    const deleteProduct = async (id: string, name: string) => {
+        if (confirm(`Are you sure you want to delete ${name}? This cannot be undone.`)) {
+            try {
+                await api.delete(`/mall/products/${id}/`)
+                setProducts(prev => prev.filter(p => p.id !== id)) // local feedback assuming mock mixed with API
+                queryClient.invalidateQueries({ queryKey: ['seller-products'] })
+                toast.success("Product deleted successfully")
+            } catch (error) {
+                toast.error("Failed to delete product")
+            }
         }
     }
 

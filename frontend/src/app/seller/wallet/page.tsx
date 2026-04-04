@@ -12,9 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { toast } from 'react-hot-toast'
 import { useAuthStore } from '@/stores/auth.store'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { api } from '@/lib/api'
 
 export default function SellerWalletPage() {
     const { user } = useAuthStore()
+    const queryClient = useQueryClient()
     const [isLoading, setIsLoading] = useState(true)
 
     // Wallet State
@@ -52,6 +55,16 @@ export default function SellerWalletPage() {
         }, 600)
     }, [])
 
+    const { mutateAsync: requestPayout } = useMutation({
+        mutationFn: (data: any) => api.post('/seller/payouts/request/', data),
+        onSuccess: () => {
+            toast.success('Payout request submitted. Processing in 2-3 business days.')
+            setIsPayoutModalOpen(false)
+            setPayoutForm({ ...payoutForm, amount: '' })
+            queryClient.invalidateQueries({ queryKey: ['seller-wallet'] })
+        }
+    })
+
     const handlePayoutRequest = () => {
         const amount = Number(payoutForm.amount)
         if (!amount || amount < 500) {
@@ -67,16 +80,8 @@ export default function SellerWalletPage() {
             return
         }
 
-        // Mock Submission
-        setBalanceData(prev => ({ ...prev, available: prev.available - amount }))
-        setPayouts([{
-            id: `PAY-00${payouts.length + 5}`, method: payoutForm.method, account: payoutForm.account,
-            amount: amount, status: 'pending', date: new Date().toISOString().replace('T', ' ').substring(0, 16)
-        }, ...payouts])
-
-        toast.success(`৳${amount} payout requested successfully!`)
-        setIsPayoutModalOpen(false)
-        setPayoutForm({ ...payoutForm, amount: '' })
+        requestPayout({ amount, method: payoutForm.method, account: payoutForm.account })
+            .catch(() => toast.error("Failed to request payout"))
     }
 
     if (isLoading) {
