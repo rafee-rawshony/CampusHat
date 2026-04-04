@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowRight, Flame, Store as StoreIcon, Laptop, Smartphone, Shirt, BookOpen, PenTool, Coffee, Home, Activity, Palette, FlaskConical } from 'lucide-react'
+import { ArrowRight, Flame, Store as StoreIcon, Laptop, Smartphone, Shirt, BookOpen, PenTool, Coffee, Home, Activity, Palette, FlaskConical, ShoppingBag } from 'lucide-react'
 import useEmblaCarousel from 'embla-carousel-react'
 import Autoplay from 'embla-carousel-autoplay'
+import { useQuery } from '@tanstack/react-query'
 
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -14,19 +15,7 @@ import { ProductCard, ProductCardSkeleton, Product } from '@/components/mall/Pro
 import { CountdownTimer } from '@/components/shared/CountdownTimer'
 import { cn } from '@/lib/utils'
 
-// Top Categories Data (Static for fast initial paint)
-const TOP_CATEGORIES = [
-  { name: 'Electronics', icon: Laptop, slug: 'electronics' },
-  { name: 'Smartphones', icon: Smartphone, slug: 'smartphones' },
-  { name: 'Fashion', icon: Shirt, slug: 'fashion' },
-  { name: 'Academic Books', icon: BookOpen, slug: 'books' },
-  { name: 'Stationery', icon: PenTool, slug: 'stationery' },
-  { name: 'Campus Lifestyle', icon: Coffee, slug: 'lifestyle' },
-  { name: 'Dorm Essentials', icon: Home, slug: 'dorm' },
-  { name: 'Sports', icon: Activity, slug: 'sports' },
-  { name: 'Art & Design', icon: Palette, slug: 'art' },
-  { name: 'Scientific', icon: FlaskConical, slug: 'scientific' },
-]
+// Top Categories Data will be fetched via API
 
 // Mock Banners
 const BANNERS = [
@@ -60,11 +49,30 @@ const BANNERS = [
 ]
 
 export default function MallHomePage() {
-  // State
-  const [products, setProducts] = useState<Product[]>([])
-  const [flashSales, setFlashSales] = useState<Product[]>([])
-  const [sellers, setSellers] = useState<any[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  // Query Data
+  const { data: flashSaleData, isLoading: flashLoading } = useQuery({
+    queryKey: ['flash-sales'],
+    queryFn: () => api.get('/mall/flash-sales/active/').then(r => r.data?.results || r.data),
+    staleTime: 60_000,
+  })
+
+  const { data: categoriesData, isLoading: categoriesLoading } = useQuery({
+    queryKey: ['mall-categories'],
+    queryFn: () => api.get('/mall/categories/').then(r => r.data?.results || r.data),
+    staleTime: 300_000,
+  })
+
+  const { data: featuredSellers, isLoading: sellersLoading } = useQuery({
+    queryKey: ['featured-sellers'],
+    queryFn: () => api.get('/sellers/featured/').then(r => r.data?.results || r.data),
+    staleTime: 300_000,
+  })
+
+  const { data: productsData, isLoading: productsLoading } = useQuery({
+    queryKey: ['mall-products'],
+    queryFn: () => api.get('/mall/products/?page=1&limit=12').then(r => r.data?.results || r.data),
+    staleTime: 60_000,
+  })
 
   // Carousel Hooks
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [Autoplay({ delay: 5000, stopOnInteraction: true })])
@@ -75,67 +83,7 @@ export default function MallHomePage() {
     emblaApi.on('select', () => setSelectedIndex(emblaApi.selectedScrollSnap()))
   }, [emblaApi])
 
-  // Data Fetching
-  useEffect(() => {
-    const fetchHomepageData = async () => {
-      setIsLoading(true)
-      try {
-        // In production, these would be separate calls or optimized via a single /gateway endpoint
-        const [productsRes] = await Promise.all([
-          api.get('/mall/products/?page=1&limit=12').catch(() => ({ data: { results: [] } }))
-          // For demo fluidity, we won't strictly enforce API failures if endpoints don't exist yet
-        ])
-
-        // MOCK UP flash sales and best sellers since endpoints might be stubbed
-        setProducts(productsRes.data?.results || Array(12).fill(null).map((_, i) => ({
-          id: `mock-product-${i}`,
-          slug: `mock-product-${i}`,
-          name: 'Campus Hat Demo Product ' + (i + 1),
-          category_name: 'Electronics',
-          base_price: '500.00',
-          stock_quantity: 15,
-          has_variants: false,
-          rating_avg: 4.5,
-          rating_count: 24,
-          is_featured: false,
-          images: []
-        })))
-
-        // Just clone products for flash sales with fake discounts for UI
-        const pList = productsRes.data?.results?.length ? productsRes.data.results : []
-        if (pList.length > 0) {
-          setFlashSales(pList.slice(0, 6).map((p: any) => ({ ...p, discount_price: (parseFloat(p.base_price) * 0.8).toString(), stock_quantity: 5 })))
-        } else {
-          setFlashSales(Array(6).fill(null).map((_, i) => ({
-            id: `mock-flash-${i}`,
-            slug: `mock-flash-${i}`,
-            name: 'Flash Item ' + (i + 1),
-            category_name: 'Fashion',
-            base_price: '1000.00',
-            discount_price: '650.00',
-            stock_quantity: 3,
-            has_variants: false,
-            rating_avg: 4.8,
-            rating_count: 102,
-            is_featured: true,
-            images: []
-          })))
-        }
-
-        setSellers([
-          { id: '1', store_name: 'TechHub AU', slug: 'techhub', initials: 'TH', color: 'bg-blue-500' },
-          { id: '2', store_name: 'UniThreads', slug: 'unithreads', initials: 'UT', color: 'bg-yellow-500' },
-          { id: '3', store_name: 'SnackBox', slug: 'snackbox', initials: 'SB', color: 'bg-[#634C9F]' },
-          { id: '4', store_name: 'Print & Types', slug: 'print', initials: 'PT', color: 'bg-pink-500' },
-          { id: '5', store_name: 'Gadget Vault', slug: 'gadget', initials: 'GV', color: 'bg-emerald-500' },
-        ])
-
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    fetchHomepageData()
-  }, [])
+  // No mocked use-effect fetching
 
   return (
     <div className="bg-[#F5F5F5] min-h-screen pb-20 pt-4 md:pt-8 w-full overflow-x-hidden">
@@ -225,13 +173,13 @@ export default function MallHomePage() {
 
         <div className="overflow-x-auto pb-6 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar">
           <div className="flex gap-4 sm:gap-6 min-w-max">
-            {isLoading
+            {flashLoading
               ? Array(6).fill(null).map((_, i) => (
                 <div key={i} className="w-[180px] sm:w-[220px] md:w-[240px] shrink-0">
                   <ProductCardSkeleton />
                 </div>
               ))
-              : flashSales.map((product) => (
+              : (flashSaleData || []).map((product: any) => (
                 <div key={product.id} className="w-[180px] sm:w-[220px] md:w-[240px] shrink-0">
                   <ProductCard product={product} />
                 </div>
@@ -252,12 +200,22 @@ export default function MallHomePage() {
 
         <div className="overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar">
           <div className="flex sm:grid sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 lg:justify-between gap-4 min-w-max sm:min-w-0">
-            {TOP_CATEGORIES.map((cat, i) => {
-              const Icon = cat.icon
+            {categoriesLoading ? (
+              Array(10).fill(null).map((_, i) => (
+                <div key={i} className="group flex flex-col items-center gap-3 w-24 shrink-0 animate-pulse">
+                  <div className="w-20 h-20 bg-gray-200 rounded-2xl shadow-sm border border-gray-100"></div>
+                  <div className="h-3 w-16 bg-gray-200 rounded text-center"></div>
+                </div>
+              ))
+            ) : (categoriesData || []).map((cat: any, i: number) => {
               return (
-                <Link key={i} href={`/mall/category/${cat.slug}`} className="group flex flex-col items-center gap-3 w-24 shrink-0">
-                  <div className="w-20 h-20 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center group-hover:bg-brand-light/30 group-hover:border-brand-primary/30 transition-all duration-300 group-hover:-translate-y-1">
-                    <Icon className="h-8 w-8 text-gray-600 group-hover:text-brand-primary transition-colors" strokeWidth={1.5} />
+                <Link key={cat.id || i} href={`/mall/category/${cat.slug}`} className="group flex flex-col items-center gap-3 w-24 shrink-0">
+                  <div className="w-20 h-20 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center group-hover:bg-brand-light/30 group-hover:border-brand-primary/30 transition-all duration-300 group-hover:-translate-y-1 overflow-hidden relative">
+                    {cat.icon_url || cat.image_url ? (
+                      <Image src={cat.icon_url || cat.image_url} alt={cat.name} fill className="object-cover" />
+                    ) : (
+                      <ShoppingBag className="h-8 w-8 text-gray-600 group-hover:text-brand-primary transition-colors" strokeWidth={1.5} />
+                    )}
                   </div>
                   <span className="text-xs font-semibold text-center text-gray-700 leading-tight group-hover:text-brand-primary transition-colors">
                     {cat.name}
@@ -278,13 +236,24 @@ export default function MallHomePage() {
           <p className="text-gray-500 mb-10 text-sm">Top rated stores across completely verified campus vendors.</p>
 
           <div className="flex justify-center gap-6 md:gap-12 flex-wrap">
-            {sellers.map((store) => (
+            {sellersLoading ? (
+              Array(5).fill(null).map((_, i) => (
+                 <div key={i} className="group flex flex-col items-center gap-3 w-24 md:w-32 animate-pulse">
+                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gray-200"></div>
+                    <div className="h-4 w-20 bg-gray-200 rounded"></div>
+                 </div>
+              ))
+            ) : (featuredSellers || []).map((store: any) => (
               <Link key={store.id} href={`/sellers/${store.slug}`} className="group flex flex-col items-center gap-3 w-24 md:w-32">
                 <div className={cn(
-                  "w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center text-2xl md:text-3xl font-black text-white shadow-md ring-4 ring-white group-hover:ring-brand-light transition-all duration-300 group-hover:scale-105",
-                  store.color
+                  "w-20 h-20 md:w-24 md:h-24 rounded-full relative flex items-center justify-center text-2xl md:text-3xl font-black text-white shadow-md ring-4 ring-white group-hover:ring-brand-light transition-all duration-300 group-hover:scale-105 overflow-hidden",
+                  store.color || 'bg-brand-primary'
                 )}>
-                  {store.initials}
+                  {store.logo_url || store.profile_picture ? (
+                    <Image src={store.logo_url || store.profile_picture} alt={store.store_name} fill className="object-cover" />
+                  ) : (
+                    (store.store_name?.substring(0, 2).toUpperCase() || 'ST')
+                  )}
                 </div>
                 <span className="font-bold text-gray-900 text-sm md:text-base text-center line-clamp-1 group-hover:text-brand-primary transition-colors">
                   {store.store_name}
@@ -303,9 +272,9 @@ export default function MallHomePage() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 sm:gap-6">
-          {isLoading
+          {productsLoading
             ? Array(12).fill(null).map((_, i) => <ProductCardSkeleton key={i} />)
-            : products.map((product) => <ProductCard key={product.id} product={product} />)
+            : (productsData || []).map((product: any) => <ProductCard key={product.id} product={product} />)
           }
         </div>
 

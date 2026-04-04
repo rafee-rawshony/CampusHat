@@ -13,54 +13,30 @@ import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts'
 import { getInitials } from '@/lib/utils'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '@/lib/api'
 
 export default function SellerOverviewPage() {
     const { user } = useAuthStore()
-    const [stats, setStats] = useState<any>(null)
-    const [isLoading, setIsLoading] = useState(true)
     const [chartPeriod, setChartPeriod] = useState<'10D' | '1M'>('10D')
 
-    useEffect(() => {
-        // Mock API Call: GET /api/v1/seller/analytics/revenue/?period={chartPeriod}
-        // Mock API Call: GET /api/v1/seller/orders/?limit=5&sort=recent
-        setIsLoading(true)
-        setTimeout(() => {
-            const revenueData = chartPeriod === '10D'
-                ? [
-                    { name: '10 D AGO', value: 4000 },
-                    { name: '8 D AGO', value: 3000 },
-                    { name: '6 D AGO', value: 5000 },
-                    { name: '4 D AGO', value: 8780 },
-                    { name: '2 D AGO', value: 10900 },
-                    { name: 'YESTERDAY', value: 9000 },
-                    { name: 'TODAY', value: 12500 }
-                ]
-                : [
-                    { name: '1 M AGO', value: 24000 },
-                    { name: '3 W AGO', value: 33000 },
-                    { name: '2 W AGO', value: 45000 },
-                    { name: '1 W AGO', value: 28780 },
-                    { name: 'TODAY', value: 50900 },
-                ]
+    const { data: stats, isLoading: statsLoading } = useQuery({
+        queryKey: ['seller-dashboard-stats'],
+        queryFn: () => api.get('/seller/dashboard/stats/').then(r => r.data?.data || r.data),
+        refetchInterval: 30_000,
+    })
 
-            setStats({
-                total_revenue: 125400,
-                revenue_trend: 14.5, // positive percentage
-                orders_total: 1, // Phase S5 spec
-                orders_pending: 0,
-                products_live: 5, // Phase S5 spec
-                products_status: 'All stores active',
-                rating_average: 4.9,
-                rating_count: 528,
-                revenue_data: revenueData,
-                recent_orders: [
-                    { id: 'ORD-002', buyer: 'Bob Williams', amount: 125000, status: 'shipped', date: '2024-05-21', avatar: null },
-                    { id: 'ORD-001', buyer: 'Alice Johnson', amount: 450, status: 'delivered', date: '2024-05-20', avatar: 'https://placehold.co/40x40/blue/white' },
-                ]
-            })
-            setIsLoading(false)
-        }, 600)
-    }, [chartPeriod])
+    const { data: revenueData } = useQuery({
+        queryKey: ['seller-revenue', chartPeriod],
+        queryFn: () => api.get(`/seller/analytics/revenue/?period=${chartPeriod}`).then(r => r.data?.data || r.data),
+    })
+
+    const { data: recentOrders } = useQuery({
+        queryKey: ['seller-recent-orders'],
+        queryFn: () => api.get('/seller/orders/?limit=5&ordering=-created_at').then(r => r.data?.data?.results || r.data?.results || r.data),
+    })
+
+    const isLoading = statsLoading
 
     if (isLoading || !stats) {
         return <div className="animate-pulse space-y-6">
@@ -147,7 +123,7 @@ export default function SellerOverviewPage() {
                     </div>
                     <div className="h-[320px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={stats.revenue_data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                            <AreaChart data={revenueData || []} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                                 <defs>
                                     <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="5%" stopColor="#634C9F" stopOpacity={0.2} />
@@ -189,7 +165,7 @@ export default function SellerOverviewPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                                {stats.recent_orders.map((order: any) => (
+                                {(recentOrders || []).map((order: any) => (
                                     <tr key={order.id} className="hover:bg-gray-50/50 transition-colors group">
                                         <td className="py-3 px-4">
                                             <span className="text-xs font-bold text-gray-900 group-hover:text-brand-primary transition-colors">{order.id}</span>
@@ -222,7 +198,7 @@ export default function SellerOverviewPage() {
                                 ))}
                             </tbody>
                         </table>
-                        {stats.recent_orders.length === 0 && (
+                        {(!recentOrders || recentOrders.length === 0) && (
                             <div className="p-8 text-center text-sm text-gray-500 font-medium">
                                 No recent orders found.
                             </div>

@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { toast } from 'react-hot-toast'
 import Image from 'next/image'
+import { useQuery, useMutation } from '@tanstack/react-query'
+import { api } from '@/lib/api'
 
 type TabType = 'student' | 'marketplace' | 'seller'
 
@@ -15,12 +17,31 @@ const BADGE_OPTIONS = ['Verified Seller', 'Student Seller', 'Official Store']
 
 export default function AdminReviewCenter() {
     const [activeTab, setActiveTab] = useState<TabType>('student')
-    const [isLoading, setIsLoading] = useState(true)
+    // Student Verification tab:
+    const { data: verifications, refetch: refetchVerifications, isLoading: pendingStLoading } = useQuery({
+        queryKey: ['admin-verifications-pending'],
+        queryFn: () => api.get('/admin/verifications/pending/').then(r => r.data?.data || r.data?.results || r.data),
+        enabled: activeTab === 'student',
+    })
 
-    // Data stores
-    const [students, setStudents] = useState<any[]>([])
-    const [ads, setAds] = useState<any[]>([])
-    const [sellers, setSellers] = useState<any[]>([])
+    // Marketplace Ads tab:
+    const { data: pendingAds, refetch: refetchAds, isLoading: pendingAdsLoading } = useQuery({
+        queryKey: ['admin-marketplace-pending'],
+        queryFn: () => api.get('/admin/marketplace/pending/').then(r => r.data?.data || r.data?.results || r.data),
+        enabled: activeTab === 'marketplace',
+    })
+
+    // Seller Applications tab:
+    const { data: sellerApps, refetch: refetchSellers, isLoading: pendingSeLoading } = useQuery({
+        queryKey: ['admin-sellers-pending'],
+        queryFn: () => api.get('/admin/sellers/pending/').then(r => r.data?.data || r.data?.results || r.data),
+        enabled: activeTab === 'seller',
+    })
+
+    const isLoading = pendingStLoading || pendingAdsLoading || pendingSeLoading
+    const students = verifications || []
+    const ads = pendingAds || []
+    const sellers = sellerApps || []
 
     // Modal state
     const [approveModal, setApproveModal] = useState<{ type: TabType; item: any } | null>(null)
@@ -29,51 +50,69 @@ export default function AdminReviewCenter() {
     const [rejectNotes, setRejectNotes] = useState('')
     const [sellerBadge, setSellerBadge] = useState(BADGE_OPTIONS[0])
     const [lightboxMedia, setLightboxMedia] = useState<{ url: string; isPdf?: boolean } | null>(null)
+    const [isMutating, setIsMutating] = useState(false)
 
-    useEffect(() => {
-        // API Mocks:
-        // GET /api/v1/admin/verifications/pending/
-        // GET /api/v1/admin/marketplace/pending/
-        // GET /api/v1/admin/sellers/pending/
-        setTimeout(() => {
-            setStudents([
-                { id: 'v1', name: 'Rahim Uddin', university: 'Du', date: '2024-06-22', docUrl: 'https://placehold.co/600x400/indigo/white?text=ID+Card' },
-                { id: 'v2', name: 'Sadia Rahman', university: 'NSU', date: '2024-06-21', docUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', isPdf: true },
-            ])
-            setAds([
-                { id: 'a1', title: 'iPhone 14 Pro Max', type: 'item_for_sale', poster: 'Rahim U.', date: '2024-06-23', imgUrl: 'https://placehold.co/600x400/purple/white?text=iPhone' },
-            ])
-            setSellers([
-                { id: 's1', store: 'TechHub Store', applicant: 'Rahim U.', university: 'BUET', date: '2024-06-20', type: 'Business' },
-            ])
-            setIsLoading(false)
-        }, 600)
-    }, [])
+    const { mutateAsync: reviewVerification } = useMutation({
+        mutationFn: ({ id, action, reason }: { id: string, action: string, reason?: string }) => 
+            api.post(`/admin/verifications/${id}/review/`, { action, reason }),
+        onSuccess: (_, variables) => {
+            toast.success(variables.action === 'approve' ? 'Verification approved' : 'Verification rejected')
+            refetchVerifications()
+        }
+    })
 
-    const handleApprove = () => {
+    const { mutateAsync: reviewAd } = useMutation({
+        mutationFn: ({ id, action, reason }: { id: string, action: string, reason?: string }) => 
+            api.post(`/admin/marketplace/${id}/review/`, { action, reason }),
+        onSuccess: (_, variables) => {
+            toast.success(variables.action === 'approve' ? 'Ad approved' : 'Ad rejected')
+            refetchAds()
+        }
+    })
+
+    const { mutateAsync: reviewSeller } = useMutation({
+        mutationFn: ({ id, action, reason, payload }: { id: string, action: string, reason?: string, payload?: any }) => 
+            api.post(`/admin/sellers/${id}/review/`, { action, reason, ...payload }),
+        onSuccess: (_, variables) => {
+            toast.success(variables.action === 'approve' ? 'Seller approved' : 'Application rejected')
+            refetchSellers()
+        }
+    })
+
+
+    const handleApprove = async () => {
         if (!approveModal) return
         const { type, item } = approveModal
-
-        if (type === 'student') setStudents(prev => prev.filter(s => s.id !== item.id))
-        if (type === 'marketplace') setAds(prev => prev.filter(a => a.id !== item.id))
-        if (type === 'seller') setSellers(prev => prev.filter(s => s.id !== item.id))
-
-        toast.success(`${type === 'student' ? 'Student verified' : type === 'marketplace' ? 'Ad approved' : 'Seller approved'}`)
-        setApproveModal(null)
+        setIsMutating(true)
+        try {
+            if (type === 'student') await reviewVerification({ id: item.id, action: 'approve' })
+            if (type === 'marketplace') await reviewAd({ id: item.id, action: 'approve' })
+            if (type === 'seller') await reviewSeller({ id: item.id, action: 'approve', payload: { badge: sellerBadge } })
+        } catch {
+            toast.error('Action failed. Try again.')
+        } finally {
+            setIsMutating(false)
+            setApproveModal(null)
+        }
     }
 
-    const handleReject = () => {
+    const handleReject = async () => {
         if (!rejectModal || !rejectReason) { toast.error('Please select a reason'); return }
         const { type, item } = rejectModal
-
-        if (type === 'student') setStudents(prev => prev.filter(s => s.id !== item.id))
-        if (type === 'marketplace') setAds(prev => prev.filter(a => a.id !== item.id))
-        if (type === 'seller') setSellers(prev => prev.filter(s => s.id !== item.id))
-
-        toast.success(`${type === 'student' ? 'Verification' : type === 'marketplace' ? 'Ad' : 'Application'} rejected`)
-        setRejectModal(null)
-        setRejectReason('')
-        setRejectNotes('')
+        setIsMutating(true)
+        try {
+            const reason = rejectNotes ? `${rejectReason}: ${rejectNotes}` : rejectReason
+            if (type === 'student') await reviewVerification({ id: item.id, action: 'reject', reason })
+            if (type === 'marketplace') await reviewAd({ id: item.id, action: 'reject', reason })
+            if (type === 'seller') await reviewSeller({ id: item.id, action: 'reject', reason })
+        } catch {
+            toast.error('Action failed. Try again.')
+        } finally {
+            setIsMutating(false)
+            setRejectModal(null)
+            setRejectReason('')
+            setRejectNotes('')
+        }
     }
 
     const unassignedCount = students.length + ads.length + sellers.length
@@ -118,7 +157,7 @@ export default function AdminReviewCenter() {
 
                     {/* STUDENT VERIFICATION TAB */}
                     {activeTab === 'student' && (students.length === 0 ? <p className="text-gray-500 font-medium p-8 bg-white rounded-2xl text-center border col-span-full">No pending verifications.</p> :
-                        students.map((student) => (
+                        students.map((student: any) => (
                             <div key={student.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col group hover:shadow-md transition-all">
                                 {/* Image Preview */}
                                 <div
@@ -164,7 +203,7 @@ export default function AdminReviewCenter() {
 
                     {/* MARKETPLACE ADS TAB */}
                     {activeTab === 'marketplace' && (ads.length === 0 ? <p className="text-gray-500 font-medium p-8 bg-white rounded-2xl text-center border col-span-full">No pending ads.</p> :
-                        ads.map((ad) => (
+                        ads.map((ad: any) => (
                             <div key={ad.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col group hover:shadow-md transition-all">
                                 <div className="aspect-video bg-gray-100 relative overflow-hidden" onClick={() => setLightboxMedia({ url: ad.imgUrl })}>
                                     {ad.imgUrl ? <Image src={ad.imgUrl} alt={ad.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer" unoptimized /> : <div className="flex h-full items-center justify-center text-gray-300"><ImageIcon className="w-8 h-8" /></div>}
@@ -193,7 +232,7 @@ export default function AdminReviewCenter() {
 
                     {/* SELLER APPLICATIONS TAB */}
                     {activeTab === 'seller' && (sellers.length === 0 ? <p className="text-gray-500 font-medium p-8 bg-white rounded-2xl text-center border col-span-full">No pending applications.</p> :
-                        sellers.map((seller) => (
+                        sellers.map((seller: any) => (
                             <div key={seller.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-all p-5">
                                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-700 text-white flex items-center justify-center font-black text-2xl shadow-sm mb-4">
                                     {seller.store[0]}
@@ -250,8 +289,10 @@ export default function AdminReviewCenter() {
                         </div>
                     </div>
                     <div className="flex gap-3 justify-end mt-2">
-                        <Button variant="outline" onClick={() => setRejectModal(null)} className="border-gray-200 rounded-xl">Cancel</Button>
-                        <Button onClick={handleReject} className="bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl shadow-sm">Send Rejection</Button>
+                        <Button variant="outline" onClick={() => setRejectModal(null)} className="border-gray-200 rounded-xl" disabled={isMutating}>Cancel</Button>
+                        <Button onClick={handleReject} className="bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl shadow-sm" disabled={isMutating}>
+                            {isMutating ? 'Sending...' : 'Send Rejection'}
+                        </Button>
                     </div>
                 </DialogContent>
             </Dialog>
@@ -288,9 +329,9 @@ export default function AdminReviewCenter() {
                     )}
 
                     <div className="flex gap-3 justify-end mt-2">
-                        <Button variant="outline" onClick={() => setApproveModal(null)} className="border-gray-200 rounded-xl">Cancel</Button>
-                        <Button onClick={handleApprove} className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-sm">
-                            {approveModal?.type === 'seller' ? `Approve as ${sellerBadge}` : 'Approve'}
+                        <Button variant="outline" onClick={() => setApproveModal(null)} className="border-gray-200 rounded-xl" disabled={isMutating}>Cancel</Button>
+                        <Button onClick={handleApprove} className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-sm" disabled={isMutating}>
+                            {isMutating ? 'Approving...' : (approveModal?.type === 'seller' ? `Approve as ${sellerBadge}` : 'Approve')}
                         </Button>
                     </div>
                 </DialogContent>
