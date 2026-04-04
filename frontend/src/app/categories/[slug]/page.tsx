@@ -101,7 +101,7 @@ export default function CategoryPage() {
                             </div>
                             <h3 className="text-xl font-black text-gray-900 mb-2">No products found</h3>
                             <p className="text-sm font-medium text-gray-500 max-w-sm">
-                                We couldn't find any products in this category yet. Please check back later or browse other categories.
+                                We couldn&apos;t find any products in this category yet. Please check back later or browse other categories.
                             </p>
                             <Link href="/">
                                 <button className="mt-6 bg-brand-primary text-white font-bold px-6 py-2.5 rounded-full hover:bg-brand-dark transition-all">

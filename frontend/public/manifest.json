@@ -1,0 +1,21 @@
+{
+  "name": "CampusHat",
+  "short_name": "CampusHat",
+  "description": "Bangladesh campus marketplace for students and faculty",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFFFFF",
+  "theme_color": "#4C3B8A",
+  "lang": "en-BD",
+  "categories": ["shopping", "education"],
+  "icons": [
+    { "src": "/icons/icon-72.png",  "sizes": "72x72",  "type": "image/png" },
+    { "src": "/icons/icon-96.png",  "sizes": "96x96",  "type": "image/png" },
+    { "src": "/icons/icon-128.png", "sizes": "128x128","type": "image/png" },
+    { "src": "/icons/icon-192.png", "sizes": "192x192","type": "image/png",
+      "purpose": "maskable" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512","type": "image/png",
+      "purpose": "maskable" }
+  ]
+}

@@ -1,14 +1,44 @@
+import withPWAInit from 'next-pwa'
+
+const withPWA = withPWAInit({
+  dest: 'public',
+  register: true,
+  skipWaiting: true,
+  disable: process.env.NODE_ENV === 'development',
+  runtimeCaching: [
+    {
+      urlPattern: /^https:\/\/api\.campushat\.com\/api\/v1\/(universities|mall\/categories)/,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'static-api-cache',
+        expiration: { maxAgeSeconds: 86400 }, // 24h
+      },
+    },
+    {
+      urlPattern: /^https:\/\/api\.campushat\.com\/api\/v1\/mall\/products/,
+      handler: 'StaleWhileRevalidate',
+      options: {
+        cacheName: 'products-cache',
+        expiration: { maxEntries: 100, maxAgeSeconds: 300 },
+      },
+    },
+  ],
+})
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    output: "standalone",
-    images: {
-        remotePatterns: [
-            {
-                protocol: "https",
-                hostname: "**",
-            },
-        ],
-    },
-};
+  output: "standalone",
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "**",
+      },
+      { hostname: 'campushat.com' },
+      { hostname: 's3.amazonaws.com' },
+      { hostname: 'res.cloudinary.com' },
+    ],
+  },
+}
 
-export default nextConfig;
+export default withPWA(nextConfig)
