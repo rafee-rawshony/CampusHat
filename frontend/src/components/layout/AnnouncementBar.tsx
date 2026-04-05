@@ -2,7 +2,6 @@
 
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { api } from '@/lib/api'
 
 export function AnnouncementBar() {
     const pathname = usePathname()
@@ -12,7 +11,10 @@ export function AnnouncementBar() {
     useEffect(() => {
         const checkHealth = async () => {
             try {
-                await api.get('/health/')
+                // Health endpoint is at /api/health/ (outside /api/v1/)
+                const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
+                const healthUrl = baseUrl.replace(/\/v1\/?$/, '/health/')
+                await fetch(healthUrl, { method: 'GET', mode: 'cors' })
                 setStatus('connected')
             } catch (err) {
                 setStatus('error')

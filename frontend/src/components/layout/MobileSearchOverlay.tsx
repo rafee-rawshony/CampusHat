@@ -109,7 +109,7 @@ export function MobileSearchOverlay({ open, onClose }: { open: boolean, onClose:
         {query && (
           <button onClick={()=>handleSearch()}
             className='mt-4 text-brand-primary text-sm font-bold w-full p-3 rounded-lg bg-brand-light/10 text-center hover:bg-brand-light/20 transition-colors'>
-            See all results for "{query}"
+            See all results for &quot;{query}&quot;
           </button>
         )}
       </div>

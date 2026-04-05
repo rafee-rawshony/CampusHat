@@ -52,25 +52,37 @@ export default function MallHomePage() {
   // Query Data
   const { data: flashSaleData, isLoading: flashLoading } = useQuery({
     queryKey: ['flash-sales'],
-    queryFn: () => api.get('/mall/flash-sales/active/').then(r => r.data?.results || r.data),
+    queryFn: () => api.get('/mall/flash-sales/active/').then(r => {
+      const d = r.data?.data ?? r.data
+      return Array.isArray(d) ? d : (d?.results ?? [])
+    }),
     staleTime: 60_000,
   })
 
   const { data: categoriesData, isLoading: categoriesLoading } = useQuery({
     queryKey: ['mall-categories'],
-    queryFn: () => api.get('/mall/categories/').then(r => r.data?.results || r.data),
+    queryFn: () => api.get('/mall/categories/').then(r => {
+      const d = r.data?.data ?? r.data
+      return Array.isArray(d) ? d : (d?.results ?? [])
+    }),
     staleTime: 300_000,
   })
 
   const { data: featuredSellers, isLoading: sellersLoading } = useQuery({
     queryKey: ['featured-sellers'],
-    queryFn: () => api.get('/sellers/featured/').then(r => r.data?.results || r.data),
+    queryFn: () => api.get('/sellers/featured/').then(r => {
+      const d = r.data?.data ?? r.data
+      return Array.isArray(d) ? d : (d?.results ?? [])
+    }),
     staleTime: 300_000,
   })
 
   const { data: productsData, isLoading: productsLoading } = useQuery({
     queryKey: ['mall-products'],
-    queryFn: () => api.get('/mall/products/?page=1&limit=12').then(r => r.data?.results || r.data),
+    queryFn: () => api.get('/mall/products/?page=1&limit=12').then(r => {
+      const d = r.data?.data ?? r.data
+      return Array.isArray(d) ? d : (d?.results ?? [])
+    }),
     staleTime: 60_000,
   })
 
