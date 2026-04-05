@@ -224,7 +224,7 @@ class MarketplaceProductDetailSerializer(serializers.ModelSerializer):
             'expires_at', 'view_count', 'safe_meetup_location',
             'university_name', 'university_short',
             'category_name', 'images', 'user_info',
-            'offers_count', 'reviews_count', 'average_rating',
+            'contact_visible', 'offers_count', 'reviews_count', 'average_rating',
             'created_at', 'updated_at',
         ]
         read_only_fields = fields
