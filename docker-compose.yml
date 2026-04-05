@@ -137,28 +137,6 @@ services:
     networks:
       - campushat_network
 
-  # =============================================
-  # FRONTEND (uncomment when frontend is built)
-  # =============================================
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    image: campushat-frontend:latest
-    container_name: campushat_frontend
-    user: "root"
-    restart: unless-stopped
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    command: sh -c "npm install --legacy-peer-deps && npm run dev"
-    environment:
-      - NEXT_PUBLIC_API_URL=http://localhost/api
-    networks:
-      - campushat_network
 
   # =============================================
   # REVERSE PROXY
