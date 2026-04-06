@@ -179,3 +179,17 @@ Thumbs.db
 *.log
 
 campushat-demo/
+ 
+# Database Dumps
+*.sql
+
+# Agent Artifacts
+*.resolved
+
+# Local Test Scripts
+backend/test_*.py
+!tests/
+
+# Root JS Scripts
+script.js
+
