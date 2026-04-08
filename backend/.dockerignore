@@ -1,0 +1,50 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+.env/
+env/
+ENV/
+
+# Env files
+.env
+.env.local
+
+# IDEs
+.idea/
+.vscode/
+
+# Logs
+logs/
+*.log
+
+# Git
+.git/
+.gitignore
+
+# Media and Static (we don't want to copy local media/static files into the image unnecessarily if using external staging, though collectstatic will run)
+# It's better to keep local media out of the generic image.
+media/
+staticfiles/
+
+# Docker
+docker/nginx/nginx.conf

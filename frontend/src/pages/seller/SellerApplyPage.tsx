@@ -1,0 +1,2 @@
+import { Helmet } from 'react-helmet-async'
+export default function SellerApplyPage() { return (<><Helmet><title>Apply as Seller | CampusHat</title></Helmet><div className="max-w-3xl mx-auto px-4 py-6"><h1 className="text-2xl font-bold">Apply as Seller</h1><div className="mt-8 bg-white rounded-2xl border border-surface-border p-6"><p className="text-gray-500">Seller application form coming in Phase 2...</p></div></div></>) }
