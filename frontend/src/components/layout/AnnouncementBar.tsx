@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { api } from '@/lib/api'
+import { CampusSwitcher } from '@/components/layout/CampusSwitcher'
 
 export function AnnouncementBar() {
     const pathname = usePathname()
@@ -12,7 +12,10 @@ export function AnnouncementBar() {
     useEffect(() => {
         const checkHealth = async () => {
             try {
-                await api.get('/health/')
+                // Health endpoint is at /api/health/ (outside /api/v1/)
+                const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
+                const healthUrl = baseUrl.replace(/\/v1\/?$/, '/health/')
+                await fetch(healthUrl, { method: 'GET', mode: 'cors' })
                 setStatus('connected')
             } catch (err) {
                 setStatus('error')
@@ -43,10 +46,8 @@ export function AnnouncementBar() {
                     )}
                 </div>
                 {isMarketplace && (
-                    <div className="absolute right-2 sm:right-4 lg:right-6 flex items-center">
-                        <button className="bg-white/10 hover:bg-white/20 border border-white/30 rounded-lg px-3 md:px-4 py-1.5 transition-all flex items-center gap-2 shadow-sm text-[10px] md:text-xs font-extrabold uppercase tracking-tight">
-                            Switch Campus
-                        </button>
+                    <div className="absolute right-2 sm:right-4 lg:right-6 flex items-center z-50">
+                        <CampusSwitcher />
                     </div>
                 )}
             </div>

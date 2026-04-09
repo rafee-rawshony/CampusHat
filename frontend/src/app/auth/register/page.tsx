@@ -72,7 +72,9 @@ function RegisterContent() {
         const fetchUniversities = async () => {
             try {
                 const { data } = await api.get('/universities/')
-                setUniversities(data.data || data.results || data || [])
+                const payload = data?.data ?? data
+                const list = Array.isArray(payload) ? payload : (payload?.results ?? [])
+                setUniversities(list)
             } catch {
                 setUniversities([
                     { id: '1', name: 'American International University-Bangladesh', short_code: 'AIUB' },
