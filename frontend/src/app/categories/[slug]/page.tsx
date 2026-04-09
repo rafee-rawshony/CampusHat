@@ -14,12 +14,12 @@ export default function CategoryPage() {
 
     const { data: productsData, isLoading: productsLoading } = useQuery({
         queryKey: ['category-products', slug],
-        queryFn: () => api.get(`/mall/products/?category=${slug}`).then(r => r.data?.results || r.data?.data || r.data || []),
+        queryFn: () => api.get(`/mall/products/?category=${slug}`).then(r => r.data?.data?.results || r.data?.results || r.data?.data || r.data || []),
     })
 
     const { data: categoriesData, isLoading: categoriesLoading } = useQuery({
         queryKey: ['mall-categories'],
-        queryFn: () => api.get('/mall/categories/').then(r => r.data?.results || r.data?.data || r.data || []),
+        queryFn: () => api.get('/mall/categories/').then(r => r.data?.data?.results || r.data?.results || r.data?.data || r.data || []),
         staleTime: 300_000,
     })
 

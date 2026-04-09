@@ -70,7 +70,7 @@ export default function MallHomePage() {
 
   const { data: featuredSellers, isLoading: sellersLoading } = useQuery({
     queryKey: ['featured-sellers'],
-    queryFn: () => api.get('/sellers/featured/').then(r => {
+    queryFn: () => api.get('/stores/').then(r => {
       const d = r.data?.data ?? r.data
       return Array.isArray(d) ? d : (d?.results ?? [])
     }),
@@ -178,7 +178,7 @@ export default function MallHomePage() {
               <CountdownTimer targetDate={new Date(new Date().getTime() + 2 * 60 * 60 * 1000 + 35 * 60 * 1000).toISOString()} />
             </div>
           </div>
-          <Link href="/mall/flash-sales" className="text-brand-primary font-bold hover:underline group flex items-center text-sm">
+          <Link href="/shop?tab=flash-sales" className="text-brand-primary font-bold hover:underline group flex items-center text-sm">
             View All <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Link>
         </div>
@@ -205,7 +205,7 @@ export default function MallHomePage() {
       <div className="container mx-auto px-4 mb-16">
         <div className="flex items-end justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Top Categories</h2>
-          <Link href="/mall/categories" className="text-brand-primary font-bold hover:underline group flex items-center text-sm">
+          <Link href="/categories" className="text-brand-primary font-bold hover:underline group flex items-center text-sm">
             All Categories <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Link>
         </div>
@@ -221,7 +221,7 @@ export default function MallHomePage() {
               ))
             ) : (categoriesData || []).map((cat: any, i: number) => {
               return (
-                <Link key={cat.id || i} href={`/mall/category/${cat.slug}`} className="group flex flex-col items-center gap-3 w-24 shrink-0">
+                <Link key={cat.id || i} href={`/categories/${cat.slug}`} className="group flex flex-col items-center gap-3 w-24 shrink-0">
                   <div className="w-20 h-20 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center group-hover:bg-brand-light/30 group-hover:border-brand-primary/30 transition-all duration-300 group-hover:-translate-y-1 overflow-hidden relative">
                     {cat.icon_url || cat.image_url ? (
                       <Image src={cat.icon_url || cat.image_url} alt={cat.name} fill className="object-cover" />
