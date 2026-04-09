@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowRight, Flame, Store as StoreIcon, Laptop, Smartphone, Shirt, BookOpen, PenTool, Coffee, Home, Activity, Palette, FlaskConical, ShoppingBag } from 'lucide-react'
+import { ArrowRight, Flame, Store as StoreIcon, ShoppingBag } from 'lucide-react'
 import useEmblaCarousel from 'embla-carousel-react'
 import Autoplay from 'embla-carousel-autoplay'
 import { useQuery } from '@tanstack/react-query'
 
-import { api } from '@/lib/api'
+import { api, extractArray } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ProductCard, ProductCardSkeleton, Product } from '@/components/mall/ProductCard'
@@ -48,29 +48,46 @@ const BANNERS = [
   }
 ]
 
+interface MallCategory {
+  id?: string | number
+  slug: string
+  name: string
+  icon_url?: string
+  image_url?: string
+}
+
+interface FeaturedSeller {
+  id: string | number
+  slug: string
+  store_name: string
+  logo_url?: string
+  profile_picture?: string
+  color?: string
+}
+
 export default function MallHomePage() {
   // Query Data
   const { data: flashSaleData, isLoading: flashLoading } = useQuery({
     queryKey: ['flash-sales'],
-    queryFn: () => api.get('/mall/flash-sales/active/').then(r => r.data?.results || r.data),
+    queryFn: () => api.get('/mall/flash-sales/active/').then(r => extractArray<Product>(r.data)),
     staleTime: 60_000,
   })
 
   const { data: categoriesData, isLoading: categoriesLoading } = useQuery({
     queryKey: ['mall-categories'],
-    queryFn: () => api.get('/mall/categories/').then(r => r.data?.results || r.data),
+    queryFn: () => api.get('/mall/categories/').then(r => extractArray<MallCategory>(r.data)),
     staleTime: 300_000,
   })
 
   const { data: featuredSellers, isLoading: sellersLoading } = useQuery({
     queryKey: ['featured-sellers'],
-    queryFn: () => api.get('/sellers/featured/').then(r => r.data?.results || r.data),
+    queryFn: () => api.get('/sellers/featured/').then(r => extractArray<FeaturedSeller>(r.data)),
     staleTime: 300_000,
   })
 
   const { data: productsData, isLoading: productsLoading } = useQuery({
     queryKey: ['mall-products'],
-    queryFn: () => api.get('/mall/products/?page=1&limit=12').then(r => r.data?.results || r.data),
+    queryFn: () => api.get('/mall/products/?page=1&page_size=12').then(r => extractArray<Product>(r.data)),
     staleTime: 60_000,
   })
 
@@ -179,7 +196,7 @@ export default function MallHomePage() {
                   <ProductCardSkeleton />
                 </div>
               ))
-              : (flashSaleData || []).map((product: any) => (
+              : (flashSaleData || []).map((product) => (
                 <div key={product.id} className="w-[180px] sm:w-[220px] md:w-[240px] shrink-0">
                   <ProductCard product={product} />
                 </div>
@@ -207,12 +224,13 @@ export default function MallHomePage() {
                   <div className="h-3 w-16 bg-gray-200 rounded text-center"></div>
                 </div>
               ))
-            ) : (categoriesData || []).map((cat: any, i: number) => {
+            ) : (categoriesData || []).map((cat, i: number) => {
+              const categoryImage = cat.icon_url ?? cat.image_url
               return (
                 <Link key={cat.id || i} href={`/mall/category/${cat.slug}`} className="group flex flex-col items-center gap-3 w-24 shrink-0">
                   <div className="w-20 h-20 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center group-hover:bg-brand-light/30 group-hover:border-brand-primary/30 transition-all duration-300 group-hover:-translate-y-1 overflow-hidden relative">
-                    {cat.icon_url || cat.image_url ? (
-                      <Image src={cat.icon_url || cat.image_url} alt={cat.name} fill className="object-cover" />
+                    {categoryImage ? (
+                      <Image src={categoryImage} alt={cat.name} fill className="object-cover" />
                     ) : (
                       <ShoppingBag className="h-8 w-8 text-gray-600 group-hover:text-brand-primary transition-colors" strokeWidth={1.5} />
                     )}
@@ -243,14 +261,16 @@ export default function MallHomePage() {
                     <div className="h-4 w-20 bg-gray-200 rounded"></div>
                  </div>
               ))
-            ) : (featuredSellers || []).map((store: any) => (
+              ) : (featuredSellers || []).map((store) => {
+                const storeImage = store.logo_url ?? store.profile_picture
+                return (
               <Link key={store.id} href={`/sellers/${store.slug}`} className="group flex flex-col items-center gap-3 w-24 md:w-32">
                 <div className={cn(
                   "w-20 h-20 md:w-24 md:h-24 rounded-full relative flex items-center justify-center text-2xl md:text-3xl font-black text-white shadow-md ring-4 ring-white group-hover:ring-brand-light transition-all duration-300 group-hover:scale-105 overflow-hidden",
                   store.color || 'bg-brand-primary'
                 )}>
-                  {store.logo_url || store.profile_picture ? (
-                    <Image src={store.logo_url || store.profile_picture} alt={store.store_name} fill className="object-cover" />
+                  {storeImage ? (
+                    <Image src={storeImage} alt={store.store_name} fill className="object-cover" />
                   ) : (
                     (store.store_name?.substring(0, 2).toUpperCase() || 'ST')
                   )}
@@ -259,7 +279,8 @@ export default function MallHomePage() {
                   {store.store_name}
                 </span>
               </Link>
-            ))}
+                )
+              })}
           </div>
         </div>
       </div>
@@ -274,7 +295,7 @@ export default function MallHomePage() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 sm:gap-6">
           {productsLoading
             ? Array(12).fill(null).map((_, i) => <ProductCardSkeleton key={i} />)
-            : (productsData || []).map((product: any) => <ProductCard key={product.id} product={product} />)
+            : (productsData || []).map((product) => <ProductCard key={product.id} product={product} />)
           }
         </div>
 

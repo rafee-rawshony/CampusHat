@@ -32,6 +32,14 @@ interface University {
 export default function AccountPage() {
     const { user, setUser } = useAuthStore()
 
+    const toArray = (payload: any) => {
+        if (Array.isArray(payload)) return payload
+        if (Array.isArray(payload?.data?.results)) return payload.data.results
+        if (Array.isArray(payload?.results)) return payload.results
+        if (Array.isArray(payload?.data)) return payload.data
+        return []
+    }
+
     const [universities, setUniversities] = useState<University[]>([])
     const [isLoading, setIsLoading] = useState(false)
 
@@ -56,7 +64,7 @@ export default function AccountPage() {
         const fetchUniversities = async () => {
             try {
                 const { data } = await api.get('/universities/')
-                setUniversities(data.data || data.results || data || [])
+                setUniversities(toArray(data))
             } catch {
                 setUniversities([
                     { id: '1', name: 'American International University-Bangladesh', short_code: 'AIUB' },
@@ -73,9 +81,12 @@ export default function AccountPage() {
         if (!user) return
         setIsLoading(true)
         try {
-            const { data: response } = await api.patch('/auth/profile/', data)
+            const { data: response } = await api.patch('/auth/me/update/', data)
+            const updatedUser = response?.data || response?.user || null
             // Update local store with returned user object
-            setUser({ ...user, ...response.user })
+            if (updatedUser) {
+                setUser({ ...user, ...updatedUser })
+            }
             toast.success('Profile updated successfully')
         } catch (error: any) {
             toast.error(error.response?.data?.message || 'Failed to update profile')

@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth.store'
 
 
@@ -20,7 +22,7 @@ export default function AdminCategoriesPage() {
         if (!isAdmin()) {
             router.replace('/admin/approvals')
         }
-    }, [])
+    }, [isAdmin, router])
 
     const [tab, setTab] = useState<CatTab>('mall')
     const [categories, setCategories] = useState<any[]>([])

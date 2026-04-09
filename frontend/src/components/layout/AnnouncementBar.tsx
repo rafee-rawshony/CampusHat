@@ -2,7 +2,13 @@
 
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { api } from '@/lib/api'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || ''
+
+const getHealthCheckUrl = () => {
+    if (!API_BASE_URL) return '/api/health/'
+    const origin = API_BASE_URL.replace(/\/api\/v1\/?$/, '')
+    return `${origin}/api/health/`
+}
 
 export function AnnouncementBar() {
     const pathname = usePathname()
@@ -12,7 +18,7 @@ export function AnnouncementBar() {
     useEffect(() => {
         const checkHealth = async () => {
             try {
-                await api.get('/health/')
+                await fetch(getHealthCheckUrl(), { method: 'GET' })
                 setStatus('connected')
             } catch (err) {
                 setStatus('error')

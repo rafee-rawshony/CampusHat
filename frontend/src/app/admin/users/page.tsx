@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth.store'
 
 
@@ -32,7 +34,7 @@ export default function AdminUsersPage() {
         if (!isAdmin()) {
             router.replace('/admin/approvals')
         }
-    }, [])
+    }, [isAdmin, router])
 
     const [users, setUsers] = useState<any[]>([])
     const [isLoading, setIsLoading] = useState(true)

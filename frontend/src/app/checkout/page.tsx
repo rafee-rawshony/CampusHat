@@ -77,8 +77,11 @@ export default function CheckoutPage() {
         // Fetch actual wallet balance 
         const fetchWallet = async () => {
             try {
-                const { data } = await api.get('/wallet/')
-                if (data?.balance) setWalletBalance(parseFloat(data.balance))
+                const { data } = await api.get('/wallet/balance/')
+                const balance = data?.data?.balance ?? data?.balance
+                if (balance !== undefined && balance !== null) {
+                    setWalletBalance(parseFloat(String(balance)))
+                }
             } catch {
                 // Fallback to mock value if unmapped
             }

@@ -1,36 +1,103 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CampusHat Frontend
 
-## Getting Started
+Frontend application for CampusHat, built with Next.js App Router, TypeScript, React Query, Zustand, and Tailwind CSS.
 
-First, run the development server:
+## Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Next.js 14 (App Router)
+- TypeScript
+- Tailwind CSS + shadcn/ui components
+- TanStack React Query (server state)
+- Zustand (client auth/cart/campus/admin state)
+- Axios API client with cookie-based refresh flow
+
+## Prerequisites
+
+- Node.js 18+
+- npm 9+
+- Backend running locally (default: http://localhost:8000)
+
+## Environment Variables
+
+Create or update `frontend/.env.local`:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+NEXT_PUBLIC_WS_URL=ws://localhost:8000
+
+# Legacy aliases kept temporarily for backward compatibility.
+VITE_API_URL=http://localhost:8000/api/v1
+VITE_WS_URL=ws://localhost:8000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Notes:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `NEXT_PUBLIC_API_URL` is the primary API base and should point to `/api/v1`.
+- `NEXT_PUBLIC_WS_URL` is used for websocket-capable features.
+- Avoid hardcoding localhost in components; consume env through shared client helpers.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Install and Run
 
-## Learn More
+From `frontend/`:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm install
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Open http://localhost:3000.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Scripts
 
-## Deploy on Vercel
+- `npm run dev` - start local dev server
+- `npm run build` - production build
+- `npm run start` - run built app
+- `npm run lint` - lint all frontend files
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## API Strategy
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+All API requests should go through `src/lib/api.ts`.
+
+- Shared axios instance: `api`
+- Auth handling: request token attach + 401 refresh interceptor
+- Shared response helpers:
+	- `unwrapApiData<T>(payload, fallback)`
+	- `extractArray<T>(payload)`
+	- `extractPaginatedArray<T>(payload)`
+
+These helpers normalize backend envelope formats and reduce per-page parsing drift.
+
+## Backend Route Conventions
+
+Given `NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1`, frontend paths should generally be relative to `/api/v1`.
+
+Examples:
+
+- `api.get('/auth/me/update/')`
+- `api.get('/wallet/balance/')`
+- `api.get('/admin/dashboard/')`
+- `api.get('/sellers/my-dashboard/')`
+- `api.get('/analytics/seller/overview/')`
+
+Health endpoint is outside v1 and should use origin + `/api/health/`.
+
+## Validation Gates
+
+After endpoint or contract changes, run:
+
+```bash
+npx eslint src/app/page.tsx src/app/account/orders/page.tsx src/app/seller/page.tsx src/components/layout/AnnouncementBar.tsx src/lib/api.ts
+```
+
+Recommended smoke checks:
+
+- Home: `/`
+- Account: `/account`, `/account/orders`, `/account/listings`
+- Seller: `/seller`, `/seller/dashboard`, `/seller/orders`, `/seller/wallet`, `/seller/apply`
+- Admin: `/admin`
+
+## Troubleshooting
+
+- If API requests fail unexpectedly, verify `NEXT_PUBLIC_API_URL` in `.env.local`.
+- If auth loops to login, check backend refresh endpoint and cookie settings.
+- If status bar shows disconnected, confirm backend health is reachable at `/api/health/` on the backend origin.

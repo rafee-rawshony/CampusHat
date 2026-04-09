@@ -1,40 +1,136 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useMemo, useState } from 'react'
 import {
     DollarSign, ShoppingBag, Star, TrendingUp, TrendingDown, ArrowRight, Store
 } from 'lucide-react'
-import { useAuthStore } from '@/stores/auth.store'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
-import Image from 'next/image'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts'
 import { getInitials } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
-import { api } from '@/lib/api'
+import { api, extractArray, unwrapApiData } from '@/lib/api'
+
+type ChartPeriod = '10D' | '1M'
+
+interface SellerStatusBreakdownItem {
+    status: string
+    count: number
+}
+
+interface SellerDashboardResponse {
+    total_sales_count?: number
+    store_status?: string
+    rating_avg?: number
+    review_count?: number
+}
+
+interface SellerOverviewStats {
+    total_revenue?: number
+    total_orders?: number
+    rating_avg?: number
+}
+
+interface SellerOverviewResponse {
+    stats?: SellerOverviewStats
+    status_breakdown?: SellerStatusBreakdownItem[]
+}
+
+interface SellerRevenueItem {
+    day?: string
+    revenue?: number
+}
+
+interface SellerRevenueResponse {
+    daily_revenue?: SellerRevenueItem[]
+}
+
+interface SellerOrderRaw {
+    id: string
+    order_number?: string
+    buyer_email?: string
+    total_amount?: number
+    order_status?: string
+    created_at?: string
+}
+
+interface SellerOrderRow {
+    id: string
+    buyer: string
+    amount: number
+    status: string
+    date?: string
+    avatar?: string
+}
 
 export default function SellerOverviewPage() {
-    const { user } = useAuthStore()
-    const [chartPeriod, setChartPeriod] = useState<'10D' | '1M'>('10D')
+    const [chartPeriod, setChartPeriod] = useState<ChartPeriod>('10D')
+
+    const periodMap: Record<ChartPeriod, '7d' | '30d'> = {
+        '10D': '7d',
+        '1M': '30d',
+    }
 
     const { data: stats, isLoading: statsLoading } = useQuery({
         queryKey: ['seller-dashboard-stats'],
-        queryFn: () => api.get('/seller/dashboard/stats/').then(r => r.data?.data || r.data),
+        queryFn: async () => {
+            const [dashboardRes, overviewRes] = await Promise.all([
+                api.get('/sellers/my-dashboard/'),
+                api.get('/analytics/seller/overview/'),
+            ])
+
+            const dashboard = unwrapApiData<SellerDashboardResponse>(dashboardRes.data, {})
+            const overview = unwrapApiData<SellerOverviewResponse>(overviewRes.data, {})
+            const overviewStats = overview?.stats || {}
+            const statusBreakdown = extractArray<SellerStatusBreakdownItem>(overview?.status_breakdown)
+            const placedOrders = Number(statusBreakdown.find((s) => s.status === 'placed')?.count || 0)
+
+            return {
+                total_revenue: Number(overviewStats.total_revenue || 0),
+                total_orders: Number(overviewStats.total_orders || dashboard.total_sales_count || 0),
+                orders_pending: placedOrders,
+                products_live: Number(dashboard.total_sales_count || 0),
+                products_status: dashboard.store_status || 'n/a',
+                rating_average: Number(overviewStats.rating_avg || dashboard.rating_avg || 0),
+                rating_count: Number(dashboard.review_count || 0),
+                revenue_trend: undefined,
+            }
+        },
         refetchInterval: 30_000,
     })
 
     const { data: revenueData } = useQuery({
         queryKey: ['seller-revenue', chartPeriod],
-        queryFn: () => api.get(`/seller/analytics/revenue/?period=${chartPeriod}`).then(r => r.data?.data || r.data),
+        queryFn: () =>
+            api.get('/analytics/seller/revenue/', { params: { period: periodMap[chartPeriod] } }).then((r) => {
+                const data = unwrapApiData<SellerRevenueResponse>(r.data, {})
+                return extractArray<SellerRevenueItem>(data.daily_revenue).map((item) => ({
+                    name: String(item.day || '').slice(8, 10) || '0',
+                    value: Number(item.revenue || 0),
+                }))
+            }),
     })
 
     const { data: recentOrders } = useQuery({
         queryKey: ['seller-recent-orders'],
-        queryFn: () => api.get('/seller/orders/?limit=5&ordering=-created_at').then(r => r.data?.data?.results || r.data?.results || r.data),
+        queryFn: () =>
+            api.get('/seller/orders/', { params: { page_size: 5, ordering: '-created_at' } }).then((r) => {
+                const data = unwrapApiData<{ results?: SellerOrderRaw[] }>(r.data, {})
+                const rows = extractArray<SellerOrderRaw>(data.results)
+                return rows.map((order) => ({
+                    id: order.order_number || order.id,
+                    buyer: String(order.buyer_email || 'Buyer').split('@')[0],
+                    amount: Number(order.total_amount || 0),
+                    status: order.order_status || 'placed',
+                    date: order.created_at,
+                }))
+            }),
     })
+
+    const normalizedRecentOrders = useMemo<SellerOrderRow[]>(() => recentOrders || [], [recentOrders])
 
     const isLoading = statsLoading
 
@@ -57,7 +153,7 @@ export default function SellerOverviewPage() {
             sub: 'vs last week'
         },
         {
-            title: 'TOTAL ORDERS', value: stats.orders_total,
+            title: 'TOTAL ORDERS', value: stats.total_orders,
             icon: ShoppingBag, color: 'text-teal-600', bg: 'bg-teal-100',
             sub: `${stats.orders_pending} awaiting processing`
         },
@@ -110,10 +206,10 @@ export default function SellerOverviewPage() {
                             <p className="text-sm text-gray-500 font-medium">Daily earnings performance over the last {chartPeriod === '10D' ? '10 days' : 'month'}</p>
                         </div>
                         <div className="flex bg-gray-50 p-1 rounded-xl border border-gray-200">
-                            {['10D', '1M'].map(period => (
+                            {(['10D', '1M'] as ChartPeriod[]).map(period => (
                                 <button
                                     key={period}
-                                    onClick={() => setChartPeriod(period as any)}
+                                    onClick={() => setChartPeriod(period)}
                                     className={`px-5 py-1.5 text-xs font-bold rounded-lg transition-all ${chartPeriod === period ? 'bg-white text-gray-900 shadow-sm border border-gray-200/50' : 'text-gray-500 hover:text-gray-900'}`}
                                 >
                                     {period}
@@ -135,7 +231,7 @@ export default function SellerOverviewPage() {
                                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b', fontWeight: 'bold' }} tickFormatter={(value) => `৳${value.toLocaleString()}`} dx={-10} width={80} />
                                 <Tooltip
                                     contentStyle={{ borderRadius: '12px', border: '1px solid #f1f5f9', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '12px' }}
-                                    formatter={(value: any) => [`৳${value.toLocaleString()}`, 'Revenue']}
+                                    formatter={(value) => [`৳${Number(value ?? 0).toLocaleString()}`, 'Revenue']}
                                     labelStyle={{ fontWeight: 'black', color: '#0f172a', marginBottom: '4px' }}
                                     itemStyle={{ fontWeight: 'bold', color: '#634C9F' }}
                                 />
@@ -165,7 +261,7 @@ export default function SellerOverviewPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                                {(recentOrders || []).map((order: any) => (
+                                {normalizedRecentOrders.map((order) => (
                                     <tr key={order.id} className="hover:bg-gray-50/50 transition-colors group">
                                         <td className="py-3 px-4">
                                             <span className="text-xs font-bold text-gray-900 group-hover:text-brand-primary transition-colors">{order.id}</span>
@@ -173,7 +269,7 @@ export default function SellerOverviewPage() {
                                         <td className="py-3 px-4">
                                             <div className="flex items-center gap-2">
                                                 <Avatar className="w-6 h-6 border border-gray-200">
-                                                    {order.avatar ? <AvatarImage src={order.avatar} /> : <AvatarFallback className="text-[9px] font-bold">{getInitials(order.buyer)}</AvatarFallback>}
+                                                    {order.avatar ? <AvatarImage src={order.avatar} /> : <AvatarFallback className="text-[9px] font-bold">{getInitials(order.buyer || 'B')}</AvatarFallback>}
                                                 </Avatar>
                                                 <span className="text-xs font-medium text-gray-700 whitespace-nowrap">{order.buyer}</span>
                                             </div>
@@ -192,7 +288,7 @@ export default function SellerOverviewPage() {
                                             </Badge>
                                         </td>
                                         <td className="py-3 px-4 text-right">
-                                            <span className="text-[10px] font-medium text-gray-400 whitespace-nowrap">{order.date}</span>
+                                            <span className="text-[10px] font-medium text-gray-400 whitespace-nowrap">{order.date ? new Date(order.date).toLocaleDateString() : ''}</span>
                                         </td>
                                     </tr>
                                 ))}

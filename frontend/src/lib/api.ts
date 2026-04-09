@@ -1,8 +1,86 @@
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth.store'
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
+
+interface PaginatedEnvelope<T> {
+    results?: T[]
+    count?: number
+    total_pages?: number
+    current_page?: number
+}
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null
+
+export const unwrapApiData = <T>(payload: unknown, fallback: T): T => {
+    if (isObject(payload) && 'data' in payload) {
+        const maybeData = payload.data as T | undefined
+        return maybeData ?? fallback
+    }
+
+    if (payload === undefined || payload === null) return fallback
+    return payload as T
+}
+
+export const extractArray = <T>(payload: unknown): T[] => {
+    const unwrapped = unwrapApiData<unknown>(payload, null)
+
+    if (Array.isArray(unwrapped)) {
+        return unwrapped as T[]
+    }
+
+    if (isObject(unwrapped)) {
+        const paginated = unwrapped as PaginatedEnvelope<T>
+        if (Array.isArray(paginated.results)) return paginated.results
+
+        const nestedData = unwrapped.data
+        if (Array.isArray(nestedData)) return nestedData as T[]
+    }
+
+    return []
+}
+
+export interface PaginatedResult<T> {
+    items: T[]
+    count: number
+    totalPages: number
+    currentPage: number
+}
+
+export const extractPaginatedArray = <T>(payload: unknown): PaginatedResult<T> => {
+    const unwrapped = unwrapApiData<unknown>(payload, null)
+
+    if (Array.isArray(unwrapped)) {
+        return {
+            items: unwrapped as T[],
+            count: unwrapped.length,
+            totalPages: 1,
+            currentPage: 1,
+        }
+    }
+
+    if (isObject(unwrapped)) {
+        const paginated = unwrapped as PaginatedEnvelope<T>
+        const items = Array.isArray(paginated.results) ? paginated.results : []
+        return {
+            items,
+            count: Number(paginated.count ?? items.length),
+            totalPages: Number(paginated.total_pages ?? 1),
+            currentPage: Number(paginated.current_page ?? 1),
+        }
+    }
+
+    return {
+        items: [],
+        count: 0,
+        totalPages: 1,
+        currentPage: 1,
+    }
+}
+
 export const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1',
+    baseURL: API_BASE_URL,
     withCredentials: true,
     headers: { 'Content-Type': 'application/json' },
 })
@@ -16,10 +94,14 @@ api.interceptors.request.use((config) => {
 
 // Response interceptor — refresh on 401
 let isRefreshing = false
-let failedQueue: Array<{
-    resolve: (value?: unknown) => void
-    reject: (reason?: unknown) => void
-}> = []
+interface FailedQueueItem {
+    // eslint-disable-next-line no-unused-vars
+    resolve(value?: unknown): void
+    // eslint-disable-next-line no-unused-vars
+    reject(reason?: unknown): void
+}
+
+let failedQueue: FailedQueueItem[] = []
 
 const processQueue = (error: unknown, token: string | null = null) => {
     failedQueue.forEach((prom) => {
@@ -53,7 +135,7 @@ api.interceptors.response.use(
 
             try {
                 const { data } = await axios.post(
-                    `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/auth/token/refresh/`,
+                    `${API_BASE_URL}/auth/token/refresh/`,
                     {},
                     { withCredentials: true }
                 )

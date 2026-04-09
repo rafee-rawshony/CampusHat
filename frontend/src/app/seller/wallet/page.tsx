@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useMemo, useState } from 'react'
 import {
-    Wallet, ArrowUpRight, ArrowDownLeft, Clock, CheckCircle2, AlertCircle, Building2
+    Wallet, ArrowUpRight, ArrowDownLeft, Clock, AlertCircle, Building2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,77 +11,133 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { toast } from 'react-hot-toast'
-import { useAuthStore } from '@/stores/auth.store'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 
+const unwrapData = (payload: any) => payload?.data ?? payload
+
+const toArray = (payload: any) => {
+    if (Array.isArray(payload)) return payload
+    if (Array.isArray(payload?.results)) return payload.results
+    if (Array.isArray(payload?.data)) return payload.data
+    return []
+}
+
+interface WalletTransactionRow {
+    id: string
+    type: string
+    desc: string
+    amount: number
+    date: string
+}
+
+interface WalletPayoutRow {
+    id: string
+    method: string
+    account: string
+    amount: number
+    status: string
+    date: string
+    note?: string
+}
+
 export default function SellerWalletPage() {
-    const { user } = useAuthStore()
     const queryClient = useQueryClient()
-    const [isLoading, setIsLoading] = useState(true)
 
-    // Wallet State
-    const [balanceData, setBalanceData] = useState({ available: 0, escrow: 0, total_withdrawn: 0 })
-    const [transactions, setTransactions] = useState<any[]>([])
-    const [payouts, setPayouts] = useState<any[]>([])
-
-    // Payout Modal State
     const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false)
-    const [payoutForm, setPayoutForm] = useState({ amount: '', method: 'bkash', account: (user as any)?.phone_number || '' })
+    const [payoutForm, setPayoutForm] = useState({ amount: '', method: 'bkash' })
 
-    useEffect(() => {
-        // Mock API Fetch
-        setTimeout(() => {
-            setBalanceData({
-                available: 45000,
-                escrow: 12500, // Locked in pending/shipped orders
-                total_withdrawn: 105000
-            })
+    const { data: walletData, isLoading: walletLoading } = useQuery({
+        queryKey: ['seller-wallet-balance'],
+        queryFn: () => api.get('/wallet/balance/').then((r) => unwrapData(r.data) || {}),
+    })
 
-            setTransactions([
-                { id: 'TXN-005', type: 'credit', desc: 'Order ORD-100230 Cleared', amount: 105000, date: '2024-06-25 10:30' },
-                { id: 'TXN-004', type: 'debit', desc: 'Withdrawal to bKash', amount: 50000, date: '2024-06-20 14:15' },
-                { id: 'TXN-003', type: 'credit', desc: 'Order ORD-100225 Cleared', amount: 450, date: '2024-06-18 09:00' },
-                { id: 'TXN-002', type: 'debit', desc: 'Platform Fee (ORD-100225)', amount: 22, date: '2024-06-18 09:00' },
-            ])
+    const { data: transactionsData, isLoading: txLoading } = useQuery({
+        queryKey: ['seller-wallet-transactions'],
+        queryFn: () =>
+            api.get('/wallet/transactions/', { params: { page_size: 20 } }).then((r) => {
+                const data = unwrapData(r.data) || {}
+                return toArray(data.results)
+            }),
+    })
 
-            setPayouts([
-                { id: 'PAY-004', method: 'bKash', account: '01711***111', amount: 50000, status: 'completed', date: '2024-06-20 14:15' },
-                { id: 'PAY-003', method: 'Nagad', account: '01822***222', amount: 25000, status: 'completed', date: '2024-06-01 10:00' },
-                { id: 'PAY-002', method: 'Bank Transfer', account: 'DBBL ***444', amount: 30000, status: 'rejected', date: '2024-05-15 16:30', note: 'Invalid account routing' }
-            ])
+    const { data: payoutsData, isLoading: payoutsLoading } = useQuery({
+        queryKey: ['seller-payouts'],
+        queryFn: () => api.get('/sellers/payouts/').then((r) => toArray(unwrapData(r.data))),
+    })
 
-            setIsLoading(false)
-        }, 600)
-    }, [])
+    const balanceData = useMemo(() => {
+        const available = Number(walletData?.balance || 0)
+        const escrow = Number(walletData?.locked_balance || 0)
+        const payouts = payoutsData || []
+        const totalWithdrawn = payouts
+            .filter((p: any) => p.status === 'completed')
+            .reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0)
+
+        return {
+            available,
+            escrow,
+            total_withdrawn: totalWithdrawn,
+        }
+    }, [walletData, payoutsData])
+
+    const transactions = useMemo<WalletTransactionRow[]>(() => {
+        return (transactionsData || []).map((txn: any) => ({
+            id: txn.id,
+            type: txn.transaction_type,
+            desc: txn.description || txn.reason || 'Wallet transaction',
+            amount: Number(txn.amount || 0),
+            date: txn.created_at ? new Date(txn.created_at).toLocaleString() : '-',
+        }))
+    }, [transactionsData])
+
+    const payouts = useMemo<WalletPayoutRow[]>(() => {
+        return (payoutsData || []).map((payout: any) => {
+            const accountSnapshot = payout.account_details_snapshot || {}
+            const accountLabel =
+                accountSnapshot.number ||
+                accountSnapshot.account_number ||
+                accountSnapshot.bank_account ||
+                'Saved seller account'
+
+            return {
+                id: payout.id,
+                method: payout.method,
+                account: accountLabel,
+                amount: Number(payout.amount || 0),
+                status: payout.status,
+                date: payout.created_at ? new Date(payout.created_at).toLocaleString() : '-',
+                note: payout.note,
+            }
+        })
+    }, [payoutsData])
+
+    const isLoading = walletLoading || txLoading || payoutsLoading
 
     const { mutateAsync: requestPayout } = useMutation({
-        mutationFn: (data: any) => api.post('/seller/payouts/request/', data),
+        mutationFn: (data: any) => api.post('/sellers/payouts/request/', data),
         onSuccess: () => {
             toast.success('Payout request submitted. Processing in 2-3 business days.')
             setIsPayoutModalOpen(false)
-            setPayoutForm({ ...payoutForm, amount: '' })
-            queryClient.invalidateQueries({ queryKey: ['seller-wallet'] })
-        }
+            setPayoutForm((prev) => ({ ...prev, amount: '' }))
+            queryClient.invalidateQueries({ queryKey: ['seller-wallet-balance'] })
+            queryClient.invalidateQueries({ queryKey: ['seller-payouts'] })
+            queryClient.invalidateQueries({ queryKey: ['seller-wallet-transactions'] })
+        },
     })
 
     const handlePayoutRequest = () => {
         const amount = Number(payoutForm.amount)
         if (!amount || amount < 500) {
-            toast.error("Minimum withdrawal amount is ৳500")
+            toast.error('Minimum withdrawal amount is ৳500')
             return
         }
         if (amount > balanceData.available) {
-            toast.error("Withdrawal amount exceeds available balance")
-            return
-        }
-        if (!payoutForm.account) {
-            toast.error("Please provide the account number")
+            toast.error('Withdrawal amount exceeds available balance')
             return
         }
 
-        requestPayout({ amount, method: payoutForm.method, account: payoutForm.account })
-            .catch(() => toast.error("Failed to request payout"))
+        requestPayout({ amount, method: payoutForm.method }).catch(() => toast.error('Failed to request payout'))
     }
 
     if (isLoading) {
@@ -93,17 +149,13 @@ export default function SellerWalletPage() {
 
     return (
         <div className="space-y-8 max-w-6xl mx-auto">
-            {/* Header */}
             <div>
                 <h1 className="text-2xl font-black text-gray-900">Wallet & Finance</h1>
                 <p className="text-gray-500 text-sm mt-1">Manage your store earnings, payouts, and transaction history.</p>
             </div>
 
-            {/* Balance Overview Card Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Available Balance (Primary) */}
                 <div className="col-span-1 md:col-span-2 bg-gradient-to-br from-[#2D1B69] to-[#634C9F] rounded-3xl p-8 sm:p-10 text-white relative overflow-hidden shadow-xl shadow-brand-primary/20 flex flex-col justify-between min-h-[220px]">
-                    {/* Decorative Elements */}
                     <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -translate-y-1/2 translate-x-1/4 filter blur-2xl" />
                     <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-400 opacity-20 rounded-full translate-y-1/3 -translate-x-1/4 filter blur-3xl" />
 
@@ -127,7 +179,6 @@ export default function SellerWalletPage() {
                     </div>
                 </div>
 
-                {/* Secondary Balances */}
                 <div className="col-span-1 flex flex-col gap-6">
                     <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex-1 flex flex-col justify-center relative overflow-hidden">
                         <div className="absolute right-0 top-0 w-24 h-24 bg-amber-50 rounded-bl-full" />
@@ -146,16 +197,16 @@ export default function SellerWalletPage() {
                 </div>
             </div>
 
-            {/* Split View: Transactions | Payouts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Transaction History */}
                 <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden flex flex-col max-h-[600px]">
                     <div className="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white/80 backdrop-blur-md z-10">
                         <h2 className="text-lg font-black text-gray-900">Recent Transactions</h2>
-                        <Button variant="outline" size="sm" className="font-bold text-gray-500 border-gray-200">Export PDF</Button>
+                        <Button variant="outline" size="sm" className="font-bold text-gray-500 border-gray-200">Latest 20</Button>
                     </div>
                     <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
-                        {transactions.map(txn => (
+                        {transactions.length === 0 ? (
+                            <div className="p-12 text-center text-gray-500">No transactions found.</div>
+                        ) : transactions.map(txn => (
                             <div key={txn.id} className="p-5 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
                                 <div className="flex items-center gap-4">
                                     <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${txn.type === 'credit' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
@@ -173,13 +224,9 @@ export default function SellerWalletPage() {
                                 </div>
                             </div>
                         ))}
-                        <div className="p-5 text-center">
-                            <Button variant="ghost" className="text-brand-primary font-bold text-sm w-full">Load More Transactions</Button>
-                        </div>
                     </div>
                 </div>
 
-                {/* Payout History */}
                 <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden flex flex-col max-h-[600px]">
                     <div className="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white/80 backdrop-blur-md z-10">
                         <h2 className="text-lg font-black text-gray-900">Payout Requests</h2>
@@ -191,10 +238,10 @@ export default function SellerWalletPage() {
                             <div key={payout.id} className="p-5 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
                                 <div className="flex items-center gap-4">
                                     <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center shrink-0">
-                                        {payout.method === 'Bank Transfer' ? <Building2 className="w-5 h-5 text-gray-500" /> : <Wallet className="w-5 h-5 text-brand-primary" />}
+                                        {payout.method === 'bank' ? <Building2 className="w-5 h-5 text-gray-500" /> : <Wallet className="w-5 h-5 text-brand-primary" />}
                                     </div>
                                     <div>
-                                        <p className="font-bold text-gray-900 text-sm flex gap-2 items-center">
+                                        <p className="font-bold text-gray-900 text-sm flex gap-2 items-center capitalize">
                                             {payout.method}
                                             <Badge variant="outline" className={`h-5 text-[10px] uppercase font-bold tracking-wider
                                                 ${payout.status === 'completed' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : ''}
@@ -217,7 +264,6 @@ export default function SellerWalletPage() {
                 </div>
             </div>
 
-            {/* Request Payout Modal */}
             <Dialog open={isPayoutModalOpen} onOpenChange={setIsPayoutModalOpen}>
                 <DialogContent className="sm:max-w-md">
                     <DialogTitle className="font-black text-xl text-center">Withdraw Funds</DialogTitle>
@@ -249,29 +295,23 @@ export default function SellerWalletPage() {
                                         <SelectValue placeholder="Select method" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="bKash">bKash Mobile Banking</SelectItem>
-                                        <SelectItem value="Nagad">Nagad Mobile Banking</SelectItem>
-                                        <SelectItem value="Rocket">Rocket Mobile Banking</SelectItem>
-                                        <SelectItem value="Bank Transfer">Bank Transfer (EFTN)</SelectItem>
+                                        <SelectItem value="bkash">bKash Mobile Banking</SelectItem>
+                                        <SelectItem value="nagad">Nagad Mobile Banking</SelectItem>
+                                        <SelectItem value="rocket">Rocket Mobile Banking</SelectItem>
+                                        <SelectItem value="bank">Bank Transfer (EFTN)</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div className="space-y-2">
-                                <Label className="font-bold">Account / Wallet Number <span className="text-red-500">*</span></Label>
-                                <Input
-                                    value={payoutForm.account}
-                                    onChange={e => setPayoutForm({ ...payoutForm, account: e.target.value })}
-                                    className="h-12 bg-gray-50 focus-visible:bg-white"
-                                />
-                                <p className="text-xs text-gray-500">Ensure this account is in your name matching your business profile.</p>
-                            </div>
+                            <p className="text-xs text-gray-500">
+                                Payout will be sent to your seller profile payment details. Update those details in seller profile if needed.
+                            </p>
                         </div>
                     </div>
 
                     <DialogFooter className="mt-4 flex-col sm:flex-col gap-3">
                         <Button
                             onClick={handlePayoutRequest}
-                            disabled={!payoutForm.amount || Number(payoutForm.amount) > balanceData.available || !payoutForm.account}
+                            disabled={!payoutForm.amount || Number(payoutForm.amount) > balanceData.available}
                             className="bg-brand-primary hover:bg-brand-primary/90 text-white font-bold h-12 w-full text-base shadow-lg shadow-brand-primary/20"
                         >
                             Request ৳{payoutForm.amount || '0'} Payout

@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { api } from '@/lib/api'
+import { api, extractArray } from '@/lib/api'
 
 // Customer Schema
 const customerSchema = z.object({
@@ -72,7 +72,7 @@ function RegisterContent() {
         const fetchUniversities = async () => {
             try {
                 const { data } = await api.get('/universities/')
-                setUniversities(data.data || data.results || data || [])
+                setUniversities(extractArray<University>(data))
             } catch {
                 setUniversities([
                     { id: '1', name: 'American International University-Bangladesh', short_code: 'AIUB' },

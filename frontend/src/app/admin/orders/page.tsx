@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuthStore } from '@/stores/auth.store'
 
 
 
@@ -14,7 +16,7 @@ export default function AdminOrdersPage() {
         if (!isAdmin()) {
             router.replace('/admin/approvals')
         }
-    }, [])
+    }, [isAdmin, router])
 
     return (
         <div className="p-6 lg:p-8 space-y-8 max-w-5xl mx-auto flex flex-col h-full items-center justify-center">

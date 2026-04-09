@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
 
 
@@ -11,6 +12,7 @@ import {
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { useAuthStore } from '@/stores/auth.store'
 
 export default function AdminDashboardPage() {
     const { isAdmin } = useAuthStore()
@@ -20,19 +22,19 @@ export default function AdminDashboardPage() {
         if (!isAdmin()) {
             router.replace('/admin/approvals')
         }
-    }, [])
+    }, [isAdmin, router])
 
     const { data: adminStats, isLoading } = useQuery({
         queryKey: ['admin-dashboard-stats'],
-        queryFn: () => api.get('/admin/dashboard/stats/').then(r => r.data?.data || r.data),
+        queryFn: () => api.get('/admin/dashboard/').then(r => r.data?.data || r.data || {}),
         refetchInterval: 60_000,
     })
 
     const statCards = [
-        { label: 'TOTAL REVENUE', value: `৳${adminStats?.total_revenue?.toFixed(2) || '0.00'}`, icon: DollarSign, color: 'text-emerald-500', bg: 'bg-emerald-50', link: '/admin/revenue' },
+        { label: 'TOTAL REVENUE', value: `৳${Number(adminStats?.total_revenue_today || 0).toFixed(2)}`, icon: DollarSign, color: 'text-emerald-500', bg: 'bg-emerald-50', link: '/admin/revenue' },
         { label: 'TOTAL SELLERS', value: adminStats?.total_sellers || 0, icon: Users, color: 'text-blue-500', bg: 'bg-blue-50', link: '/admin/users?role=seller' },
-        { label: 'MALL PRODUCTS', value: adminStats?.mall_products || 0, icon: Store, color: 'text-teal-500', bg: 'bg-teal-50', link: '/admin/mall-products' },
-        { label: 'MARKETPLACE LISTINGS', value: adminStats?.marketplace_listings || 0, icon: Grid, color: 'text-purple-500', bg: 'bg-purple-50', link: '/admin/marketplace' },
+        { label: 'ACTIVE STORES', value: adminStats?.active_stores || 0, icon: Store, color: 'text-teal-500', bg: 'bg-teal-50', link: '/admin/mall-products' },
+        { label: 'MARKETPLACE LISTINGS', value: adminStats?.total_marketplace_ads || 0, icon: Grid, color: 'text-purple-500', bg: 'bg-purple-50', link: '/admin/marketplace' },
     ]
 
     if (isLoading) {
@@ -82,7 +84,7 @@ export default function AdminDashboardPage() {
                     </div>
                     <div>
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">TOTAL ORDERS</p>
-                        <p className="text-3xl font-black text-gray-900">{adminStats?.total_orders || 0}</p>
+                        <p className="text-3xl font-black text-gray-900">{adminStats?.total_orders_today || 0}</p>
                     </div>
                     <Link href="/admin/orders" className="mt-4 text-[10px] font-bold text-brand-primary uppercase tracking-wider flex items-center gap-1 hover:text-brand-dark group w-fit">
                         INSIGHT <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
@@ -94,11 +96,11 @@ export default function AdminDashboardPage() {
                     <h2 className="text-base font-black text-gray-900 mb-4">Quick Stats</h2>
                     <div className="space-y-3">
                         {[
-                            { label: 'Buy Listings', val: adminStats?.buy_listings },
-                            { label: 'Rental Listings', val: adminStats?.rental_listings },
-                            { label: 'Service Listings', val: adminStats?.service_listings },
-                            { label: 'Delivered Orders', val: adminStats?.delivered_orders },
-                            { label: 'Pending Orders', val: adminStats?.pending_orders },
+                            { label: 'Verified Students', val: adminStats?.verified_students },
+                            { label: 'Pending Approvals', val: adminStats?.pending_approvals_count },
+                            { label: 'Pending Refunds', val: adminStats?.pending_refunds },
+                            { label: 'Pending Verifications', val: adminStats?.pending_verifications },
+                            { label: 'Platform Wallet', val: `৳${Number(adminStats?.platform_wallet_balance || 0).toFixed(2)}` },
                         ].map((row, i) => (
                             <div key={i} className="flex items-end gap-2 text-sm">
                                 <span className="font-bold text-gray-600 whitespace-nowrap">{row.label}:</span>

@@ -1,9 +1,8 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useMemo, useState } from 'react'
 import {
-    Search, CheckCircle2, Truck, User, MapPin, Package as PackageIcon, CreditCard,
-    ShoppingBag, Box, Map
+    Search, CheckCircle2, Truck, Package as PackageIcon, ShoppingBag, Box
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,12 +13,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'react-hot-toast'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { formatDistanceToNow } from 'date-fns'
 
-type OrderStatus = 'all' | 'pending' | 'confirmed' | 'packed' | 'shipped' | 'delivered' | 'cancelled'
+type OrderStatus = 'all' | 'placed' | 'confirmed' | 'packed' | 'shipped' | 'delivered' | 'cancelled'
+
+const unwrapData = (payload: any) => payload?.data ?? payload
+
+const toArray = (payload: any) => {
+    if (Array.isArray(payload)) return payload
+    if (Array.isArray(payload?.results)) return payload.results
+    if (Array.isArray(payload?.data)) return payload.data
+    return []
+}
 
 export default function SellerOrdersPage() {
     const queryClient = useQueryClient()
-    const [currentTab, setCurrentTab] = useState('all')
+    const [currentTab, setCurrentTab] = useState<OrderStatus>('all')
     const [searchTerm, setSearchTerm] = useState('')
 
     // Modals
@@ -27,31 +36,48 @@ export default function SellerOrdersPage() {
     const [selectedOrder, setSelectedOrder] = useState<any>(null)
     const [shipData, setShipData] = useState({ courier: '', tracking_code: '' })
 
-    // Expanded Orders
-    const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null)
-
     const { data: ordersData, isLoading } = useQuery({
-        queryKey: ['seller-orders', currentTab],
-        queryFn: () => {
-            const params = currentTab === 'all' ? {} : { status: currentTab }
-            return api.get('/seller/orders/', { params }).then(r => r.data?.results || r.data?.data || r.data || [])
+        queryKey: ['seller-orders-all'],
+        queryFn: () =>
+            api.get('/seller/orders/', { params: { page_size: 100 } }).then((r) => {
+                const data = unwrapData(r.data) || {}
+                return toArray(data.results)
+            }),
+    })
+
+    const orders = useMemo(() => ordersData || [], [ordersData])
+
+    const counts = useMemo(() => {
+        const base = {
+            all: orders.length,
+            placed: 0,
+            confirmed: 0,
+            packed: 0,
+            shipped: 0,
+            delivered: 0,
+            cancelled: 0,
         }
-    })
-    
-    // Counts optionally fetched or calculated. We will calculate from all if possible, or assume counts from a separate endpoint if needed.
-    // For now, if we filter on the backend, we don't know the remote count for other tabs without an endpoint.
-    // Let's create an endpoint specifically for counts if it exists, but we'll use a local fallback if we have to.
-    const { data: counts = {} } = useQuery({
-        queryKey: ['seller-orders-counts'],
-        queryFn: () => api.get('/seller/orders/counts/').then(r => r.data).catch(() => ({}))
-    })
+        for (const o of orders) {
+            const key = o.order_status as keyof typeof base
+            if (key in base) base[key] += 1
+        }
+        return base
+    }, [orders])
 
-    const orders = ordersData || []
+    const filteredOrders = useMemo(() => {
+        const byTab = currentTab === 'all'
+            ? orders
+            : orders.filter((o: any) => o.order_status === currentTab)
 
-    const filteredOrders = orders.filter((o: any) =>
-        (o.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
-         o.buyer?.name?.toLowerCase().includes(searchTerm.toLowerCase()))
-    )
+        const term = searchTerm.trim().toLowerCase()
+        if (!term) return byTab
+
+        return byTab.filter((o: any) => {
+            const orderNo = String(o.order_number || '').toLowerCase()
+            const buyer = String(o.buyer_email || '').toLowerCase()
+            return orderNo.includes(term) || buyer.includes(term)
+        })
+    }, [orders, currentTab, searchTerm])
 
     const tabs = [
         { id: 'all', label: 'All Orders' },
@@ -76,15 +102,17 @@ export default function SellerOrdersPage() {
     }
 
     const { mutateAsync: updateStatus } = useMutation({
-        mutationFn: ({ id, status }: { id: string, status: string }) => api.post(`/seller/orders/${id}/status/`, { status }),
-        onSuccess: (_, variables) => {
+        mutationFn: ({ id, status }: { id: string, status: 'confirmed' | 'packed' }) => {
+            const path = status === 'confirmed' ? 'confirm' : 'pack'
+            return api.patch(`/seller/orders/${id}/${path}/`, {})
+        },
+        onSuccess: (_result, variables) => {
             toast.success(`Order marked as ${variables.status}`)
-            queryClient.invalidateQueries({ queryKey: ['seller-orders'] })
-            queryClient.invalidateQueries({ queryKey: ['seller-orders-counts'] })
+            queryClient.invalidateQueries({ queryKey: ['seller-orders-all'] })
         }
     })
 
-    const updateOrderStatus = (id: string, newStatus: string) => {
+    const updateOrderStatus = (id: string, newStatus: 'confirmed' | 'packed') => {
         updateStatus({ id, status: newStatus }).catch(() => toast.error('Failed to update status'))
     }
 
@@ -95,13 +123,12 @@ export default function SellerOrdersPage() {
     }
 
     const { mutateAsync: shipOrder } = useMutation({
-        mutationFn: ({ id, data }: { id: string, data: any }) => api.post(`/seller/orders/${id}/ship/`, data),
+        mutationFn: ({ id, data }: { id: string, data: any }) => api.patch(`/seller/orders/${id}/ship/`, data),
         onSuccess: () => {
             toast.success('Order marked as shipped')
             setIsShipModalOpen(false)
             setSelectedOrder(null)
-            queryClient.invalidateQueries({ queryKey: ['seller-orders'] })
-            queryClient.invalidateQueries({ queryKey: ['seller-orders-counts'] })
+            queryClient.invalidateQueries({ queryKey: ['seller-orders-all'] })
         }
     })
 
@@ -125,19 +152,19 @@ export default function SellerOrdersPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                     <p className="text-sm font-bold text-gray-500 mb-1">To Confirm</p>
-                    <p className="text-2xl font-black text-amber-600">{orders.filter((o: any) => o.status === 'pending').length}</p>
+                    <p className="text-2xl font-black text-amber-600">{counts.placed}</p>
                 </div>
                 <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                     <p className="text-sm font-bold text-gray-500 mb-1">To Pack</p>
-                    <p className="text-2xl font-black text-blue-600">{orders.filter((o: any) => o.status === 'confirmed').length}</p>
+                    <p className="text-2xl font-black text-blue-600">{counts.confirmed}</p>
                 </div>
                 <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                     <p className="text-sm font-bold text-gray-500 mb-1">To Ship</p>
-                    <p className="text-2xl font-black text-indigo-600">{orders.filter((o: any) => o.status === 'packed').length}</p>
+                    <p className="text-2xl font-black text-indigo-600">{counts.packed}</p>
                 </div>
                 <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                     <p className="text-sm font-bold text-gray-500 mb-1">In Transit</p>
-                    <p className="text-2xl font-black text-purple-600">{orders.filter((o: any) => o.status === 'shipped').length}</p>
+                    <p className="text-2xl font-black text-purple-600">{counts.shipped}</p>
                 </div>
             </div>
 
@@ -145,11 +172,11 @@ export default function SellerOrdersPage() {
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
                 <div className="flex border-b border-gray-100 overflow-x-auto no-scrollbar">
                     {tabs.map(tab => {
-                        const count = counts[tab.id] || 0
+                        const count = counts[tab.id as keyof typeof counts] || 0
                         return (
                             <button
                                 key={tab.id}
-                                onClick={() => setCurrentTab(tab.id)}
+                                onClick={() => setCurrentTab(tab.id as OrderStatus)}
                                 className={`flex items-center gap-2 px-6 py-4 text-sm font-bold border-b-2 whitespace-nowrap transition-colors
                                     ${currentTab === tab.id
                                         ? 'border-brand-primary text-brand-primary bg-brand-primary/5'
@@ -200,104 +227,40 @@ export default function SellerOrdersPage() {
                                 </div>
                                 <div>
                                     <div className="flex items-center gap-3">
-                                        <h3 className="font-black text-gray-900">{order.id}</h3>
-                                        <Badge variant="outline" className={`uppercase tracking-wider text-[10px] font-bold ${getStatusColor(order.status)}`}>
-                                            {order.status}
+                                        <h3 className="font-black text-gray-900">{order.order_number}</h3>
+                                        <Badge variant="outline" className={`uppercase tracking-wider text-[10px] font-bold ${getStatusColor(order.order_status)}`}>
+                                            {order.order_status}
                                         </Badge>
                                     </div>
-                                    <p className="text-xs text-gray-500 mt-1">{order.date} • {order.items.length} Items</p>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        {order.buyer_email} • {order.item_count || 0} items • {order.created_at ? formatDistanceToNow(new Date(order.created_at), { addSuffix: true }) : ''}
+                                    </p>
                                 </div>
                             </div>
                             <div className="flex flex-col sm:items-end md:ml-auto">
                                 <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Total Amount</p>
-                                <p className="font-black text-gray-900 sm:text-lg">৳{order.total.toLocaleString()}</p>
+                                <p className="font-black text-gray-900 sm:text-lg">৳{Number(order.total_amount || 0).toLocaleString()}</p>
                             </div>
 
                             {/* Action Buttons based on status */}
                             <div className="flex flex-wrap gap-2 mt-2 sm:mt-0">
-                                {order.status === 'placed' && (
+                                {order.order_status === 'placed' && (
                                     <Button onClick={() => updateOrderStatus(order.id, 'confirmed')} className="bg-blue-600 hover:bg-blue-700 text-white font-bold h-9">
                                         <CheckCircle2 className="w-4 h-4 mr-1.5" /> Confirm Order
                                     </Button>
                                 )}
-                                {order.status === 'confirmed' && (
+                                {order.order_status === 'confirmed' && (
                                     <Button onClick={() => updateOrderStatus(order.id, 'packed')} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-9">
                                         <Box className="w-4 h-4 mr-1.5" /> Mark as Packed
                                     </Button>
                                 )}
-                                {order.status === 'packed' && (
+                                {order.order_status === 'packed' && (
                                     <Button onClick={() => openShipModal(order)} className="bg-purple-600 hover:bg-purple-700 text-white font-bold h-9">
                                         <Truck className="w-4 h-4 mr-1.5" /> Ship Order
                                     </Button>
                                 )}
-
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
-                                    className="h-9 font-bold text-gray-600"
-                                >
-                                    {expandedOrderId === order.id ? 'Hide Details' : 'View Details'}
-                                </Button>
                             </div>
                         </div>
-
-                        {/* Expanded Content */}
-                        {expandedOrderId === order.id && (
-                            <div className="bg-gray-50/50 p-5 grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-gray-100 animate-in slide-in-from-top-2 duration-200">
-                                {/* Left Side: Items list */}
-                                <div>
-                                    <h4 className="font-bold text-gray-900 text-sm mb-3">Ordered Items</h4>
-                                    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100">
-                                        {order.items.map((item: any, i: number) => (
-                                            <div key={i} className="p-3 flex items-center gap-3">
-                                                <img src={item.image} alt={item.name} className="w-10 h-10 rounded border border-gray-200 shrink-0" />
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="font-bold text-gray-900 text-sm truncate">{item.name}</p>
-                                                    <p className="text-xs text-gray-500">Qty: {item.qty} × ৳{item.price}</p>
-                                                </div>
-                                                <div className="font-black text-gray-900">৳{item.price * item.qty}</div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="mt-3 bg-white p-3 rounded-xl border border-gray-200 flex justify-between items-center text-sm">
-                                        <span className="font-bold text-gray-500">Payment Method</span>
-                                        <div className="flex items-center gap-1 font-bold text-gray-900">
-                                            <CreditCard className="w-4 h-4 text-emerald-600" /> Cash on Delivery
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Right Side: Delivery Details */}
-                                <div>
-                                    <h4 className="font-bold text-gray-900 text-sm mb-3">Delivery Information</h4>
-                                    <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4">
-                                        <div className="flex gap-3">
-                                            <User className="w-4 h-4 text-gray-400 translate-y-0.5" />
-                                            <div>
-                                                <p className="font-bold text-gray-900 text-sm">{order.buyer.name}</p>
-                                                <p className="text-xs text-gray-500 mt-0.5">{order.buyer.phone}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex gap-3">
-                                            <MapPin className="w-4 h-4 text-gray-400 translate-y-0.5" />
-                                            <div>
-                                                <p className="font-bold text-gray-900 text-sm">Shipping Address</p>
-                                                <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{order.address}</p>
-                                            </div>
-                                        </div>
-                                        {order.tracking && (
-                                            <div className="flex gap-3 pt-3 border-t border-gray-100">
-                                                <Map className="w-4 h-4 text-brand-primary translate-y-0.5" />
-                                                <div>
-                                                    <p className="font-bold text-gray-900 text-sm">Tracking: {order.tracking}</p>
-                                                    <p className="text-xs text-gray-500 mt-0.5">Dispatched via {order.courier}</p>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 ))}
             </div>
@@ -305,7 +268,7 @@ export default function SellerOrdersPage() {
             {/* Courier Ship Modal */}
             <Dialog open={isShipModalOpen} onOpenChange={setIsShipModalOpen}>
                 <DialogContent>
-                    <DialogTitle className="font-black text-xl">Ship Order {selectedOrder?.id}</DialogTitle>
+                    <DialogTitle className="font-black text-xl">Ship Order {selectedOrder?.order_number}</DialogTitle>
                     <div className="space-y-4 py-4">
                         <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 flex gap-4">
                             <Truck className="w-6 h-6 text-brand-primary shrink-0" />

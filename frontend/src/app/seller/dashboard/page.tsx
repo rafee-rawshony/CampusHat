@@ -1,60 +1,129 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useMemo, useState } from 'react'
 import {
     DollarSign, ShoppingBag, Package, Star, TrendingUp, TrendingDown, Clock, ArrowRight, Wallet
 } from 'lucide-react'
+import { formatDistanceToNow } from 'date-fns'
+import { useQuery } from '@tanstack/react-query'
 
 import { useAuthStore } from '@/stores/auth.store'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import Image from 'next/image'
+import { api } from '@/lib/api'
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts'
 
+const unwrapData = (payload: any) => payload?.data ?? payload
+
+const toArray = (payload: any) => {
+    if (Array.isArray(payload)) return payload
+    if (Array.isArray(payload?.results)) return payload.results
+    if (Array.isArray(payload?.data)) return payload.data
+    return []
+}
+
 export default function SellerDashboardPage() {
     const { user } = useAuthStore()
-    const [stats, setStats] = useState<any>(null)
-    const [isLoading, setIsLoading] = useState(true)
     const [chartPeriod, setChartPeriod] = useState<'7D' | '30D' | '90D'>('30D')
 
-    useEffect(() => {
-        // Mock API Call
-        setTimeout(() => {
-            setStats({
-                total_revenue: 125400,
-                revenue_trend: 14.5, // positive percentage
-                orders_today: 12,
-                orders_trend: -2.4,
-                total_products: 45,
-                products_trend: 5.0,
-                rating_average: 4.8,
-                rating_trend: 0.1,
-                pending_orders: 3,
-                pending_payouts: 1,
-                revenue_data: [
-                    { name: '1', value: 4000 },
-                    { name: '5', value: 3000 },
-                    { name: '10', value: 5000 },
-                    { name: '15', value: 8780 },
-                    { name: '20', value: 10900 },
-                    { name: '25', value: 9000 },
-                    { name: '30', value: 12500 }
-                ],
-                recent_orders: [
-                    { id: 'ORD-123', buyer: 'Rahim Uddin', amount: 4500, status: 'pending', date: '2 hours ago' },
-                    { id: 'ORD-124', buyer: 'Sadia Rahman', amount: 1200, status: 'confirmed', date: '5 hours ago' },
-                    { id: 'ORD-125', buyer: 'Karim Hasan', amount: 8900, status: 'shipped', date: '1 day ago' }
-                ],
-                top_products: [
-                    { id: 'p1', name: 'Calculus 8th Edition', sold: 24, revenue: 36000, image: 'https://placehold.co/100x100/purple/white' },
-                    { id: 'p2', name: 'Sony WH-1000XM4', sold: 5, revenue: 105000, image: 'https://placehold.co/100x100/orange/white' }
-                ]
-            })
-            setIsLoading(false)
-        }, 800)
-    }, [chartPeriod])
+    const periodMap: Record<'7D' | '30D' | '90D', '7d' | '30d' | '90d'> = {
+        '7D': '7d',
+        '30D': '30d',
+        '90D': '90d',
+    }
+
+    const { data: dashboardData, isLoading: dashboardLoading } = useQuery({
+        queryKey: ['seller-my-dashboard'],
+        queryFn: () => api.get('/sellers/my-dashboard/').then((r) => unwrapData(r.data) || {}),
+        staleTime: 60_000,
+    })
+
+    const { data: overviewData, isLoading: overviewLoading } = useQuery({
+        queryKey: ['seller-analytics-overview'],
+        queryFn: async () => {
+            try {
+                const response = await api.get('/analytics/seller/overview/')
+                return unwrapData(response.data) || {}
+            } catch {
+                return {}
+            }
+        },
+        staleTime: 60_000,
+    })
+
+    const { data: revenueData, isLoading: revenueLoading } = useQuery({
+        queryKey: ['seller-revenue-analytics', chartPeriod],
+        queryFn: () =>
+            api
+                .get('/analytics/seller/revenue/', { params: { period: periodMap[chartPeriod] } })
+                .then((r) => {
+                    const data = unwrapData(r.data) || {}
+                    return toArray(data.daily_revenue)
+                }),
+        staleTime: 30_000,
+    })
+
+    const { data: recentOrders, isLoading: ordersLoading } = useQuery({
+        queryKey: ['seller-dashboard-recent-orders'],
+        queryFn: () =>
+            api.get('/seller/orders/', { params: { page_size: 5 } }).then((r) => {
+                const data = unwrapData(r.data) || {}
+                return toArray(data.results)
+            }),
+        staleTime: 30_000,
+    })
+
+    const { data: topProducts, isLoading: topProductsLoading } = useQuery({
+        queryKey: ['seller-top-products'],
+        queryFn: () => api.get('/analytics/seller/products/top/').then((r) => toArray(unwrapData(r.data))),
+        staleTime: 60_000,
+    })
+
+    const stats = useMemo(() => {
+        const overviewStats = overviewData?.stats || {}
+        return {
+            total_revenue: Number(overviewStats.total_revenue || 0),
+            total_orders: Number(overviewStats.total_orders || dashboardData?.total_sales_count || 0),
+            completed_orders: Number(overviewStats.completed_orders || 0),
+            total_products: Number(dashboardData?.total_sales_count || 0),
+            rating_average: Number(overviewStats.rating_avg || dashboardData?.rating_avg || 0),
+            pending_orders: Number(overviewData?.status_breakdown?.find?.((s: any) => s.status === 'placed')?.count || 0),
+            pending_payouts: Number(dashboardData?.pending_payouts || 0),
+            pending_balance: Number(overviewStats.pending_balance || 0),
+        }
+    }, [dashboardData, overviewData])
+
+    const chartRows = useMemo(() => {
+        return (revenueData || []).map((item: any) => ({
+            name: String(item.day || '').slice(8, 10) || '0',
+            value: Number(item.revenue || 0),
+        }))
+    }, [revenueData])
+
+    const recentOrderRows = useMemo(() => {
+        return (recentOrders || []).map((order: any) => ({
+            id: order.order_number || order.id,
+            buyer: String(order.buyer_email || 'Buyer').split('@')[0],
+            amount: Number(order.total_amount || 0),
+            status: order.order_status || 'placed',
+            date: order.created_at ? formatDistanceToNow(new Date(order.created_at), { addSuffix: true }) : 'recently',
+        }))
+    }, [recentOrders])
+
+    const topProductRows = useMemo(() => {
+        return (topProducts || []).map((p: any, index: number) => ({
+            id: p.product__id || String(index),
+            name: p.product__name || 'Product',
+            sold: Number(p.sold_count || 0),
+            revenue: Number(p.total_revenue || 0),
+            image: '',
+        }))
+    }, [topProducts])
+
+    const isLoading = dashboardLoading || overviewLoading || revenueLoading || ordersLoading || topProductsLoading
 
     if (isLoading || !stats) {
         return <div className="animate-pulse space-y-6">
@@ -69,19 +138,19 @@ export default function SellerDashboardPage() {
     const statCards = [
         {
             title: 'Total Revenue', value: `৳${stats.total_revenue.toLocaleString()}`,
-            trend: stats.revenue_trend, icon: DollarSign, color: 'text-brand-primary', bg: 'bg-brand-primary/10'
+            trend: undefined, icon: DollarSign, color: 'text-brand-primary', bg: 'bg-brand-primary/10'
         },
         {
-            title: 'Orders Today', value: stats.orders_today,
-            trend: stats.orders_trend, icon: ShoppingBag, color: 'text-blue-600', bg: 'bg-blue-100'
+            title: 'Total Orders', value: stats.total_orders,
+            trend: undefined, icon: ShoppingBag, color: 'text-blue-600', bg: 'bg-blue-100'
         },
         {
-            title: 'Products', value: stats.total_products,
-            trend: stats.products_trend, icon: Package, color: 'text-emerald-600', bg: 'bg-emerald-100'
+            title: 'Completed Orders', value: stats.completed_orders,
+            trend: undefined, icon: Package, color: 'text-emerald-600', bg: 'bg-emerald-100'
         },
         {
             title: 'Average Rating', value: stats.rating_average,
-            trend: stats.rating_trend, icon: Star, color: 'text-orange-600', bg: 'bg-orange-100'
+            trend: undefined, icon: Star, color: 'text-orange-600', bg: 'bg-orange-100'
         }
     ]
 
@@ -89,7 +158,7 @@ export default function SellerDashboardPage() {
         <div className="space-y-8">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl font-black text-gray-900">Welcome back, {(user as any)?.store_name || 'Seller'}!</h1>
+                        <h1 className="text-2xl font-black text-gray-900">Welcome back, {(dashboardData as any)?.store_name || (user as any)?.full_name || 'Seller'}!</h1>
                     <p className="text-gray-500 text-sm mt-1">Here is what is happening with your store today.</p>
                 </div>
 
@@ -105,7 +174,7 @@ export default function SellerDashboardPage() {
                         {stats.pending_payouts > 0 && (
                             <Link href="/seller/wallet" className="flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors">
                                 <Wallet className="w-4 h-4" />
-                                <span className="text-sm font-bold">{stats.pending_payouts} payout pending</span>
+                                <span className="text-sm font-bold">{stats.pending_payouts} payout pending • ৳{stats.pending_balance.toLocaleString()}</span>
                             </Link>
                         )}
                     </div>
@@ -120,9 +189,11 @@ export default function SellerDashboardPage() {
                             <div className={`p-3 rounded-xl ${stat.bg}`}>
                                 <stat.icon className={`w-6 h-6 ${stat.color}`} />
                             </div>
-                            <div className={`flex items-center gap-1 text-sm font-bold ${stat.trend > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                                {stat.trend > 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                                {Math.abs(stat.trend)}%
+                            <div className={`flex items-center gap-1 text-sm font-bold ${stat.trend === undefined ? 'text-gray-400' : stat.trend > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                {stat.trend !== undefined ? (
+                                    stat.trend > 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />
+                                ) : null}
+                                {stat.trend !== undefined ? `${Math.abs(stat.trend)}%` : '--'}
                             </div>
                         </div>
                         <h3 className="text-gray-500 text-sm font-bold mb-1">{stat.title}</h3>
@@ -149,7 +220,7 @@ export default function SellerDashboardPage() {
                 </div>
                 <div className="h-[300px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={stats.revenue_data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                        <AreaChart data={chartRows} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                             <defs>
                                 <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor="#634C9F" stopOpacity={0.3} />
@@ -180,7 +251,7 @@ export default function SellerDashboardPage() {
                         </Link>
                     </div>
                     <div className="divide-y divide-gray-100 flex-1">
-                        {stats.recent_orders.map((order: any) => (
+                        {recentOrderRows.map((order: any) => (
                             <div key={order.id} className="p-4 sm:p-6 flex items-center justify-between hover:bg-gray-50 transition-colors">
                                 <div>
                                     <p className="font-bold text-gray-900 text-sm">{order.id}</p>
@@ -212,9 +283,13 @@ export default function SellerDashboardPage() {
                         </Link>
                     </div>
                     <div className="divide-y divide-gray-100 flex-1">
-                        {stats.top_products.map((product: any) => (
+                        {topProductRows.map((product: any) => (
                             <div key={product.id} className="p-4 sm:p-6 flex items-center gap-4 hover:bg-gray-50 transition-colors">
-                                <Image src={product.image} alt={product.name} width={48} height={48} className="w-12 h-12 rounded-lg object-cover bg-gray-100" />
+                                {product.image ? (
+                                    <Image src={product.image} alt={product.name} width={48} height={48} className="w-12 h-12 rounded-lg object-cover bg-gray-100" />
+                                ) : (
+                                    <div className="w-12 h-12 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-500">CH</div>
+                                )}
                                 <div className="flex-1 min-w-0">
                                     <p className="font-bold text-gray-900 text-sm truncate">{product.name}</p>
                                     <p className="text-xs text-gray-500 mt-1">{product.sold} sold this month</p>

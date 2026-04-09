@@ -19,7 +19,7 @@ type BusinessType = 'individual' | 'student_seller' | 'club' | 'business' | 'off
 
 export default function SellerApplyPage() {
     const router = useRouter()
-    const { isAuthenticated, isSeller } = useAuthStore()
+    const { isAuthenticated, isSeller, user, setUser } = useAuthStore()
 
     const [step, setStep] = useState(1)
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -61,13 +61,18 @@ export default function SellerApplyPage() {
             return
         }
 
-        // Check if an application is already pending
-        api.get('/seller/application/status/')
+        // Check if an application exists via seller profile endpoint
+        api.get('/sellers/my-profile/')
             .then(res => {
-                if (res.data.status === 'pending') {
+                const status = res.data?.data?.status || res.data?.status
+                if (status === 'pending') {
                     setApplicationStatus('pending')
-                } else if (res.data.status === 'rejected') {
+                    if (user) setUser({ ...user, seller_application_status: 'pending' })
+                } else if (status === 'rejected') {
                     setApplicationStatus('rejected')
+                    if (user) setUser({ ...user, seller_application_status: 'rejected' })
+                } else if (status === 'approved') {
+                    router.push('/seller/dashboard')
                 }
             })
             .catch(() => {
@@ -75,7 +80,7 @@ export default function SellerApplyPage() {
             })
             .finally(() => setIsLoading(false))
 
-    }, [isAuthenticated, isSeller, router])
+    }, [isAuthenticated, isSeller, router, setUser, user])
 
     const updateFormData = (key: string, value: any) => {
         setFormData(prev => ({ ...prev, [key]: value }))
@@ -137,7 +142,7 @@ export default function SellerApplyPage() {
                 toast.error("Student ID and NID Front are required for Student Sellers.")
                 return false
             }
-        } else if (['business', 'official_store'].includes(formData.business_type)) {
+        } else if (['business', 'official_store', 'club'].includes(formData.business_type)) {
             if (!documents.trade_license || !documents.tin_certificate) {
                 toast.error("Trade License and TIN Certificate are required for Registered Businesses.")
                 return false
@@ -168,19 +173,43 @@ export default function SellerApplyPage() {
         setIsSubmitting(true)
         try {
             const payload = new FormData()
-            Object.entries(formData).forEach(([key, value]) => payload.append(key, String(value)))
+            const businessTypeMap: Record<BusinessType, string> = {
+                individual: 'individual',
+                student_seller: 'student',
+                club: 'club',
+                business: 'business',
+                official_store: 'business',
+            }
 
-            // Append only the selected documents
-            Object.entries(documents).forEach(([key, file]) => {
-                if (file) payload.append(`doc_${key}`, file)
-            })
+            payload.append('business_name', formData.store_name)
+            payload.append('business_type', businessTypeMap[formData.business_type])
+            payload.append('business_phone', formData.mobile_banking_number)
+            if (user?.email) {
+                payload.append('business_email', user.email)
+            }
 
-            await api.post('/seller/register/', payload, {
+            if (formData.mobile_banking_provider === 'bank') {
+                payload.append('bank_account_details', JSON.stringify({
+                    account_number: formData.mobile_banking_number,
+                    source: 'seller_apply_form',
+                }))
+            } else {
+                payload.append('mobile_banking_method', formData.mobile_banking_provider)
+                payload.append('mobile_banking_number', formData.mobile_banking_number)
+            }
+
+            if (documents.nid_front) payload.append('nid_front', documents.nid_front)
+            if (documents.nid_back) payload.append('nid_back', documents.nid_back)
+            if (documents.trade_license) payload.append('trade_license', documents.trade_license)
+            if (documents.tin_certificate) payload.append('tin_cert', documents.tin_certificate)
+
+            await api.post('/sellers/register/', payload, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             })
 
             toast.success("Application submitted successfully!")
             setApplicationStatus('pending')
+            if (user) setUser({ ...user, seller_application_status: 'pending' })
             window.scrollTo(0, 0)
 
         } catch (error: any) {
@@ -468,6 +497,7 @@ export default function SellerApplyPage() {
                                     <div className="flex gap-6 pb-4 border-b border-gray-200">
                                         <div className="w-16 h-16 rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm shrink-0">
                                             {previews.profile_photo ? (
+                                                // eslint-disable-next-line @next/next/no-img-element
                                                 <img src={previews.profile_photo} alt="Store Avatar" className="w-full h-full object-cover" />
                                             ) : (
                                                 <Store className="w-8 h-8 text-gray-400 m-4" />
@@ -491,7 +521,7 @@ export default function SellerApplyPage() {
                                         <div className="col-span-2">
                                             <span className="text-gray-500 text-xs font-bold uppercase tracking-wider block mb-1">Provided Documents</span>
                                             <div className="flex flex-wrap gap-2 mt-1">
-                                                {Object.entries(documents).filter(([_, f]) => f !== null).map(([key]) => (
+                                                {Object.entries(documents).filter((entry) => entry[1] !== null).map(([key]) => (
                                                     <span key={key} className="bg-white border border-gray-200 px-3 py-1 rounded-full text-xs font-bold text-gray-600 capitalize">
                                                         {key.replace('_', ' ')}
                                                     </span>

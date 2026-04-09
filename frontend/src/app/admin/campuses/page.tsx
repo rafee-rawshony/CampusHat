@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth.store'
 
 
@@ -18,7 +20,7 @@ export default function AdminCampusesPage() {
         if (!isAdmin()) {
             router.replace('/admin/approvals')
         }
-    }, [])
+    }, [isAdmin, router])
 
     const [campuses, setCampuses] = useState<any[]>([])
     const [isLoading, setIsLoading] = useState(true)

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { Suspense, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
@@ -9,7 +9,7 @@ import { ProductCard, ProductCardSkeleton } from '@/components/mall/ProductCard'
 import { Filter, ChevronDown, List as ListIcon, Grid as GridIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
-export default function ShopPage() {
+function ShopPageContent() {
     const searchParams = useSearchParams()
     const router = useRouter()
     
@@ -232,5 +232,13 @@ export default function ShopPage() {
                 </main>
             </div>
         </div>
+    )
+}
+
+export default function ShopPage() {
+    return (
+        <Suspense fallback={<div className="bg-[#F5F5F5] min-h-screen" />}>
+            <ShopPageContent />
+        </Suspense>
     )
 }
