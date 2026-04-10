@@ -2,17 +2,18 @@
 
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
+import { useCampusStore } from '@/stores/campus.store'
 import { CampusSwitcher } from '@/components/layout/CampusSwitcher'
 
 export function AnnouncementBar() {
     const pathname = usePathname()
     const isMarketplace = pathname?.startsWith('/marketplace')
+    const { selectedCampusName } = useCampusStore()
     const [status, setStatus] = useState<'connected' | 'error' | 'loading'>('loading')
 
     useEffect(() => {
         const checkHealth = async () => {
             try {
-                // Health endpoint is at /api/health/ (outside /api/v1/)
                 const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
                 const healthUrl = baseUrl.replace(/\/v1\/?$/, '/health/')
                 await fetch(healthUrl, { method: 'GET', mode: 'cors' })
@@ -24,11 +25,23 @@ export function AnnouncementBar() {
         checkHealth()
     }, [])
 
+    const getWelcomeMessage = () => {
+        if (!isMarketplace) return <span>CampusHat Mall</span>
+        if (selectedCampusName) {
+            return (
+                <>
+                    Welcome to <span className="text-white font-extrabold italic">&apos;{selectedCampusName}&apos;</span> CampusHat Marketplace
+                </>
+            )
+        }
+        return <span>Welcome to CampusHat Marketplace</span>
+    }
+
     return (
-        <div className="w-full bg-brand-primary text-white transition-all duration-500 overflow-visible">
+        <div className="bg-[#634C9F] text-white transition-all duration-500 overflow-visible">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative flex items-center justify-center min-h-[44px] py-1.5">
-                {/* Status Indicator (Left) */}
-                <div className="absolute left-4 lg:left-8 hidden md:flex items-center gap-2">
+                {/* Status Indicator (Left) — DEV ONLY, remove before production */}
+                <div className="absolute left-4 hidden md:flex items-center gap-2">
                     <span className="text-[10px] font-bold uppercase opacity-80 tracking-widest">System Status:</span>
                     <div className="flex items-center gap-1.5 bg-black/20 px-2 py-0.5 rounded-full border border-white/10">
                         <span className={`w-1.5 h-1.5 rounded-full ${status === 'connected' ? 'bg-emerald-400' : status === 'error' ? 'bg-red-400' : 'bg-yellow-400 animate-pulse'}`} />
@@ -38,13 +51,12 @@ export function AnnouncementBar() {
                     </div>
                 </div>
 
-                <div className="text-[11px] md:text-[13px] font-bold tracking-tight animate-fade-in text-center mx-auto drop-shadow-sm">
-                    {isMarketplace ? (
-                        <span>Welcome to CampusHat Marketplace</span>
-                    ) : (
-                        <span>CampusHat Mall</span>
-                    )}
+                {/* Centered Message */}
+                <div className="text-[11px] md:text-[13px] font-bold tracking-tight text-center mx-auto drop-shadow-sm">
+                    {getWelcomeMessage()}
                 </div>
+
+                {/* Campus Switcher (Right) */}
                 {isMarketplace && (
                     <div className="absolute right-2 sm:right-4 lg:right-6 flex items-center z-50">
                         <CampusSwitcher />

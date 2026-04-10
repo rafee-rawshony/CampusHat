@@ -2,9 +2,9 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 interface CampusState {
-    selectedCampusId: number | null
+    selectedCampusId: string | null
     selectedCampusName: string | null
-    setCampus: (id: number | null, name: string | null) => void
+    setCampus: (id: string | null, name: string | null) => void
     clearCampus: () => void
 }
 
