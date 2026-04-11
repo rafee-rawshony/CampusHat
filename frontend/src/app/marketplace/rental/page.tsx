@@ -1,0 +1,16 @@
+'use client'
+
+import { Suspense } from 'react'
+import { MarketplaceListingPage } from '@/components/marketplace/MarketplaceListingPage'
+
+export default function RentalPage() {
+    return (
+        <Suspense fallback={<div className="bg-[#F5F5F5] min-h-screen" />}>
+            <MarketplaceListingPage
+                postType="rental"
+                title="Rental"
+                defaultMaxPrice={2000}
+            />
+        </Suspense>
+    )
+}

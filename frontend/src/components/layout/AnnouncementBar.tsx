@@ -15,14 +15,21 @@ export function AnnouncementBar() {
         const checkHealth = async () => {
             try {
                 const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
-                const healthUrl = baseUrl.replace(/\/v1\/?$/, '/health/')
-                await fetch(healthUrl, { method: 'GET', mode: 'cors' })
-                setStatus('connected')
-            } catch (err) {
+                // Try the actual API — /health/ may not exist on all backends
+                const res = await fetch(`${baseUrl}/universities/`, {
+                    method: 'GET',
+                    mode: 'cors',
+                    signal: AbortSignal.timeout(5000),
+                })
+                setStatus(res.ok ? 'connected' : 'error')
+            } catch {
                 setStatus('error')
             }
         }
         checkHealth()
+        // Re-check every 30 seconds
+        const interval = setInterval(checkHealth, 30000)
+        return () => clearInterval(interval)
     }, [])
 
     const getWelcomeMessage = () => {
