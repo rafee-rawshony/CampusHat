@@ -53,7 +53,16 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: false,
 
             setUser: (user) => set({ user, isAuthenticated: true }),
-            setAccessToken: (accessToken) => set({ accessToken }),
+            setAccessToken: (accessToken) => {
+                set({ accessToken })
+                if (typeof window !== 'undefined') {
+                    if (accessToken) {
+                        document.cookie = `campushat-access-token=${accessToken}; path=/; max-age=86400; SameSite=Lax;`
+                    } else {
+                        document.cookie = 'campushat-access-token=; path=/; max-age=0;'
+                    }
+                }
+            },
             logout: async () => {
                 try {
                     await api.post('/auth/logout/')
@@ -61,6 +70,11 @@ export const useAuthStore = create<AuthState>()(
                     // Even if server call fails, clear local state
                 }
                 set({ user: null, accessToken: null, isAuthenticated: false })
+                if (typeof window !== 'undefined') {
+                    // Clear both new and any legacy cookies
+                    document.cookie = 'campushat-access-token=; path=/; max-age=0;'
+                    document.cookie = 'campushat-auth=; path=/; max-age=0;'
+                }
             },
 
             isNormalUser: () => get().user?.role === 'normal_user',

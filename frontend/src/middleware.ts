@@ -15,18 +15,8 @@ const authRoutes = ['/auth/login', '/auth/register']
 
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
-    const token = request.cookies.get('campushat-auth')?.value
-
-    // Parse token from localStorage-persisted cookie
-    let hasToken = false
-    if (token) {
-        try {
-            const parsed = JSON.parse(token)
-            hasToken = !!parsed?.state?.accessToken
-        } catch {
-            hasToken = false
-        }
-    }
+    const accessToken = request.cookies.get('campushat-access-token')?.value
+    const hasToken = !!accessToken
 
     // Redirect unauthenticated users from protected routes
     const isProtected = protectedRoutes.some((route) => pathname.startsWith(route))
