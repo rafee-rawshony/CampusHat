@@ -20,8 +20,10 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useAuthStore } from '@/stores/auth.store'
 import { api } from '@/lib/api'
-import { OfferModal } from '@/components/marketplace/OfferModal'
-import { ReportModal } from '@/components/marketplace/ReportModal'
+import { MakeOfferModal } from '@/components/marketplace/MakeOfferModal'
+import { ReportListingModal } from '@/components/marketplace/ReportListingModal'
+import { ListingImageGallery } from '@/components/marketplace/ListingImageGallery'
+import { ListingContactSection } from '@/components/marketplace/ListingContactSection'
 import { formatDistanceToNow, format } from 'date-fns'
 
 interface DetailListing {
@@ -140,35 +142,7 @@ export default function MarketplaceAdDetailPage({ params }: { params: { id: stri
                     {/* LEFT COLUMN: Gallery & Description */}
                     <div className="space-y-8">
                         {/* Image Gallery */}
-                        <div className="bg-white p-2 rounded-2xl border border-gray-100 shadow-sm">
-                            <div className="relative aspect-[4/3] w-full bg-gray-50 rounded-xl overflow-hidden mb-2">
-                                {listing.images.length > 0 ? (
-                                    <Image
-                                        src={listing.images[activeImage].image}
-                                        alt={listing.title}
-                                        fill
-                                        className="object-contain"
-                                    />
-                                ) : (
-                                    <div className="flex items-center justify-center w-full h-full text-gray-400">
-                                        No Image Available
-                                    </div>
-                                )}
-                            </div>
-                            {listing.images.length > 1 && (
-                                <div className="flex gap-2 overflow-x-auto pb-2 px-1 scrollbar-hide">
-                                    {listing.images.map((img, idx) => (
-                                        <button
-                                            key={img.id || idx}
-                                            onClick={() => setActiveImage(idx)}
-                                            className={`relative w-20 h-20 shrink-0 rounded-lg overflow-hidden border-2 transition-all ${activeImage === idx ? 'border-brand-primary scale-105' : 'border-transparent opacity-70 hover:opacity-100'}`}
-                                        >
-                                            <Image src={img.image} alt="Thumbnail" fill className="object-cover" />
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                        <ListingImageGallery images={listing.images} postType={listing.post_type} title={listing.title} />
 
                         {/* Description Section */}
                         <div className="bg-white p-6 md:p-8 rounded-2xl border border-gray-100 shadow-sm">
@@ -242,88 +216,11 @@ export default function MarketplaceAdDetailPage({ params }: { params: { id: stri
                         </div>
 
                         {/* Contact Seller Card (ROLE-GATED) */}
-                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden relative">
-                            {/* Blurred Overlay for Unverified */}
-                            {!isContactVisible && (
-                                <div className="absolute inset-0 z-10 bg-white/60 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center border-2 border-dashed border-gray-300 rounded-2xl">
-                                    <ShieldCheck className="w-12 h-12 text-brand-primary mb-3" />
-                                    <h3 className="text-lg font-bold text-gray-900 mb-2">Verification Required</h3>
-                                    <p className="text-sm text-gray-600 mb-5 font-medium max-w-[250px]">
-                                        To maintain a safe campus environment, contact info and chat are restricted.
-                                    </p>
-                                    {isAuthenticated ? (
-                                        <Button onClick={() => router.push('/auth/verify')} className="bg-brand-primary hover:bg-brand-dark text-white rounded-xl font-bold shadow-md w-full">
-                                            Get Verified
-                                        </Button>
-                                    ) : (
-                                        <Button onClick={() => router.push('/auth/login')} className="bg-gray-900 hover:bg-black text-white rounded-xl font-bold shadow-md w-full">
-                                            Sign In to Continue
-                                        </Button>
-                                    )}
-                                </div>
-                            )}
-
-                            <div className={`p-6 md:p-8 ${!isContactVisible && 'blur-sm select-none pointer-events-none opacity-50'}`}>
-                                <h3 className="text-lg font-bold text-gray-900 mb-4">Seller Information</h3>
-                                <div className="flex items-center gap-4 mb-6">
-                                    {listing.user.avatar ? (
-                                        <Image src={listing.user.avatar} alt="Seller" width={56} height={56} className="rounded-full object-cover w-14 h-14 border-2 border-gray-100 shadow-sm" />
-                                    ) : (
-                                        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-brand-primary/20 to-purple-500/20 flex items-center justify-center border-2 border-white shadow-sm">
-                                            <User className="w-6 h-6 text-brand-primary" />
-                                        </div>
-                                    )}
-                                    <div>
-                                        <h4 className="font-bold text-gray-900 text-lg leading-tight">
-                                            {listing.user.first_name} {listing.user.last_name}
-                                        </h4>
-                                        <div className="flex items-center gap-1 mt-0.5">
-                                            <div className="flex items-center bg-green-50 text-green-700 px-1.5 py-0.5 rounded text-[10px] font-bold">
-                                                ★ {listing.user.reputation_score?.toFixed(1) || "0.0"}
-                                            </div>
-                                            <span className="text-xs font-medium text-gray-500">Verified Member</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {listing.contact_phone && (
-                                    <div className="flex flex-col gap-1 mb-6 p-3 bg-gray-50 rounded-xl border border-gray-100">
-                                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Contact Number</span>
-                                        <a href={`tel:${listing.contact_phone}`} className="flex items-center gap-2 text-brand-primary font-bold hover:underline">
-                                            <Phone className="w-4 h-4" />
-                                            {listing.contact_phone}
-                                        </a>
-                                    </div>
-                                )}
-
-                                {listing.meetup_location && (
-                                    <div className="flex flex-col gap-1 mb-6 p-3 bg-gray-50 rounded-xl border border-gray-100">
-                                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Safe Meetup Area</span>
-                                        <div className="flex items-start gap-2 text-gray-700 font-medium text-sm">
-                                            <MapPin className="w-4 h-4 shrink-0 mt-0.5" />
-                                            {listing.meetup_location}
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="flex flex-col gap-3">
-                                    <Button
-                                        onClick={() => router.push(`/marketplace/chat?user=${listing.user.id}&listing=${listing.id}`)}
-                                        className="w-full bg-[#1A1A2E] hover:bg-black text-white rounded-xl h-12 font-bold shadow-md gap-2"
-                                    >
-                                        <MessageCircle className="w-5 h-5" />
-                                        Send Message
-                                    </Button>
-                                    <Button
-                                        onClick={() => setOfferModalOpen(true)}
-                                        variant="outline"
-                                        className="w-full border-brand-primary text-brand-primary hover:bg-brand-primary/5 rounded-xl h-12 font-bold"
-                                    >
-                                        Make Offer
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
+                        <ListingContactSection 
+                            listing={listing} 
+                            isAuthenticated={isAuthenticated} 
+                            onOpenOfferModal={() => setOfferModalOpen(true)} 
+                        />
 
                         {/* Report Button (Authenticated users only) */}
                         {isAuthenticated && (
@@ -344,14 +241,14 @@ export default function MarketplaceAdDetailPage({ params }: { params: { id: stri
             </div>
 
             {/* Modals */}
-            <OfferModal
+            <MakeOfferModal
                 isOpen={isOfferModalOpen}
                 onClose={() => setOfferModalOpen(false)}
                 listingId={listing.id}
                 listingTitle={listing.title}
                 askingPrice={listing.price}
             />
-            <ReportModal
+            <ReportListingModal
                 isOpen={isReportModalOpen}
                 onClose={() => setReportModalOpen(false)}
                 entityId={listing.id}
@@ -361,8 +258,15 @@ export default function MarketplaceAdDetailPage({ params }: { params: { id: stri
             {/* Mobile Sticky Bar - Only for verified users */}
             {canAccessMarketplace() && (
                 <div className='fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-white border-t px-4 py-3 flex gap-3 pb-[calc(12px+env(safe-area-inset-bottom))] shadow-[0_-4px_10px_rgba(0,0,0,0.05)]'>
-                    <button onClick={() => router.push(`/marketplace/chat?user=${listing.user.id}&listing=${listing.id}`)}
-                        className='flex-1 border-2 border-[#1A1A2E] text-[#1A1A2E] font-bold py-2.5 rounded-xl text-sm'>
+                    <button onClick={async () => {
+                            try {
+                                const res = await api.post('/marketplace/chats/start/', { listing_id: listing.id })
+                                router.push(`/marketplace/chat/${res.data?.chat_id || res.data?.id}`)
+                            } catch {
+                                router.push(`/marketplace/chat?user=${listing.user.id}&listing=${listing.id}`)
+                            }
+                        }}
+                        className='flex-1 border-2 border-brand-primary text-brand-primary font-bold py-2.5 rounded-xl text-sm'>
                         Message
                     </button>
                     <button onClick={() => setOfferModalOpen(true)}

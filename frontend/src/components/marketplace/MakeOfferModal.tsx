@@ -22,7 +22,7 @@ interface OfferModalProps {
     askingPrice: string | number
 }
 
-export function OfferModal({ isOpen, onClose, listingId, listingTitle, askingPrice }: OfferModalProps) {
+export function MakeOfferModal({ isOpen, onClose, listingId, listingTitle, askingPrice }: OfferModalProps) {
     const [offerPrice, setOfferPrice] = useState('')
     const [message, setMessage] = useState('')
     const [isSubmitting, setIsSubmitting] = useState(false)

@@ -21,7 +21,7 @@ interface ReportModalProps {
     entityType: 'listing' | 'user' | 'store'
 }
 
-export function ReportModal({ isOpen, onClose, entityId, entityType }: ReportModalProps) {
+export function ReportListingModal({ isOpen, onClose, entityId, entityType }: ReportModalProps) {
     const [reason, setReason] = useState('')
     const [details, setDetails] = useState('')
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -33,10 +33,10 @@ export function ReportModal({ isOpen, onClose, entityId, entityType }: ReportMod
 
         setIsSubmitting(true)
         try {
-            // Note: Update endpoint based on real backend routing for reports
-            await api.post(`/reports/`, {
-                entity_id: entityId,
-                entity_type: entityType,
+            const endpoint = entityType === 'listing'
+                ? `/marketplace/listings/${entityId}/report/`
+                : `/reports/`
+            await api.post(endpoint, {
                 reason,
                 details: details.trim()
             })
