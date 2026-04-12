@@ -115,6 +115,10 @@ class MarketplaceProductCreateSerializer(serializers.ModelSerializer):
         ext = file_obj.name.rsplit('.', 1)[-1] if '.' in file_obj.name else 'jpg'
         file_name = f'{uuid.uuid4().hex}.{ext}'
         try:
+            aws_key = getattr(s, 'AWS_ACCESS_KEY_ID', '')
+            if not aws_key:
+                raise ValueError("S3 not configured")
+
             import boto3
             s3 = boto3.client(
                 's3',
@@ -224,7 +228,8 @@ class MarketplaceProductDetailSerializer(serializers.ModelSerializer):
             'expires_at', 'view_count', 'safe_meetup_location',
             'university_name', 'university_short',
             'category_name', 'images', 'user_info',
-            'contact_visible', 'offers_count', 'reviews_count', 'average_rating',
+            'contact_visible',
+            'offers_count', 'reviews_count', 'average_rating',
             'created_at', 'updated_at',
         ]
         read_only_fields = fields

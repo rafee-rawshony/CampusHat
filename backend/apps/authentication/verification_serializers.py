@@ -71,6 +71,10 @@ class SubmitVerificationSerializer(serializers.Serializer):
     def _upload_to_s3(self, file_obj, user_id, doc_type):
         """Upload a file to the S3 private bucket and return the key."""
         try:
+            aws_key = getattr(settings, 'AWS_ACCESS_KEY_ID', '')
+            if not aws_key:
+                raise ValueError("S3 not configured")
+
             s3_client = boto3.client(
                 's3',
                 aws_access_key_id=getattr(settings, 'AWS_ACCESS_KEY_ID', ''),
@@ -162,6 +166,10 @@ class VerificationStatusSerializer(serializers.ModelSerializer):
         if not key:
             return None
         try:
+            aws_key = getattr(settings, 'AWS_ACCESS_KEY_ID', '')
+            if not aws_key:
+                raise ValueError("S3 not configured")
+
             s3_client = boto3.client(
                 's3',
                 aws_access_key_id=getattr(settings, 'AWS_ACCESS_KEY_ID', ''),

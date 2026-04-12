@@ -8,7 +8,7 @@ from django.db import transaction
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
+from rest_framework.generics import GenericAPIView
 
 from core.wallet_engine import create_wallet_transaction
 
@@ -20,14 +20,15 @@ from .serializers import (
 )
 
 
-class WalletBalanceView(APIView):
+class WalletBalanceView(GenericAPIView):
     """GET /api/v1/wallet/balance/ — get user's wallet balance."""
 
     permission_classes = [IsAuthenticated]
+    serializer_class = WalletSerializer
 
     def get(self, request):
         wallet = Wallet.get_or_create_user_wallet(request.user, 'user')
-        serializer = WalletSerializer(wallet)
+        serializer = self.get_serializer(wallet)
         return Response({
             'success': True,
             'message': 'Request successful.',
@@ -35,10 +36,11 @@ class WalletBalanceView(APIView):
         })
 
 
-class WalletTransactionListView(APIView):
+class WalletTransactionListView(GenericAPIView):
     """GET /api/v1/wallet/transactions/ — paginated transaction history."""
 
     permission_classes = [IsAuthenticated]
+    serializer_class = WalletTransactionSerializer
 
     def get(self, request):
         wallet = Wallet.get_or_create_user_wallet(request.user, 'user')
@@ -51,10 +53,10 @@ class WalletTransactionListView(APIView):
         paginator = CampusHatPagination()
         page = paginator.paginate_queryset(transactions, request)
         if page is not None:
-            serializer = WalletTransactionSerializer(page, many=True)
+            serializer = self.get_serializer(page, many=True)
             return paginator.get_paginated_response(serializer.data)
 
-        serializer = WalletTransactionSerializer(transactions, many=True)
+        serializer = self.get_serializer(transactions, many=True)
         return Response({
             'success': True,
             'message': 'Data retrieved successfully.',
@@ -62,13 +64,14 @@ class WalletTransactionListView(APIView):
         })
 
 
-class WalletTopUpView(APIView):
+class WalletTopUpView(GenericAPIView):
     """POST /api/v1/wallet/topup/ — initiate gateway top-up."""
 
     permission_classes = [IsAuthenticated]
+    serializer_class = TopUpSerializer
 
     def post(self, request):
-        serializer = TopUpSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         amount = serializer.validated_data['amount']

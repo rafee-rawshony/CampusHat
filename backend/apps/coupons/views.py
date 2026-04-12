@@ -9,6 +9,7 @@ Admin: platform-wide coupons and flash sales.
 from rest_framework import status
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.generics import GenericAPIView
 from rest_framework.views import APIView
 
 from core.pagination import CampusHatPagination
@@ -69,10 +70,11 @@ class CouponValidateView(APIView):
 # SELLER COUPON CRUD
 # ═══════════════════════════════════════════════════════════════════
 
-class SellerCouponListView(APIView):
+class SellerCouponListView(GenericAPIView):
     """GET/POST /api/v1/seller/coupons/"""
 
     permission_classes = [IsAuthenticated, IsApprovedSeller]
+    serializer_class = CouponSerializer
 
     def get(self, request):
         try:
@@ -102,10 +104,11 @@ class SellerCouponListView(APIView):
         }, status=status.HTTP_201_CREATED)
 
 
-class SellerCouponDetailView(APIView):
+class SellerCouponDetailView(GenericAPIView):
     """PATCH/DELETE /api/v1/seller/coupons/{id}/"""
 
     permission_classes = [IsAuthenticated, IsApprovedSeller]
+    serializer_class = CouponCreateSerializer
 
     def patch(self, request, coupon_id):
         try:
@@ -114,7 +117,7 @@ class SellerCouponDetailView(APIView):
         except (Coupon.DoesNotExist, Exception):
             return Response({'success': False, 'message': 'Coupon not found.'}, status=404)
 
-        serializer = CouponCreateSerializer(coupon, data=request.data, partial=True)
+        serializer = self.get_serializer(coupon, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({
@@ -176,10 +179,11 @@ class FlashSaleDetailView(APIView):
 # FLASH SALES — SELLER
 # ═══════════════════════════════════════════════════════════════════
 
-class SellerFlashSaleCreateView(APIView):
+class SellerFlashSaleCreateView(GenericAPIView):
     """POST /api/v1/seller/flash-sales/"""
 
     permission_classes = [IsAuthenticated, IsApprovedSeller]
+    serializer_class = FlashSaleCreateSerializer
 
     def post(self, request):
         try:
@@ -187,7 +191,7 @@ class SellerFlashSaleCreateView(APIView):
         except Exception:
             return Response({'success': False, 'message': 'Store not found.'}, status=404)
 
-        serializer = FlashSaleCreateSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         sale = serializer.save(store=store)
         return Response({
@@ -196,10 +200,11 @@ class SellerFlashSaleCreateView(APIView):
         }, status=status.HTTP_201_CREATED)
 
 
-class SellerFlashSaleUpdateView(APIView):
+class SellerFlashSaleUpdateView(GenericAPIView):
     """PATCH /api/v1/seller/flash-sales/{id}/"""
 
     permission_classes = [IsAuthenticated, IsApprovedSeller]
+    serializer_class = FlashSaleCreateSerializer
 
     def patch(self, request, flash_sale_id):
         try:
@@ -208,7 +213,7 @@ class SellerFlashSaleUpdateView(APIView):
         except (FlashSale.DoesNotExist, Exception):
             return Response({'success': False, 'message': 'Not found.'}, status=404)
 
-        serializer = FlashSaleCreateSerializer(sale, data=request.data, partial=True)
+        serializer = self.get_serializer(sale, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({
@@ -217,10 +222,11 @@ class SellerFlashSaleUpdateView(APIView):
         })
 
 
-class SellerFlashSaleAddProductsView(APIView):
+class SellerFlashSaleAddProductsView(GenericAPIView):
     """POST /api/v1/seller/flash-sales/{id}/add-products/"""
 
     permission_classes = [IsAuthenticated, IsApprovedSeller]
+    serializer_class = FlashSaleAddProductsSerializer
 
     def post(self, request, flash_sale_id):
         try:
@@ -229,7 +235,7 @@ class SellerFlashSaleAddProductsView(APIView):
         except (FlashSale.DoesNotExist, Exception):
             return Response({'success': False, 'message': 'Not found.'}, status=404)
 
-        serializer = FlashSaleAddProductsSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         product_ids = serializer.validated_data['product_ids']

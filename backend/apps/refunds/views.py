@@ -9,7 +9,9 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.generics import GenericAPIView
 from rest_framework.views import APIView
+from drf_spectacular.utils import extend_schema
 
 from apps.orders.models import Order
 from core.pagination import CampusHatPagination
@@ -24,13 +26,14 @@ from .serializers import (
 from .services.process_refund import process_approved_refund
 
 
-class RefundRequestView(APIView):
+class RefundRequestView(GenericAPIView):
     """POST /api/v1/refunds/request/ — buyer requests a refund."""
 
     permission_classes = [IsAuthenticated]
+    serializer_class = RefundRequestSerializer
 
     def post(self, request):
-        serializer = RefundRequestSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         try:
@@ -74,10 +77,11 @@ class RefundRequestView(APIView):
         }, status=status.HTTP_201_CREATED)
 
 
-class BuyerRefundListView(APIView):
+class BuyerRefundListView(GenericAPIView):
     """GET /api/v1/refunds/my-refunds/"""
 
     permission_classes = [IsAuthenticated]
+    serializer_class = RefundListSerializer
 
     def get(self, request):
         refunds = Refund.objects.filter(
@@ -87,18 +91,19 @@ class BuyerRefundListView(APIView):
         paginator = CampusHatPagination()
         page = paginator.paginate_queryset(refunds, request)
         if page is not None:
-            serializer = RefundListSerializer(page, many=True)
+            serializer = self.get_serializer(page, many=True)
             return paginator.get_paginated_response(serializer.data)
 
         return Response({
-            'success': True, 'data': RefundListSerializer(refunds, many=True).data,
+            'success': True, 'data': self.get_serializer(refunds, many=True).data,
         })
 
 
-class RefundDetailView(APIView):
+class RefundDetailView(GenericAPIView):
     """GET /api/v1/refunds/{id}/"""
 
     permission_classes = [IsAuthenticated]
+    serializer_class = RefundDetailSerializer
 
     def get(self, request, refund_id):
         try:
@@ -117,10 +122,11 @@ class RefundDetailView(APIView):
 
 # ── Admin Views ──────────────────────────────────────────────────────
 
-class AdminPendingRefundsView(APIView):
+class AdminPendingRefundsView(GenericAPIView):
     """GET /api/v1/admin/refunds/pending/"""
 
     permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = RefundDetailSerializer
 
     def get(self, request):
         refunds = Refund.objects.filter(
@@ -138,10 +144,11 @@ class AdminPendingRefundsView(APIView):
         })
 
 
-class AdminRefundDetailView(APIView):
+class AdminRefundDetailView(GenericAPIView):
     """GET /api/v1/admin/refunds/{id}/"""
 
     permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = RefundDetailSerializer
 
     def get(self, request, refund_id):
         try:
@@ -163,6 +170,7 @@ class AdminApproveRefundView(APIView):
 
     permission_classes = [IsAuthenticated, IsAdminUser]
 
+    @extend_schema(request=None)
     def post(self, request, refund_id):
         try:
             refund = Refund.objects.get(id=refund_id)
@@ -194,6 +202,7 @@ class AdminRejectRefundView(APIView):
 
     permission_classes = [IsAuthenticated, IsAdminUser]
 
+    @extend_schema(request=AdminRefundActionSerializer)
     def post(self, request, refund_id):
         try:
             refund = Refund.objects.get(id=refund_id)
@@ -222,6 +231,7 @@ class AdminProcessRefundView(APIView):
 
     permission_classes = [IsAuthenticated, IsAdminUser]
 
+    @extend_schema(request=None)
     def post(self, request, refund_id):
         try:
             refund = Refund.objects.select_related(

@@ -56,7 +56,8 @@ class UserLoginTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.data['success'])
         self.assertIn('access_token', response.data['data'])
-        self.assertIn('refresh_token', response.data['data'])
+        self.assertNotIn('refresh_token', response.data['data'])
+        self.assertIn('refresh_token', response.cookies)
         self.assertEqual(response.data['data']['user']['email'], 'verified@example.com')
 
     def test_wrong_password(self):

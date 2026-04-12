@@ -277,6 +277,10 @@ class StoreProductCreateUpdateSerializer(serializers.ModelSerializer):
     def _upload_image(self, image_file, product_id):
         """Upload image to S3 or save locally."""
         try:
+            aws_key = getattr(settings, 'AWS_ACCESS_KEY_ID', '')
+            if not aws_key:
+                raise ValueError("S3 not configured")
+
             import boto3
             s3_client = boto3.client(
                 's3',

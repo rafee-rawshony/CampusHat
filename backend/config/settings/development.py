@@ -37,9 +37,9 @@ MIDDLEWARE.insert(0, 'debug_toolbar.middleware.DebugToolbarMiddleware')
 # =============================================================================
 
 INTERNAL_IPS = ['127.0.0.1', 'localhost']
-
 DEBUG_TOOLBAR_CONFIG = {
-    'SHOW_TOOLBAR_CALLBACK': lambda request: DEBUG,
+    'INTERCEPT_REDIRECTS': False,
+    'DISABLE_PANELS': ['debug_toolbar.panels.redirects.RedirectsPanel'],
 }
 
 # =============================================================================
@@ -58,7 +58,14 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 # FILE STORAGE — Local filesystem (no S3 in development)
 # =============================================================================
 
-DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+    },
+}
 
 # =============================================================================
 # CACHES — Local memory cache for development

@@ -9,7 +9,9 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.generics import GenericAPIView
 from rest_framework.views import APIView
+from drf_spectacular.utils import extend_schema
 
 from core.permissions import IsAdminOrModerator, IsSellerModerator
 
@@ -24,9 +26,10 @@ from .serializers import (
 # SELLER APPROVAL
 # =============================================================================
 
-class AdminSellerPendingView(APIView):
+class AdminSellerPendingView(GenericAPIView):
     """GET /api/v1/admin/sellers/pending/"""
     permission_classes = [IsAuthenticated, IsSellerModerator]
+    serializer_class = SellerProfileAdminSerializer
 
     def get(self, request):
         sellers = SellerProfile.objects.filter(
@@ -39,9 +42,10 @@ class AdminSellerPendingView(APIView):
         })
 
 
-class AdminSellerDetailView(APIView):
+class AdminSellerDetailView(GenericAPIView):
     """GET /api/v1/admin/sellers/{id}/"""
     permission_classes = [IsAuthenticated, IsSellerModerator]
+    serializer_class = SellerProfileAdminSerializer
 
     def get(self, request, pk):
         try:
@@ -61,6 +65,8 @@ class AdminSellerDetailView(APIView):
 class AdminSellerApproveView(APIView):
     """POST /api/v1/admin/sellers/{id}/approve/"""
     permission_classes = [IsAuthenticated, IsSellerModerator]
+
+    @extend_schema(request=None)
 
     def post(self, request, pk):
         try:
@@ -86,6 +92,8 @@ class AdminSellerApproveView(APIView):
 class AdminSellerRejectView(APIView):
     """POST /api/v1/admin/sellers/{id}/reject/"""
     permission_classes = [IsAuthenticated, IsSellerModerator]
+
+    @extend_schema(request=None)
 
     def post(self, request, pk):
         try:
@@ -115,6 +123,8 @@ class AdminSellerSuspendView(APIView):
     """POST /api/v1/admin/sellers/{id}/suspend/"""
     permission_classes = [IsAuthenticated, IsSellerModerator]
 
+    @extend_schema(request=None)
+
     def post(self, request, pk):
         try:
             seller = SellerProfile.objects.get(
@@ -135,9 +145,10 @@ class AdminSellerSuspendView(APIView):
 # STORE APPROVAL
 # =============================================================================
 
-class AdminStorePendingView(APIView):
+class AdminStorePendingView(GenericAPIView):
     """GET /api/v1/admin/stores/pending/"""
     permission_classes = [IsAuthenticated, IsSellerModerator]
+    serializer_class = StoreDetailSerializer
 
     def get(self, request):
         stores = Store.objects.filter(
@@ -150,9 +161,10 @@ class AdminStorePendingView(APIView):
         })
 
 
-class AdminStoreDetailView(APIView):
+class AdminStoreDetailView(GenericAPIView):
     """GET /api/v1/admin/stores/{id}/"""
     permission_classes = [IsAuthenticated, IsSellerModerator]
+    serializer_class = StoreDetailSerializer
 
     def get(self, request, pk):
         try:
@@ -172,6 +184,8 @@ class AdminStoreDetailView(APIView):
 class AdminStoreApproveView(APIView):
     """POST /api/v1/admin/stores/{id}/approve/"""
     permission_classes = [IsAuthenticated, IsSellerModerator]
+
+    @extend_schema(request=None)
 
     def post(self, request, pk):
         try:
@@ -199,6 +213,8 @@ class AdminStoreApproveView(APIView):
 class AdminStoreRejectView(APIView):
     """POST /api/v1/admin/stores/{id}/reject/"""
     permission_classes = [IsAuthenticated, IsSellerModerator]
+
+    @extend_schema(request=None)
 
     def post(self, request, pk):
         try:
@@ -231,6 +247,8 @@ class AdminStoreRejectView(APIView):
 class AdminAwardBadgeView(APIView):
     """POST /api/v1/admin/stores/{id}/badges/award/"""
     permission_classes = [IsAuthenticated, IsAdminOrModerator]
+
+    @extend_schema(request=None)
 
     def post(self, request, pk):
         try:
@@ -270,6 +288,8 @@ class AdminRevokeBadgeView(APIView):
     """POST /api/v1/admin/stores/{store_id}/badges/{badge_id}/revoke/"""
     permission_classes = [IsAuthenticated, IsAdminOrModerator]
 
+    @extend_schema(request=None)
+
     def post(self, request, pk, badge_id):
         try:
             badge = SellerBadge.objects.get(
@@ -290,9 +310,10 @@ class AdminRevokeBadgeView(APIView):
 # PAYOUT MANAGEMENT
 # =============================================================================
 
-class AdminPayoutPendingView(APIView):
+class AdminPayoutPendingView(GenericAPIView):
     """GET /api/v1/admin/payouts/pending/"""
     permission_classes = [IsAuthenticated, IsAdminOrModerator]
+    serializer_class = SellerPayoutRequestSerializer
 
     def get(self, request):
         payouts = SellerPayoutRequest.objects.filter(
@@ -308,6 +329,8 @@ class AdminPayoutPendingView(APIView):
 class AdminPayoutProcessView(APIView):
     """POST /api/v1/admin/payouts/{id}/process/"""
     permission_classes = [IsAuthenticated, IsAdminOrModerator]
+
+    @extend_schema(request=None)
 
     def post(self, request, pk):
         try:
@@ -341,6 +364,8 @@ class AdminPayoutProcessView(APIView):
 class AdminPayoutRejectView(APIView):
     """POST /api/v1/admin/payouts/{id}/reject/"""
     permission_classes = [IsAuthenticated, IsAdminOrModerator]
+
+    @extend_schema(request=None)
 
     def post(self, request, pk):
         try:

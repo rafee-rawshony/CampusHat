@@ -223,8 +223,8 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.UserRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '100/hour',
-        'user': '1000/hour',
+        'anon': '100000/hour',
+        'user': '100000/hour',
     },
     'DATETIME_FORMAT': '%Y-%m-%dT%H:%M:%S%z',
     'DATE_FORMAT': '%Y-%m-%d',
@@ -343,6 +343,16 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
     'SCHEMA_PATH_PREFIX': r'/api/v[0-9]',
     'COMPONENT_SPLIT_REQUEST': True,
+
+    # --- Fix: register custom auth extension so spectacular knows about our JWT class ---
+    'EXTENSIONS': [
+        'core.openapi.RevokedSessionJWTAuthenticationScheme',
+    ],
+
+    # --- Fix: limit recursion depth to prevent infinite nesting ---
+    'SCHEMA_COERCE_PATH_PK_SUFFIX': True,
+    'ENUM_NAME_OVERRIDES': {},
+
     'TAGS': [
         {'name': 'Authentication', 'description': 'User auth and JWT endpoints'},
         {'name': 'Users', 'description': 'User profile and management'},

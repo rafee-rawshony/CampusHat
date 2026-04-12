@@ -9,7 +9,11 @@ Admin: all orders, force status update.
 from rest_framework import status
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.generics import GenericAPIView
 from rest_framework.views import APIView
+from drf_spectacular.utils import extend_schema, inline_serializer
+from drf_spectacular.types import OpenApiTypes
+from rest_framework import serializers
 
 from apps.mall.models import Cart
 from apps.orders.models import InvalidStatusTransitionError, Order
@@ -38,13 +42,14 @@ from .serializers import (
 # BUYER VIEWS
 # =============================================================================
 
-class CheckoutView(APIView):
+class CheckoutView(GenericAPIView):
     """POST /api/v1/orders/checkout/ — atomic checkout."""
 
     permission_classes = [IsNormalUserOrAbove]
+    serializer_class = CheckoutSerializer
 
     def post(self, request):
-        serializer = CheckoutSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         try:
@@ -88,10 +93,11 @@ class CheckoutView(APIView):
         }, status=status.HTTP_201_CREATED)
 
 
-class BuyerOrderListView(APIView):
+class BuyerOrderListView(GenericAPIView):
     """GET /api/v1/orders/ — buyer's own orders."""
 
     permission_classes = [IsAuthenticated]
+    serializer_class = OrderListSerializer
 
     def get(self, request):
         orders = Order.objects.filter(
@@ -101,10 +107,10 @@ class BuyerOrderListView(APIView):
         paginator = CampusHatPagination()
         page = paginator.paginate_queryset(orders, request)
         if page is not None:
-            serializer = OrderListSerializer(page, many=True)
+            serializer = self.get_serializer(page, many=True)
             return paginator.get_paginated_response(serializer.data)
 
-        serializer = OrderListSerializer(orders, many=True)
+        serializer = self.get_serializer(orders, many=True)
         return Response({
             'success': True,
             'message': 'Data retrieved successfully.',
@@ -112,10 +118,11 @@ class BuyerOrderListView(APIView):
         })
 
 
-class BuyerOrderDetailView(APIView):
+class BuyerOrderDetailView(GenericAPIView):
     """GET /api/v1/orders/{id}/ — order detail with items."""
 
     permission_classes = [IsAuthenticated]
+    serializer_class = OrderDetailSerializer
 
     def get(self, request, order_id):
         try:
@@ -138,11 +145,18 @@ class BuyerOrderDetailView(APIView):
         })
 
 
-class BuyerCancelOrderView(APIView):
+class BuyerCancelOrderView(GenericAPIView):
     """PATCH /api/v1/orders/{id}/cancel/ — cancel order (only if placed)."""
 
     permission_classes = [IsAuthenticated]
+    serializer_class = OrderDetailSerializer
 
+    @extend_schema(
+        request=inline_serializer(
+            name='BuyerCancelOrderRequest',
+            fields={'reason': serializers.CharField(required=False)}
+        )
+    )
     def patch(self, request, order_id):
         try:
             order = Order.objects.get(id=order_id, buyer=request.user)
@@ -176,10 +190,11 @@ class BuyerCancelOrderView(APIView):
         })
 
 
-class OrderTrackingView(APIView):
+class OrderTrackingView(GenericAPIView):
     """GET /api/v1/orders/{id}/tracking/ — delivery info."""
 
     permission_classes = [IsAuthenticated]
+    serializer_class = OrderDetailSerializer
 
     def get(self, request, order_id):
         try:
@@ -211,10 +226,11 @@ class OrderTrackingView(APIView):
 # SELLER VIEWS
 # =============================================================================
 
-class SellerOrderListView(APIView):
+class SellerOrderListView(GenericAPIView):
     """GET /api/v1/seller/orders/ — seller's store orders."""
 
     permission_classes = [IsAuthenticated, IsApprovedSeller]
+    serializer_class = SellerOrderListSerializer
 
     def get(self, request):
         try:
@@ -235,7 +251,7 @@ class SellerOrderListView(APIView):
             serializer = SellerOrderListSerializer(page, many=True)
             return paginator.get_paginated_response(serializer.data)
 
-        serializer = SellerOrderListSerializer(orders, many=True)
+        serializer = self.get_serializer(orders, many=True)
         return Response({
             'success': True,
             'message': 'Data retrieved successfully.',
@@ -243,10 +259,11 @@ class SellerOrderListView(APIView):
         })
 
 
-class SellerOrderDetailView(APIView):
+class SellerOrderDetailView(GenericAPIView):
     """GET /api/v1/seller/orders/{id}/ — seller order detail."""
 
     permission_classes = [IsAuthenticated, IsApprovedSeller]
+    serializer_class = SellerOrderDetailSerializer
 
     def get(self, request, order_id):
         try:
@@ -268,11 +285,18 @@ class SellerOrderDetailView(APIView):
         })
 
 
-class SellerConfirmOrderView(APIView):
+class SellerConfirmOrderView(GenericAPIView):
     """PATCH /api/v1/seller/orders/{id}/confirm/"""
 
     permission_classes = [IsAuthenticated, IsApprovedSeller]
+    serializer_class = SellerOrderDetailSerializer
 
+    @extend_schema(
+        request=inline_serializer(
+            name='SellerConfirmOrderRequest',
+            fields={'note': serializers.CharField(required=False)}
+        )
+    )
     def patch(self, request, order_id):
         return self._transition(request, order_id, 'confirmed')
 
@@ -307,11 +331,18 @@ class SellerConfirmOrderView(APIView):
         })
 
 
-class SellerPackOrderView(APIView):
+class SellerPackOrderView(GenericAPIView):
     """PATCH /api/v1/seller/orders/{id}/pack/"""
 
     permission_classes = [IsAuthenticated, IsApprovedSeller]
+    serializer_class = SellerOrderDetailSerializer
 
+    @extend_schema(
+        request=inline_serializer(
+            name='SellerPackOrderRequest',
+            fields={'note': serializers.CharField(required=False)}
+        )
+    )
     def patch(self, request, order_id):
         try:
             store = request.user.seller_profile.store
@@ -342,11 +373,21 @@ class SellerPackOrderView(APIView):
         })
 
 
-class SellerShipOrderView(APIView):
+class SellerShipOrderView(GenericAPIView):
     """PATCH /api/v1/seller/orders/{id}/ship/ — requires tracking_code."""
 
     permission_classes = [IsAuthenticated, IsApprovedSeller]
+    serializer_class = SellerOrderDetailSerializer
 
+    @extend_schema(
+        request=inline_serializer(
+            name='SellerShipOrderRequest',
+            fields={
+                'tracking_code': serializers.CharField(required=False),
+                'note': serializers.CharField(required=False)
+            }
+        )
+    )
     def patch(self, request, order_id):
         try:
             store = request.user.seller_profile.store

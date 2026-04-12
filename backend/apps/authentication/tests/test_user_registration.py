@@ -60,7 +60,7 @@ class UserRegistrationTests(TestCase):
         # User should be created
         user = User.objects.get(email='student@example.com')
         self.assertEqual(user.full_name, 'Test Student')
-        self.assertEqual(user.role, 'student')
+        self.assertEqual(user.role, 'normal_user')
         self.assertFalse(user.is_email_verified)
         self.assertTrue(user.check_password('StrongPass123!'))
 
