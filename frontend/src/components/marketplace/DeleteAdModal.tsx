@@ -56,7 +56,7 @@ export function DeleteAdModal({ isOpen, onOpenChange, adId, adTitle, onSuccess }
                         Delete this Ad?
                     </AlertDialogTitle>
                     <AlertDialogDescription className="text-gray-600">
-                        {adTitle && <strong className="block text-gray-900 mb-2 truncate">"{adTitle}"</strong>}
+                        {adTitle && <strong className="block text-gray-900 mb-2 truncate">&quot;{adTitle}&quot;</strong>}
                         This action cannot be undone. Your ad will be permanently removed from the CampusHat marketplace.
                     </AlertDialogDescription>
                 </AlertDialogHeader>

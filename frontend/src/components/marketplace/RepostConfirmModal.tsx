@@ -61,7 +61,7 @@ export function RepostConfirmModal({ isOpen, onOpenChange, adId, adTitle, onSucc
                         Repost this Ad?
                     </DialogTitle>
                     <DialogDescription className="pt-2 text-gray-600">
-                        {adTitle && <strong className="block text-gray-900 mb-2 truncate">"{adTitle}"</strong>}
+                        {adTitle && <strong className="block text-gray-900 mb-2 truncate">&quot;{adTitle}&quot;</strong>}
                         Reposting will resubmit your ad for review. A new expiry date will be set based on your chosen duration.
                     </DialogDescription>
                 </DialogHeader>

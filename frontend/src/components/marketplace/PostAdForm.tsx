@@ -71,7 +71,7 @@ export function PostAdForm({ editId }: PostAdFormProps) {
     const { user } = useAuthStore()
 
     const form = useForm<PostAdFormData>({
-        resolver: zodResolver(postAdSchema),
+        resolver: zodResolver(postAdSchema as any),
         defaultValues: {
             post_type: 'buy',
             title: '',

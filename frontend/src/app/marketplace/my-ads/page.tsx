@@ -63,13 +63,13 @@ export default function MyAdsPage() {
     }, [ads, searchQuery, activeTab])
 
     const counts = useMemo(() => {
-        const c = {
+        const c: Record<string, number> = {
             all: ads.length,
             pending: 0, active: 0, expired: 0, sold: 0, rejected: 0, hidden: 0
         }
         ads.forEach((ad: any) => {
-            if (ad.status in c) c[ad.status as AdStatus]++
-            else c[ad.status as any] = 1 
+            if (ad.status in c) c[ad.status]++
+            else c[ad.status] = 1 
         })
         return c
     }, [ads])
@@ -327,7 +327,7 @@ export default function MyAdsPage() {
                     /* Global Empty State */
                     <div className="flex flex-col items-center justify-center bg-white border border-gray-200 rounded-2xl py-16 px-6 text-center shadow-sm">
                         <Package className="w-16 h-16 text-gray-300 mb-4" />
-                        <h3 className="font-semibold text-gray-600 text-lg">You haven't posted any ads yet</h3>
+                        <h3 className="font-semibold text-gray-600 text-lg">You haven&apos;t posted any ads yet</h3>
                         <p className="text-sm text-gray-400 mt-1 max-w-md">Share what you have with your campus community. It takes just a few minutes safely and securely.</p>
                         <Link href="/marketplace/post">
                             <button className="bg-[#4C3B8A] text-white px-6 py-2.5 rounded-lg mt-6 font-semibold hover:bg-[#3D2F6E] transition-colors">

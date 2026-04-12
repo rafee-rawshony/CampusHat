@@ -10,6 +10,17 @@ import { Filter, ChevronDown, List as ListIcon, Grid as GridIcon } from 'lucide-
 import { Button } from '@/components/ui/button'
 
 export default function ShopPage() {
+    return (
+        <React.Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="w-8 h-8 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
+            </div>
+        }>
+            <ShopPageContent />
+        </React.Suspense>
+    )
+}
+function ShopPageContent() {
     const searchParams = useSearchParams()
     const router = useRouter()
     
