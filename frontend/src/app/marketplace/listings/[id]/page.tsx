@@ -38,11 +38,10 @@ interface DetailListing {
     category: { name: string } | string
     university_name?: string
     meetup_location?: string
-    user: {
+    user_info: {
         id: number | string
-        first_name: string
-        last_name: string
-        avatar?: string | null
+        full_name: string
+        profile_picture?: string | null
         reputation_score?: number
     }
     created_at: string
@@ -68,7 +67,7 @@ export default function MarketplaceAdDetailPage({ params }: { params: { id: stri
                 // In production, this hits GET /api/v1/marketplace/listings/{id}/
                 // The backend automatically evaluates contact_visible based on the JWT token.
                 const res = await api.get(`/marketplace/listings/${params.id}/`)
-                setListing(res.data)
+                setListing(res.data?.data || res.data)
             } catch (err: any) {
                 console.warn('Listing fetch failed, falling back to dummy data', err)
                 // Fallback dummy
@@ -86,10 +85,9 @@ export default function MarketplaceAdDetailPage({ params }: { params: { id: stri
                     category: 'Electronics',
                     university_name: 'Daffodil International University',
                     meetup_location: 'Library Area, Main Campus',
-                    user: {
+                    user_info: {
                         id: 99,
-                        first_name: 'Alex',
-                        last_name: 'Smith',
+                        full_name: 'Alex Smith',
                         reputation_score: 4.8
                     },
                     created_at: new Date().toISOString(),
@@ -263,7 +261,7 @@ export default function MarketplaceAdDetailPage({ params }: { params: { id: stri
                                 const res = await api.post('/marketplace/chats/start/', { listing_id: listing.id })
                                 router.push(`/marketplace/chat/${res.data?.chat_id || res.data?.id}`)
                             } catch {
-                                router.push(`/marketplace/chat?user=${listing.user.id}&listing=${listing.id}`)
+                                router.push(`/marketplace/chat?user=${listing.user_info.id}&listing=${listing.id}`)
                             }
                         }}
                         className='flex-1 border-2 border-brand-primary text-brand-primary font-bold py-2.5 rounded-xl text-sm'>

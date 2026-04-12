@@ -1,5 +1,5 @@
 import React from 'react'
-import { Clock, CheckCircle, XCircle, CheckBadge, EyeOff } from 'lucide-react'
+import { Clock, CheckCircle, XCircle, BadgeCheck, EyeOff } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 export type AdStatus = 'pending' | 'active' | 'expired' | 'sold' | 'rejected' | 'hidden'
@@ -34,7 +34,7 @@ export function AdStatusBadge({ status, rejectionReason, showReasonInline }: AdS
             case 'sold':
                 return (
                     <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 border border-blue-200 text-xs font-semibold px-2 py-0.5 rounded-full">
-                        <CheckBadge className="w-3 h-3" /> Sold
+                        <BadgeCheck className="w-3 h-3" /> Sold
                     </span>
                 )
             case 'hidden':

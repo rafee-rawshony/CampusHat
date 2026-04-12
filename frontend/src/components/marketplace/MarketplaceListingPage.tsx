@@ -224,7 +224,7 @@ export function MarketplaceListingPage({ postType, title, defaultMaxPrice }: Mar
         queryKey: ['marketplace-categories', postType],
         queryFn: async () => {
             try {
-                const res = await api.get('/marketplace/categories/', { params: { post_type: postType } })
+                const res = await api.get('/marketplace/categories/', { params: { ad_type: postType } })
                 const items = res.data?.data?.results || res.data?.results || res.data?.data || res.data || []
                 return Array.isArray(items) ? items : []
             } catch {

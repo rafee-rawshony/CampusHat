@@ -12,11 +12,10 @@ interface ListingContactSectionProps {
         contact_visible: boolean
         contact_phone?: string
         meetup_location?: string
-        user: {
+        user_info: {
             id: string | number
-            first_name: string
-            last_name: string
-            avatar?: string | null
+            full_name: string
+            profile_picture?: string | null
             reputation_score?: number
         }
     }
@@ -33,7 +32,7 @@ export function ListingContactSection({ listing, isAuthenticated, onOpenOfferMod
             const res = await api.post('/marketplace/chats/start/', { listing_id: listing.id })
             router.push(`/marketplace/chat/${res.data?.chat_id || res.data?.id}`)
         } catch {
-            router.push(`/marketplace/chat?user=${listing.user.id}&listing=${listing.id}`)
+            router.push(`/marketplace/chat?user=${listing.user_info.id}&listing=${listing.id}`)
         }
     }
 
@@ -62,8 +61,8 @@ export function ListingContactSection({ listing, isAuthenticated, onOpenOfferMod
             <div className={`p-6 md:p-8 ${!isContactVisible && 'blur-sm select-none pointer-events-none opacity-50'}`}>
                 <h3 className="text-lg font-bold text-gray-900 mb-4">Seller Information</h3>
                 <div className="flex items-center gap-4 mb-6">
-                    {listing.user.avatar ? (
-                        <Image src={listing.user.avatar} alt="Seller" width={56} height={56} className="rounded-full object-cover w-14 h-14 border-2 border-gray-100 shadow-sm" />
+                    {listing.user_info.profile_picture ? (
+                        <Image src={listing.user_info.profile_picture} alt="Seller" width={56} height={56} className="rounded-full object-cover w-14 h-14 border-2 border-gray-100 shadow-sm" />
                     ) : (
                         <div className="w-14 h-14 rounded-full bg-gradient-to-br from-brand-primary/20 to-purple-500/20 flex items-center justify-center border-2 border-white shadow-sm">
                             <User className="w-6 h-6 text-brand-primary" />
@@ -71,11 +70,11 @@ export function ListingContactSection({ listing, isAuthenticated, onOpenOfferMod
                     )}
                     <div>
                         <h4 className="font-bold text-gray-900 text-lg leading-tight">
-                            {listing.user.first_name} {listing.user.last_name}
+                            {listing.user_info.full_name}
                         </h4>
                         <div className="flex items-center gap-1 mt-0.5">
                             <div className="flex items-center bg-green-50 text-green-700 px-1.5 py-0.5 rounded text-[10px] font-bold">
-                                ★ {listing.user.reputation_score?.toFixed(1) || "0.0"}
+                                ★ {listing.user_info.reputation_score?.toFixed(1) || "0.0"}
                             </div>
                             <span className="text-xs font-medium text-gray-500">Verified Member</span>
                         </div>
