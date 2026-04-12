@@ -1,0 +1,393 @@
+'use client'
+
+import React, { useEffect } from 'react'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { Info, ArrowLeft, Loader2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useQuery } from '@tanstack/react-query'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Button } from '@/components/ui/button'
+import { useToast } from '@/hooks/use-toast'
+import { api } from '@/lib/api'
+import { useAuthStore } from '@/stores/auth.store'
+import { AdTypeSelector, AdType } from './AdTypeSelector'
+import { PhotoUploadSection } from './PhotoUploadSection'
+
+const postAdSchema = z.object({
+    post_type: z.enum(['buy', 'rental', 'service', 'food']),
+    title: z.string()
+        .min(5, 'Title must be at least 5 characters')
+        .max(300, 'Title too long'),
+    description: z.string()
+        .min(20, 'Description must be at least 20 characters')
+        .max(1000, 'Description too long'),
+    category: z.string().min(1, 'Please select a category'),
+    condition: z.string().optional(),
+    price: z.coerce.number().min(0, 'Price cannot be negative'),
+    duration_days: z.coerce.number().refine(v => [7, 15, 30].includes(v), 'Invalid duration'),
+    is_anonymous: z.boolean().default(false),
+    images: z.array(z.object({
+        url: z.string().url('Must be a valid URL').or(z.literal(''))
+    })).optional(),
+}).superRefine((data, ctx) => {
+    if ((data.post_type === 'buy' || data.post_type === 'rental') && !data.condition) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Condition is required for this ad type",
+            path: ['condition']
+        })
+    }
+})
+
+type PostAdFormData = z.infer<typeof postAdSchema>
+
+interface PostAdFormProps {
+    editId?: string | null
+}
+
+const FALLBACK_CATEGORIES: Record<string, string[]> = {
+    buy: ['Textbooks', 'Electronics', 'Furniture', 'Clothing', 'Sports', 'Other'],
+    rental: ['Housing', 'Appliances', 'Vehicles', 'Tools', 'Other'],
+    service: ['Tutoring', 'Design', 'Labor', 'Tech Support', 'Other'],
+    food: ['Homemade Meals', 'Snacks', 'Bakery', 'Other'],
+}
+
+const CONDITIONS = [
+    { label: 'New', value: 'new' },
+    { label: 'Used - Like New', value: 'used_like_new' },
+    { label: 'Used - Good', value: 'used_good' },
+    { label: 'Used - Fair', value: 'used_fair' },
+]
+
+export function PostAdForm({ editId }: PostAdFormProps) {
+    const router = useRouter()
+    const { toast } = useToast()
+    const { user } = useAuthStore()
+
+    const form = useForm<PostAdFormData>({
+        resolver: zodResolver(postAdSchema),
+        defaultValues: {
+            post_type: 'buy',
+            title: '',
+            description: '',
+            category: '',
+            condition: 'used_good',
+            price: 0,
+            duration_days: 15,
+            is_anonymous: false,
+            images: [{ url: '' }],
+        }
+    })
+
+    const { control, register, handleSubmit, watch, setValue, reset, formState: { errors, isSubmitting } } = form
+    const currentType = watch('post_type')
+    const description = watch('description') || ''
+
+    // Fetch Categories
+    const { data: categories = FALLBACK_CATEGORIES[currentType] } = useQuery({
+        queryKey: ['marketplace-categories', currentType],
+        queryFn: async () => {
+            try {
+                const res = await api.get('/marketplace/categories/', { params: { post_type: currentType } })
+                const items = res.data?.data?.results || res.data?.results || res.data?.data || res.data || []
+                return items.map((c: any) => c.id || c.slug)
+            } catch {
+                return FALLBACK_CATEGORIES[currentType]
+            }
+        }
+    })
+
+    // Edit Mode Loader
+    useEffect(() => {
+        if (editId) {
+            api.get(`/marketplace/listings/${editId}/`)
+                .then(res => {
+                    const data = res.data
+                    reset({
+                        post_type: data.post_type as AdType,
+                        title: data.title,
+                        description: data.description,
+                        category: data.category?.id || data.category?.slug || data.category,
+                        condition: data.condition || 'used_good',
+                        price: Number(data.price),
+                        duration_days: 15,
+                        is_anonymous: Boolean(data.is_anonymous),
+                        images: Array.isArray(data.images) && data.images.length > 0
+                            ? data.images.map((img: any) => ({ url: typeof img === 'string' ? img : img.image }))
+                            : [{ url: '' }]
+                    })
+                })
+                .catch(() => {
+                    toast({ title: "Error", description: "Failed to load listing data.", variant: "destructive" })
+                })
+        }
+    }, [editId, reset, toast])
+
+    // Update form when type changes
+    useEffect(() => {
+        if (!editId) {
+            setValue('category', '')
+            if (currentType === 'service' || currentType === 'food') {
+                setValue('condition', '')
+            } else {
+                setValue('condition', 'used_good')
+            }
+        }
+    }, [currentType, setValue, editId])
+
+    const onSubmit = async (data: PostAdFormData) => {
+        try {
+            // Clean up URLs, mapping to string[]
+            const urlList = (data.images || [])
+                .map(img => img.url)
+                .filter(url => url && url.trim().length > 0)
+
+            const payload = {
+                post_type: data.post_type,
+                title: data.title,
+                description: data.description,
+                category: data.category,
+                price: data.price,
+                duration_days: data.duration_days,
+                is_anonymous: data.is_anonymous,
+                images: urlList,
+                ...(data.condition ? { condition: data.condition } : {})
+            }
+
+            if (editId) {
+                await api.patch(`/marketplace/listings/${editId}/`, payload)
+                toast({ title: 'Ad updated', description: 'Your ad has been resubmitted for review.' })
+            } else {
+                await api.post('/marketplace/listings/', payload)
+                toast({ title: 'Success', description: "Ad submitted for review! We'll notify you when approved." })
+            }
+            router.push('/marketplace/my-ads')
+
+        } catch (error: any) {
+            toast({
+                title: "Submission failed",
+                description: error.response?.data?.detail || "Please check your inputs and try again.",
+                variant: "destructive"
+            })
+
+            // Inline backend errors if available
+            const errData = error.response?.data
+            if (errData && typeof errData === 'object') {
+                Object.keys(errData).forEach(key => {
+                    if (key in data) {
+                        form.setError(key as any, { type: 'server', message: Array.isArray(errData[key]) ? errData[key][0] : errData[key] })
+                    }
+                })
+            }
+        }
+    }
+
+    const priceHelper = currentType === 'rental'
+        ? 'Price per month.'
+        : currentType === 'service'
+            ? 'Rate per session/hour.'
+            : 'Total price for the item.'
+
+    return (
+        <form onSubmit={handleSubmit(onSubmit)}>
+            <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+                <Controller
+                    name="post_type"
+                    control={control}
+                    render={({ field }) => (
+                        <AdTypeSelector value={field.value} onChange={field.onChange} />
+                    )}
+                />
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+                <h2 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-2 mb-4">
+                    <span className="text-[#4C3B8A] mr-1">2.</span> About Your Ad
+                </h2>
+
+                <div className="space-y-6">
+                    <div className="space-y-2">
+                        <Label htmlFor="title" className="font-semibold text-gray-800">Ad Title</Label>
+                        <Input
+                            {...register('title')}
+                            placeholder="e.g. 2nd Year Mechanical Engineering Books"
+                            className={`w-full ${errors.title ? 'border-red-500 focus-visible:ring-red-500' : 'focus-visible:ring-[#4C3B8A]'}`}
+                        />
+                        {errors.title && <p className="text-sm text-red-500">{errors.title.message}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="description" className="font-semibold text-gray-800">Description</Label>
+                        <Textarea
+                            {...register('description')}
+                            placeholder="Tell us more about what you're offering..."
+                            rows={4}
+                            className={`w-full resize-y ${errors.description ? 'border-red-500 focus-visible:ring-red-500' : 'focus-visible:ring-[#4C3B8A]'}`}
+                        />
+                        <div className="flex justify-between items-center">
+                            {errors.description ? (
+                                <p className="text-sm text-red-500">{errors.description.message}</p>
+                            ) : <span />}
+                            <span className="text-xs text-gray-400">
+                                {description.length}/1000
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <Label className="font-semibold text-gray-800">Category</Label>
+                            <Controller
+                                name="category"
+                                control={control}
+                                render={({ field }) => (
+                                    <Select value={field.value} onValueChange={field.onChange}>
+                                        <SelectTrigger className={`${errors.category ? 'border-red-500' : ''}`}>
+                                            <SelectValue placeholder="Select Category" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {categories.map((cat: any) => (
+                                                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            />
+                            {errors.category && <p className="text-sm text-red-500">{errors.category.message}</p>}
+                        </div>
+
+                        {(currentType === 'buy' || currentType === 'rental') && (
+                            <div className="space-y-2">
+                                <Label className="font-semibold text-gray-800">Condition</Label>
+                                <Controller
+                                    name="condition"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Select value={field.value} onValueChange={field.onChange}>
+                                            <SelectTrigger className={`${errors.condition ? 'border-red-500' : ''}`}>
+                                                <SelectValue placeholder="Select Condition" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {CONDITIONS.map(c => (
+                                                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                                {errors.condition && <p className="text-sm text-red-500">{errors.condition.message}</p>}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+                <PhotoUploadSection control={control} register={register} errors={errors} />
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+                <h2 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-2 mb-4">
+                    <span className="text-[#4C3B8A] mr-1">4.</span> Pricing & Visibility
+                </h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                        <Label className="font-semibold text-gray-800">Price (৳)</Label>
+                        <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium">৳</span>
+                            <Input
+                                {...register('price')}
+                                type="number"
+                                step="0.01"
+                                className={`pl-8 ${errors.price ? 'border-red-500 focus-visible:ring-red-500' : 'focus-visible:ring-[#4C3B8A]'}`}
+                            />
+                        </div>
+                        <p className="text-xs text-gray-500">{priceHelper}</p>
+                        {errors.price && <p className="text-sm text-red-500">{errors.price.message}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label className="font-semibold text-gray-800">Listing Duration</Label>
+                        <Controller
+                            name="duration_days"
+                            control={control}
+                            render={({ field }) => (
+                                <Select value={String(field.value)} onValueChange={(val) => field.onChange(Number(val))}>
+                                    <SelectTrigger className={`${errors.duration_days ? 'border-red-500' : ''}`}>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="7">7 Days</SelectItem>
+                                        <SelectItem value="15">15 Days</SelectItem>
+                                        <SelectItem value="30">30 Days</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        />
+                        <p className="text-xs text-gray-500">Your ad will automatically expire after this period.</p>
+                        {errors.duration_days && <p className="text-sm text-red-500">{errors.duration_days.message}</p>}
+                    </div>
+                </div>
+
+                <div className="mt-6 flex items-start space-x-3">
+                    <Controller
+                        name="is_anonymous"
+                        control={control}
+                        render={({ field }) => (
+                            <Checkbox
+                                id="is_anonymous"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                className="mt-1"
+                            />
+                        )}
+                    />
+                    <div className="space-y-1 leading-none">
+                        <Label htmlFor="is_anonymous" className="text-sm font-medium cursor-pointer">
+                            Post Anonymously
+                        </Label>
+                        <p className="text-sm text-gray-500">
+                            Hide your profile name and avatar from this listing. Your verified status badge will still be shown to build trust.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="bg-blue-50 rounded-lg p-3 mt-4 flex items-start gap-3">
+                    <Info className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+                    <p className="text-sm text-blue-800">
+                        <strong>Automatic Campus Detection:</strong> This ad will be listed for <strong>{user?.university_name || 'your campus'}</strong>. Only verified users from your campus will see this in their local feed.
+                    </p>
+                </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-8">
+                <button
+                    type="button"
+                    onClick={() => router.push('/marketplace')}
+                    className="text-gray-600 hover:text-gray-900 font-medium order-2 sm:order-1"
+                    disabled={isSubmitting}
+                >
+                    &larr; Cancel
+                </button>
+
+                <Button
+                    type="submit"
+                    className="w-full sm:w-auto bg-[#059669] hover:bg-[#047857] text-white font-semibold px-8 py-3 rounded-lg order-1 sm:order-2 h-auto"
+                    disabled={isSubmitting}
+                >
+                    {isSubmitting ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
+                    ) : editId ? 'Save Changes' : 'Submit for Review'}
+                </Button>
+            </div>
+        </form>
+    )
+}

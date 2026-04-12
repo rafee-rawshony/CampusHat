@@ -26,12 +26,12 @@ export default function MarketplaceHomepage() {
                 {/* Listing Sections */}
                 <ListingSection
                     title="Recent Items for Sale"
-                    postType="buy"
+                    postType="sell"
                     viewAllHref="/marketplace/buy"
                 />
                 <ListingSection
                     title="Latest Rental Ads"
-                    postType="rental"
+                    postType="rent"
                     viewAllHref="/marketplace/rental"
                 />
                 <ListingSection

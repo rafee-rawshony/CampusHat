@@ -7,7 +7,7 @@ export default function BuyPage() {
     return (
         <Suspense fallback={<div className="bg-[#F5F5F5] min-h-screen" />}>
             <MarketplaceListingPage
-                postType="buy"
+                postType="sell"
                 title="Buy"
                 defaultMaxPrice={1000}
             />

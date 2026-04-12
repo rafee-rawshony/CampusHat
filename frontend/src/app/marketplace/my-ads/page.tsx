@@ -1,332 +1,411 @@
 'use client'
+export const dynamic = 'force-dynamic'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Plus, Edit2, EyeOff, Eye, Trash2, CheckCircle, RotateCcw, Search, EyeIcon } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
+import { useRouter } from 'next/navigation'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Plus, Edit2, EyeOff, Eye, Trash2, CheckCircle, RotateCcw, Search, Package } from 'lucide-react'
+import { format } from 'date-fns'
 
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { api } from '@/lib/api'
+import { useAuthStore } from '@/stores/auth.store'
 
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { format } from 'date-fns'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { AdStatusBadge, AdStatus } from '@/components/marketplace/AdStatusBadge'
+import { DeleteAdModal } from '@/components/marketplace/DeleteAdModal'
+import { RepostConfirmModal } from '@/components/marketplace/RepostConfirmModal'
+import { MyAdCard } from '@/components/marketplace/MyAdCard'
+import { UpgradePrompt } from '@/components/marketplace/UpgradePrompt'
 
-interface UserAd {
-    id: string | number
-    title: string
-    price: string | number
-    post_type: string
-    status: 'pending' | 'active' | 'expired' | 'sold' | 'rejected' | 'hidden'
-    images: { image: string }[]
-    expires_at: string
-    rejection_reason?: string
-}
+type TabType = 'all' | AdStatus
 
 export default function MyAdsPage() {
-    const [ads, setAds] = useState<UserAd[]>([])
-    const [loading, setLoading] = useState(true)
-    const [searchQuery, setSearchQuery] = useState('')
+    const router = useRouter()
     const { toast } = useToast()
+    const queryClient = useQueryClient()
+    const { isAuthenticated, canAccessMarketplace } = useAuthStore()
 
-    // Dialog State
-    const [actionDialog, setActionDialog] = useState<{ isOpen: boolean; type: string; adId: string | number | null }>({
-        isOpen: false,
-        type: '',
-        adId: null
-    })
+    const [activeTab, setActiveTab] = useState<TabType>('all')
+    const [searchQuery, setSearchQuery] = useState('')
 
-    const fetchMyAds = async () => {
-        try {
-            const res = await api.get('/marketplace/listings/my-ads/')
-            setAds(res.data.results || res.data)
-        } catch (error) {
-            console.warn("Could not fetch real ads, rendering dummy payload", error)
-            setAds([
-                { id: 1, title: 'MacBook Pro M1 2020', price: '90000', post_type: 'buy', status: 'active', images: [{ image: 'https://placehold.co/100x100' }], expires_at: new Date(Date.now() + 86400000 * 5).toISOString() },
-                { id: 2, title: 'Calculus Textbooks', price: '500', post_type: 'buy', status: 'pending', images: [{ image: 'https://placehold.co/100x100' }], expires_at: new Date(Date.now() + 86400000 * 5).toISOString() },
-                { id: 3, title: 'Graphic Design Service', price: '1000', post_type: 'service', status: 'rejected', rejection_reason: "Title contains spam characters.", images: [], expires_at: new Date().toISOString() },
-                { id: 4, title: 'Dorm Room Sublet', price: '5000', post_type: 'rental', status: 'hidden', images: [], expires_at: new Date(Date.now() + 86400000 * 15).toISOString() },
-                { id: 5, title: 'Sony Headphones HW-1000XM4', price: '15000', post_type: 'buy', status: 'sold', images: [], expires_at: new Date(Date.now() - 86400000 * 2).toISOString() },
-            ])
-        } finally {
-            setLoading(false)
-        }
-    }
+    // Modals
+    const [deleteAdId, setDeleteAdId] = useState<string | number | null>(null)
+    const [deleteAdTitle, setDeleteAdTitle] = useState('')
+    
+    const [repostAdId, setRepostAdId] = useState<string | number | null>(null)
+    const [repostAdTitle, setRepostAdTitle] = useState('')
 
     useEffect(() => {
-        fetchMyAds()
-    }, [])
+        if (!isAuthenticated) router.replace('/auth/login?redirect=/marketplace/my-ads')
+    }, [isAuthenticated, router])
 
-    const handleAction = async () => {
-        if (!actionDialog.adId || !actionDialog.type) return
+    const { data: ads = [], isLoading } = useQuery({
+        queryKey: ['my-ads'],
+        queryFn: async () => {
+            const res = await api.get('/marketplace/my-listings/')
+            return res.data?.data || res.data?.results || res.data || []
+        },
+        enabled: isAuthenticated && canAccessMarketplace(),
+        staleTime: 0,
+    })
+
+    // Filter logic
+    const filteredAds = useMemo(() => {
+        return ads.filter((ad: any) => {
+            const matchesSearch = ad.title.toLowerCase().includes(searchQuery.toLowerCase())
+            const matchesTab = activeTab === 'all' || ad.status === activeTab
+            return matchesSearch && matchesTab
+        })
+    }, [ads, searchQuery, activeTab])
+
+    const counts = useMemo(() => {
+        const c = {
+            all: ads.length,
+            pending: 0, active: 0, expired: 0, sold: 0, rejected: 0, hidden: 0
+        }
+        ads.forEach((ad: any) => {
+            if (ad.status in c) c[ad.status as AdStatus]++
+            else c[ad.status as any] = 1 
+        })
+        return c
+    }, [ads])
+
+    const tabs: { id: TabType, label: string }[] = [
+        { id: 'all', label: 'All' },
+        { id: 'active', label: 'Active' },
+        { id: 'pending', label: 'Pending' },
+        { id: 'expired', label: 'Expired' },
+        { id: 'sold', label: 'Sold' },
+        { id: 'rejected', label: 'Rejected' },
+        { id: 'hidden', label: 'Hidden' },
+    ]
+
+    const handleOptimisticAction = async (id: string | number, action: 'hide' | 'unhide' | 'sold') => {
+        const previousAds = queryClient.getQueryData(['my-ads'])
+        let newStatus = ''
+        if (action === 'hide') newStatus = 'hidden'
+        if (action === 'unhide') newStatus = 'active'
+        if (action === 'sold') newStatus = 'sold'
+
+        // Optimistically update cache
+        queryClient.setQueryData(['my-ads'], (old: any[]) => 
+            old?.map(ad => ad.id === id ? { ...ad, status: newStatus } : ad)
+        )
 
         try {
-            if (actionDialog.type === 'delete') {
-                await api.delete(`/marketplace/listings/${actionDialog.adId}/`)
-                setAds(prev => prev.filter(ad => ad.id !== actionDialog.adId))
-                toast({ title: 'Ad Deleted', description: 'Your ad has been completely removed.' })
+            if (action === 'sold') {
+                await api.post(`/marketplace/listings/${id}/mark-sold/`)
             } else {
-                let statusPayload = {}
-                if (actionDialog.type === 'sold') statusPayload = { status: 'sold' }
-                if (actionDialog.type === 'hide') statusPayload = { status: 'hidden' }
-                if (actionDialog.type === 'unhide') statusPayload = { status: 'active' }
-                // For reposting, we might need a dedicated endpoint to generate a new expiry, but patch status to pending for now
-                if (actionDialog.type === 'repost') statusPayload = { status: 'pending' }
-
-                await api.patch(`/marketplace/listings/${actionDialog.adId}/`, statusPayload)
-
-                // Optimistic Update
-                setAds(prev => prev.map(ad => ad.id === actionDialog.adId ? { ...ad, status: (statusPayload as any).status || ad.status } : ad))
-                toast({ title: 'Ad Updated successfully.' })
+                await api.post(`/marketplace/listings/${id}/${action}/`)
             }
-        } catch (error: any) {
-            toast({
-                title: 'Operation Failed',
-                description: error.response?.data?.detail || 'Could not update ad status.',
-                variant: 'destructive',
-            })
-            // Force refetch on error to sync with truth
-            fetchMyAds()
-        } finally {
-            setActionDialog({ isOpen: false, type: '', adId: null })
+            toast({ title: 'Ad updated successfully' })
+        } catch (err) {
+            // Revert on error
+            queryClient.setQueryData(['my-ads'], previousAds)
+            toast({ title: 'Update failed', description: 'Action could not be completed.', variant: 'destructive' })
         }
     }
 
-    const openAction = (type: string, id: string | number) => setActionDialog({ isOpen: true, type, adId: id })
+    if (!isAuthenticated) return null
 
-    const renderStatusBadge = (status: UserAd['status'], reason?: string) => {
-        const badges = {
-            pending: <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-yellow-200">Under Review</Badge>,
-            active: <Badge className="bg-green-100 text-green-800 hover:bg-green-100 border-green-200">Active</Badge>,
-            expired: <Badge variant="secondary" className="text-gray-500">Expired</Badge>,
-            sold: <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 border-blue-200">Sold</Badge>,
-            hidden: <Badge variant="outline" className="text-gray-500 bg-gray-50">Hidden</Badge>,
-            rejected: (
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger>
-                            <Badge variant="destructive" className="cursor-help">Rejected</Badge>
-                        </TooltipTrigger>
-                        <TooltipContent className="bg-red-50 text-red-900 border-red-200 shadow-md">
-                            <p className="font-semibold text-xs">Reason: {reason || 'Policy Violation'}</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
-            ),
-        }
-        return badges[status]
+    if (!canAccessMarketplace()) {
+        return (
+            <div className="min-h-[calc(100vh-64px)] bg-[#F5F5F5] pt-12 flex justify-center px-4">
+                <UpgradePrompt
+                    isOpen={true}
+                    onClose={() => router.push('/marketplace')}
+                    title="Verification Required"
+                    description="You must verify your university email to manage listings on the Marketplace."
+                />
+            </div>
+        )
     }
 
-    const filteredAds = ads.filter(ad => ad.title.toLowerCase().includes(searchQuery.toLowerCase()))
+    const renderActionButtons = (ad: any) => {
+        return (
+            <>
+                {ad.status === 'active' && (
+                    <>
+                        <Button 
+                            onClick={() => router.push(`/marketplace/post?edit=${ad.id}`)}
+                            variant="outline" size="sm" 
+                            className="h-8 px-3 text-gray-600 border-gray-200 hover:bg-gray-50 flex items-center gap-1.5 rounded-lg text-xs"
+                        >
+                            <Edit2 className="w-3.5 h-3.5" /> Edit
+                        </Button>
+                        <Button 
+                            onClick={() => handleOptimisticAction(ad.id, 'hide')}
+                            variant="outline" size="sm" 
+                            className="h-8 px-3 text-gray-600 border-gray-200 hover:bg-gray-50 flex items-center gap-1.5 rounded-lg text-xs"
+                        >
+                            <EyeOff className="w-3.5 h-3.5" /> Hide
+                        </Button>
+                        <Button 
+                            onClick={() => handleOptimisticAction(ad.id, 'sold')}
+                            size="sm" 
+                            className="h-8 px-3 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 flex items-center gap-1.5 rounded-lg text-xs shadow-none"
+                        >
+                            <CheckCircle className="w-3.5 h-3.5" /> Mark as Sold
+                        </Button>
+                    </>
+                )}
+
+                {ad.status === 'pending' && (
+                    <>
+                        <Button 
+                            onClick={() => router.push(`/marketplace/listings/${ad.id}`)}
+                            variant="outline" size="sm" 
+                            className="h-8 px-3 text-gray-600 border-gray-200 hover:bg-gray-50 flex items-center gap-1.5 rounded-lg text-xs"
+                        >
+                            <Eye className="w-3.5 h-3.5" /> View
+                        </Button>
+                        <Button 
+                            onClick={() => { setDeleteAdId(ad.id); setDeleteAdTitle(ad.title) }}
+                            variant="outline" size="sm" 
+                            className="h-8 px-3 text-red-500 border-red-200 hover:bg-red-50 flex items-center gap-1.5 rounded-lg text-xs"
+                        >
+                            <Trash2 className="w-3.5 h-3.5" /> Delete
+                        </Button>
+                    </>
+                )}
+
+                {ad.status === 'expired' && (
+                    <>
+                        <Button 
+                            onClick={() => { setRepostAdId(ad.id); setRepostAdTitle(ad.title) }}
+                            size="sm" 
+                            className="h-8 px-3 border border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center gap-1.5 rounded-lg text-xs shadow-none"
+                        >
+                            <RotateCcw className="w-3.5 h-3.5" /> Repost
+                        </Button>
+                        <Button 
+                            onClick={() => { setDeleteAdId(ad.id); setDeleteAdTitle(ad.title) }}
+                            variant="outline" size="sm" 
+                            className="h-8 px-3 text-red-500 border-red-200 hover:bg-red-50 flex items-center gap-1.5 rounded-lg text-xs"
+                        >
+                            <Trash2 className="w-3.5 h-3.5" /> Delete
+                        </Button>
+                    </>
+                )}
+
+                {ad.status === 'rejected' && (
+                    <>
+                        <Button 
+                            onClick={() => { setRepostAdId(ad.id); setRepostAdTitle(ad.title) }}
+                            variant="outline" size="sm" 
+                            className="h-8 px-3 text-gray-600 border-gray-200 hover:bg-gray-50 flex items-center gap-1.5 rounded-lg text-xs"
+                        >
+                            <RotateCcw className="w-3.5 h-3.5" /> Resubmit
+                        </Button>
+                        <Button 
+                            onClick={() => { setDeleteAdId(ad.id); setDeleteAdTitle(ad.title) }}
+                            variant="outline" size="sm" 
+                            className="h-8 px-3 text-red-500 border-red-200 hover:bg-red-50 flex items-center gap-1.5 rounded-lg text-xs"
+                        >
+                            <Trash2 className="w-3.5 h-3.5" /> Delete
+                        </Button>
+                    </>
+                )}
+
+                {ad.status === 'hidden' && (
+                    <>
+                        <Button 
+                            onClick={() => handleOptimisticAction(ad.id, 'unhide')}
+                            variant="outline" size="sm" 
+                            className="h-8 px-3 border-[#4C3B8A] text-[#4C3B8A] hover:bg-[#4C3B8A]/10 flex items-center gap-1.5 rounded-lg text-xs"
+                        >
+                            <Eye className="w-3.5 h-3.5" /> Unhide
+                        </Button>
+                        <Button 
+                            onClick={() => { setDeleteAdId(ad.id); setDeleteAdTitle(ad.title) }}
+                            variant="outline" size="sm" 
+                            className="h-8 px-3 text-red-500 border-red-200 hover:bg-red-50 flex items-center gap-1.5 rounded-lg text-xs"
+                        >
+                            <Trash2 className="w-3.5 h-3.5" /> Delete
+                        </Button>
+                    </>
+                )}
+
+                {ad.status === 'sold' && (
+                    <>
+                        <Button 
+                            onClick={() => { setRepostAdId(ad.id); setRepostAdTitle(ad.title) }}
+                            variant="outline" size="sm" 
+                            className="h-8 px-3 text-gray-600 border-gray-200 hover:bg-gray-50 flex items-center gap-1.5 rounded-lg text-xs"
+                        >
+                            <RotateCcw className="w-3.5 h-3.5" /> Repost
+                        </Button>
+                        <Button 
+                            onClick={() => { setDeleteAdId(ad.id); setDeleteAdTitle(ad.title) }}
+                            variant="outline" size="sm" 
+                            className="h-8 px-3 text-red-500 border-red-200 hover:bg-red-50 flex items-center gap-1.5 rounded-lg text-xs"
+                        >
+                            <Trash2 className="w-3.5 h-3.5" /> Delete
+                        </Button>
+                    </>
+                )}
+            </>
+        )
+    }
 
     return (
         <div className="bg-[#F5F5F5] min-h-screen pb-20 pt-8">
             <div className="container mx-auto px-4 max-w-6xl">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-                    <div>
-                        <h1 className="text-3xl font-extrabold text-[#1A1A2E] tracking-tight">My Marketplace Ads</h1>
-                        <p className="text-gray-500 mt-1">Manage your listings, renew expired items, and mark sales as complete.</p>
-                    </div>
-                    <Link href="/marketplace/post">
-                        <Button className="bg-brand-primary hover:bg-brand-dark text-white font-bold h-11 px-6 rounded-xl shadow-md gap-2 w-full sm:w-auto">
-                            <Plus className="w-5 h-5" /> Post New Ad
-                        </Button>
-                    </Link>
-                </div>
+                
+                {/* Breadcrumb & Header */}
+                <div className="mb-8">
+                    <nav className="flex items-center text-sm text-gray-500 mb-4 font-medium">
+                        <Link href="/marketplace" className="hover:text-gray-900 transition-colors">Marketplace</Link>
+                        <span className="mx-2">/</span>
+                        <span className="text-gray-900">My Advertisements</span>
+                    </nav>
 
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <div className="relative w-full sm:max-w-md">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                            <Input
-                                placeholder="Search your ads by title..."
-                                className="pl-9 h-10 border-gray-200 focus-visible:ring-brand-primary"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                        </div>
-                        <div className="text-sm font-medium text-gray-500">
-                            Total Listings: <span className="text-gray-900">{ads.length}</span>
-                        </div>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm">
-                            <thead className="bg-gray-50 text-gray-500 uppercase text-[10px] font-bold tracking-wider">
-                                <tr>
-                                    <th className="px-6 py-4">Title & Image</th>
-                                    <th className="px-6 py-4">Status</th>
-                                    <th className="px-6 py-4 hidden sm:table-cell">Price</th>
-                                    <th className="px-6 py-4 hidden md:table-cell">Date/Expires</th>
-                                    <th className="px-6 py-4 text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100 text-gray-700">
-                                {loading ? (
-                                    Array(4).fill(0).map((_, i) => (
-                                        <tr key={i} className="animate-pulse">
-                                            <td className="px-6 py-4"><div className="h-12 bg-gray-200 rounded w-3/4"></div></td>
-                                            <td className="px-6 py-4"><div className="h-6 w-16 bg-gray-200 rounded-full"></div></td>
-                                            <td className="px-6 py-4 hidden sm:table-cell"><div className="h-5 w-12 bg-gray-200 rounded"></div></td>
-                                            <td className="px-6 py-4 hidden md:table-cell"><div className="h-5 w-20 bg-gray-200 rounded"></div></td>
-                                            <td className="px-6 py-4 text-right"><div className="h-8 w-24 bg-gray-200 rounded ml-auto"></div></td>
-                                        </tr>
-                                    ))
-                                ) : filteredAds.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={5} className="px-6 py-16 text-center text-gray-500">
-                                            {searchQuery ? 'No ads match your search.' : "You haven't posted any ads yet."}
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    filteredAds.map(ad => (
-                                        <tr key={ad.id} className="hover:bg-gray-50/50 transition-colors group">
-                                            <td className="px-6 py-4 w-1/3">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden shrink-0 border border-gray-200 relative">
-                                                        {ad.images?.[0] ? (
-                                                            <Image src={ad.images[0].image} alt={ad.title} fill className="object-cover" />
-                                                        ) : (
-                                                            <div className="w-full h-full flex justify-center items-center text-xs text-gray-400">No Img</div>
-                                                        )}
-                                                    </div>
-                                                    <div>
-                                                        <h3 className="font-bold text-gray-900 group-hover:text-brand-primary transition-colors line-clamp-1">{ad.title}</h3>
-                                                        <span className="text-[10px] font-extrabold uppercase text-gray-400">{ad.post_type}</span>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                {renderStatusBadge(ad.status, ad.rejection_reason)}
-                                            </td>
-                                            <td className="px-6 py-4 hidden sm:table-cell font-semibold">
-                                                ৳{Number(ad.price).toLocaleString()}
-                                            </td>
-                                            <td className="px-6 py-4 hidden md:table-cell text-xs text-gray-500">
-                                                <span>Exp: {format(new Date(ad.expires_at), 'MMM d, yyyy')}</span>
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    {/* Action Controls based on status */}
-                                                    {ad.status === 'active' && (
-                                                        <>
-                                                            <Link href={`/marketplace/post?edit=${ad.id}`}>
-                                                                <Button variant="ghost" size="sm" className="h-8 px-2 text-gray-500 hover:text-brand-primary" title="Edit">
-                                                                    <Edit2 className="w-4 h-4" />
-                                                                </Button>
-                                                            </Link>
-                                                            <Button variant="ghost" size="sm" onClick={() => openAction('hide', ad.id)} className="h-8 px-2 text-gray-500 hover:text-gray-900" title="Hide Listing">
-                                                                <EyeOff className="w-4 h-4" />
-                                                            </Button>
-                                                            <Button onClick={() => openAction('sold', ad.id)} size="sm" className="h-8 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200">
-                                                                <CheckCircle className="w-3 h-3 mr-1" /> Mark Sold
-                                                            </Button>
-                                                        </>
-                                                    )}
-
-                                                    {ad.status === 'pending' && (
-                                                        <>
-                                                            <Link href={`/marketplace/listings/${ad.id}`}>
-                                                                <Button variant="ghost" size="sm" className="h-8 px-2 text-gray-500 hover:text-brand-primary" title="View Details">
-                                                                    <EyeIcon className="w-4 h-4" />
-                                                                </Button>
-                                                            </Link>
-                                                            <Button variant="ghost" size="sm" onClick={() => openAction('delete', ad.id)} className="h-8 px-2 text-red-400 hover:text-red-600 hover:bg-red-50" title="Delete">
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </Button>
-                                                        </>
-                                                    )}
-
-                                                    {ad.status === 'hidden' && (
-                                                        <>
-                                                            <Button onClick={() => openAction('unhide', ad.id)} size="sm" variant="outline" className="h-8 border-brand-primary text-brand-primary hover:bg-brand-primary/10">
-                                                                <Eye className="w-3 h-3 mr-1" /> Unhide
-                                                            </Button>
-                                                            <Button variant="ghost" size="sm" onClick={() => openAction('delete', ad.id)} className="h-8 px-2 text-red-400 hover:text-red-600 hover:bg-red-50">
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </Button>
-                                                        </>
-                                                    )}
-
-                                                    {(ad.status === 'expired' || ad.status === 'rejected') && (
-                                                        <>
-                                                            {ad.status === 'expired' && (
-                                                                <Button onClick={() => openAction('repost', ad.id)} size="sm" className="h-8 bg-brand-primary hover:bg-brand-dark text-white">
-                                                                    <RotateCcw className="w-3 h-3 mr-1" /> Repost
-                                                                </Button>
-                                                            )}
-                                                            {ad.status === 'rejected' && (
-                                                                <Link href={`/marketplace/post?edit=${ad.id}`}>
-                                                                    <Button size="sm" className="h-8 bg-gray-900 hover:bg-black text-white">
-                                                                        <Edit2 className="w-3 h-3 mr-1" /> Fix & Resubmit
-                                                                    </Button>
-                                                                </Link>
-                                                            )}
-                                                            <Button variant="ghost" size="sm" onClick={() => openAction('delete', ad.id)} className="h-8 px-2 text-red-400 hover:text-red-600 hover:bg-red-50" title="Delete">
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </Button>
-                                                        </>
-                                                    )}
-
-                                                    {ad.status === 'sold' && (
-                                                        <Button variant="ghost" size="sm" onClick={() => openAction('delete', ad.id)} className="h-8 px-2 text-gray-400 hover:text-red-600 hover:bg-red-50" title="Remove Record">
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <h1 className="text-2xl font-bold text-gray-900">My Advertisements</h1>
+                        <Link href="/marketplace/post">
+                            <button className="bg-[#4C3B8A] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#3D2F6E] transition-colors whitespace-nowrap">
+                                Post New Ad
+                            </button>
+                        </Link>
                     </div>
                 </div>
+
+                {/* Status Tabs */}
+                <div className="flex overflow-x-auto no-scrollbar border-b border-gray-200 mb-6 gap-2 sm:gap-6">
+                    {tabs.map((tab) => {
+                        const count = counts[tab.id as keyof typeof counts] || 0
+                        const isActive = activeTab === tab.id
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`flex items-center gap-2 pb-3 px-2 border-b-2 whitespace-nowrap transition-colors ${
+                                    isActive 
+                                    ? 'border-[#4C3B8A] text-[#4C3B8A] font-semibold' 
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 font-medium'
+                                }`}
+                            >
+                                <span className="text-sm">{tab.label}</span>
+                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                                    isActive ? 'bg-[#4C3B8A]/10 text-[#4C3B8A]' : 'bg-gray-100 text-gray-500'
+                                }`}>
+                                    {count}
+                                </span>
+                            </button>
+                        )
+                    })}
+                </div>
+
+                <div className="relative w-full max-w-md mb-6">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input
+                        placeholder="Search your ads by title..."
+                        className="pl-9 h-10 border-gray-200 bg-white"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
+
+                {/* LIST / EMPTY STATES */}
+                {isLoading ? (
+                    <div className="space-y-3">
+                        {Array(4).fill(0).map((_, i) => (
+                            <div key={i} className="bg-white rounded-xl border border-gray-100 p-4 h-24 animate-pulse flex items-center gap-4">
+                                <div className="w-16 h-16 bg-gray-200 rounded-lg shrink-0"></div>
+                                <div className="flex-1 space-y-2">
+                                    <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                                    <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : ads.length === 0 ? (
+                    /* Global Empty State */
+                    <div className="flex flex-col items-center justify-center bg-white border border-gray-200 rounded-2xl py-16 px-6 text-center shadow-sm">
+                        <Package className="w-16 h-16 text-gray-300 mb-4" />
+                        <h3 className="font-semibold text-gray-600 text-lg">You haven't posted any ads yet</h3>
+                        <p className="text-sm text-gray-400 mt-1 max-w-md">Share what you have with your campus community. It takes just a few minutes safely and securely.</p>
+                        <Link href="/marketplace/post">
+                            <button className="bg-[#4C3B8A] text-white px-6 py-2.5 rounded-lg mt-6 font-semibold hover:bg-[#3D2F6E] transition-colors">
+                                Post Your First Ad
+                            </button>
+                        </Link>
+                    </div>
+                ) : filteredAds.length === 0 ? (
+                    /* Tab Empty State */
+                    <div className="py-12 text-center text-gray-500 font-medium">
+                        No {activeTab} ads matches your filter.
+                    </div>
+                ) : (
+                    <div className="flex flex-col gap-3">
+                        {filteredAds.map((ad: any) => (
+                            <React.Fragment key={ad.id}>
+                                {/* Mobile Card */}
+                                <MyAdCard ad={ad} actions={renderActionButtons(ad)} />
+
+                                {/* Desktop Horizontal Row */}
+                                <div className="hidden sm:flex bg-white border border-gray-100 rounded-xl p-4 items-center gap-4 shadow-sm hover:shadow-md transition-shadow group">
+                                    {/* Left */}
+                                    <div className="w-16 h-16 rounded-lg bg-gray-50 border border-gray-200 overflow-hidden shrink-0 relative flex justify-center items-center">
+                                        {ad.images?.[0]?.image || ad.images?.[0] ? (
+                                            <Image src={typeof ad.images[0] === 'string' ? ad.images[0] : ad.images[0].image} alt={ad.title} fill className="object-cover" />
+                                        ) : (
+                                            <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">{ad.post_type}</span>
+                                        )}
+                                    </div>
+                                    
+                                    {/* Center Left */}
+                                    <div className="flex-1 min-w-0 pr-4">
+                                        <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 leading-tight group-hover:text-[#4C3B8A] transition-colors">{ad.title}</h3>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <span className="text-[10px] font-extrabold uppercase text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{ad.post_type}</span>
+                                            <AdStatusBadge status={ad.status} />
+                                        </div>
+                                        <p className="text-xs text-gray-400 mt-1">
+                                            Posted {format(new Date(ad.created_at || new Date().toISOString()), 'MMM d, yyyy')} · 
+                                            {ad.expires_at ? ` Expires ${format(new Date(ad.expires_at), 'MMM d, yyyy')}` : ''}
+                                        </p>
+                                    </div>
+
+                                    {/* Center Right */}
+                                    <div className="w-24 text-right shrink-0">
+                                        <span className="font-semibold text-gray-900">
+                                            ৳{Number(ad.price).toLocaleString()}
+                                            {ad.post_type === 'rental' && <span className="text-gray-500 font-medium text-xs">/mo</span>}
+                                        </span>
+                                    </div>
+
+                                    {/* Right Actions */}
+                                    <div className="flex items-center justify-end gap-2 shrink-0 border-l border-gray-100 pl-4 ml-2">
+                                        {renderActionButtons(ad)}
+                                    </div>
+                                </div>
+                            </React.Fragment>
+                        ))}
+                    </div>
+                )}
             </div>
 
-            {/* Reusable Action Dialog */}
-            <AlertDialog open={actionDialog.isOpen} onOpenChange={(open) => !open && setActionDialog({ isOpen: false, type: '', adId: null })}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>
-                            {actionDialog.type === 'delete' && "Delete this listing forever?"}
-                            {actionDialog.type === 'sold' && "Mark this item as Sold?"}
-                            {actionDialog.type === 'hide' && "Hide this listing from public?"}
-                            {actionDialog.type === 'unhide' && "Make listing active again?"}
-                            {actionDialog.type === 'repost' && "Repost this listing for another 15 days?"}
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                            {actionDialog.type === 'delete' && "This action cannot be undone. All images, offers, and metadata will be permanently deleted."}
-                            {actionDialog.type === 'sold' && "Congratulations on your sale! This ad will be marked as sold and removed from active search results."}
-                            {actionDialog.type === 'hide' && "Hidden ads are only visible to you. You can unhide it at any time before it expires."}
-                            {actionDialog.type === 'unhide' && "This will make your ad visible to all users on the CampusHat marketplace."}
-                            {actionDialog.type === 'repost' && "This will send the ad back to moderation for a quick review before becoming active again."}
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                            onClick={handleAction}
-                            className={actionDialog.type === 'delete' ? 'bg-red-600 hover:bg-red-700 focus:ring-red-600' : 'bg-brand-primary hover:bg-brand-dark'}
-                        >
-                            Confirm
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            {/* Global Modals attached at Root level */}
+            <DeleteAdModal 
+                isOpen={!!deleteAdId} 
+                onOpenChange={(open) => !open && setDeleteAdId(null)}
+                adId={deleteAdId}
+                adTitle={deleteAdTitle}
+                onSuccess={() => queryClient.invalidateQueries({ queryKey: ['my-ads'] })}
+            />
+
+            <RepostConfirmModal 
+                isOpen={!!repostAdId} 
+                onOpenChange={(open) => !open && setRepostAdId(null)}
+                adId={repostAdId}
+                adTitle={repostAdTitle}
+                onSuccess={() => queryClient.invalidateQueries({ queryKey: ['my-ads'] })}
+            />
         </div>
     )
 }
