@@ -1,24 +1,69 @@
-# =================================================
-# CampusHat Backend — Docker Compose (Production)
-# =================================================
-# Overrides for production deployment.
-# Usage: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-# =================================================
-
-version: '3.8'
+# =========================================================================
+# CampusHat Backend — Production Docker Compose (VPS-Ready)
+# =========================================================================
+# A single-file, fully self-contained production stack.
+# Compatible with: Contabo VPS, AWS EC2, DigitalOcean, Hostinger VPS.
+#
+# DEPLOYMENT:
+#   1. Clone repo onto your VPS
+#   2. Copy .env.production.example → .env  (fill in real values)
+#   3. Run:  docker compose -f docker-compose.prod.yml up -d --build
+#   4. SSL:  docker exec campushat_nginx certbot --nginx -d yourdomain.com
+#
+# UPDATES:
+#   git pull && docker compose -f docker-compose.prod.yml up -d --build
+# =========================================================================
 
 services:
-  # --- Django Backend (Production) ---
+  # --- PostgreSQL Database ---
+  db:
+    image: postgres:15-alpine
+    container_name: campushat_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-campushat_db}
+      POSTGRES_USER: ${DB_USER:-campushat_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-campushat_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - campushat_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-campushat_user} -d ${DB_NAME:-campushat_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --- Redis (Cache + Celery Broker) ---
+  redis:
+    image: redis:7-alpine
+    container_name: campushat_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - campushat_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --- Django Backend (Gunicorn) ---
   backend:
     build:
       context: .
       dockerfile: docker/Dockerfile.prod
+    image: campushat-backend:prod
+    container_name: campushat_backend
+    restart: unless-stopped
     command: >
       sh -c "python manage.py collectstatic --noinput &&
              python manage.py migrate --noinput &&
              gunicorn config.wsgi:application
                --bind 0.0.0.0:8000
-               --workers 4
+               --workers ${GUNICORN_WORKERS:-3}
                --threads 2
                --worker-class gthread
                --timeout 120
@@ -26,28 +71,117 @@ services:
                --error-logfile -"
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.production
-    ports: [] # Only expose via nginx in production
+      - DB_HOST=db
+      - DB_PORT=5432
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+    env_file:
+      - .env
+    expose:
+      - "8000"
+    volumes:
+      - media_data:/app/mediafiles
+      - static_data:/app/staticfiles
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - campushat_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/health/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
-  # --- Celery Worker (Production) ---
+  # --- Celery Worker ---
   celery:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.prod
-    command: celery -A config worker --loglevel=warning --concurrency=4
+    image: campushat-backend:prod
+    container_name: campushat_celery
+    restart: unless-stopped
+    command: celery -A config worker --loglevel=warning --concurrency=${CELERY_CONCURRENCY:-2}
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.production
+      - DB_HOST=db
+      - DB_PORT=5432
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    networks:
+      - campushat_network
 
-  # --- Celery Beat (Production) ---
+  # --- Celery Beat (Scheduled Tasks) ---
   celerybeat:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.prod
+    image: campushat-backend:prod
+    container_name: campushat_celerybeat
+    restart: unless-stopped
     command: celery -A config beat --loglevel=warning --scheduler django_celery_beat.schedulers:DatabaseScheduler
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.production
+      - DB_HOST=db
+      - DB_PORT=5432
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    networks:
+      - campushat_network
 
-  # --- Nginx (Production) ---
+  # --- Nginx Reverse Proxy ---
   nginx:
+    image: nginx:1.25-alpine
+    container_name: campushat_nginx
+    restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
+      - static_data:/app/staticfiles:ro
+      - media_data:/app/mediafiles:ro
+      - certbot_data:/etc/letsencrypt:rw
+      - certbot_www:/var/www/certbot:rw
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - campushat_network
+
+volumes:
+  postgres_data:
+    name: campushat_prod_postgres
+  redis_data:
+    name: campushat_prod_redis
+  media_data:
+    name: campushat_prod_media
+  static_data:
+    name: campushat_prod_static
+  certbot_data:
+    name: campushat_prod_certbot
+  certbot_www:
+    name: campushat_prod_certbot_www
+
+networks:
+  campushat_network:
+    name: campushat_prod_network
+    driver: bridge

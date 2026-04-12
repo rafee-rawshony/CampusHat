@@ -9,10 +9,14 @@ Extends base settings with production-hardened overrides.
 - Redis cache backend
 """
 
-import sentry_sdk
-from sentry_sdk.integrations.celery import CeleryIntegration
-from sentry_sdk.integrations.django import DjangoIntegration
-from sentry_sdk.integrations.redis import RedisIntegration
+try:
+    import sentry_sdk
+    from sentry_sdk.integrations.celery import CeleryIntegration
+    from sentry_sdk.integrations.django import DjangoIntegration
+    from sentry_sdk.integrations.redis import RedisIntegration
+    HAS_SENTRY = True
+except ImportError:
+    HAS_SENTRY = False
 
 from decouple import config
 
@@ -77,7 +81,7 @@ SESSION_CACHE_ALIAS = 'default'
 
 SENTRY_DSN = config('SENTRY_DSN', default='')
 
-if SENTRY_DSN:
+if HAS_SENTRY and SENTRY_DSN:
     sentry_sdk.init(
         dsn=SENTRY_DSN,
         integrations=[

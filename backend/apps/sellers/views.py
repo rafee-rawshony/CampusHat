@@ -4,9 +4,11 @@ Seller Views.
 Seller registration, profile, dashboard, store management, payouts.
 """
 
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.generics import GenericAPIView
 from rest_framework.views import APIView
 
 from core.permissions import IsApprovedSeller
@@ -24,10 +26,11 @@ from .serializers import (
 # SELLER REGISTRATION & PROFILE
 # =============================================================================
 
-class SellerRegisterView(APIView):
+class SellerRegisterView(GenericAPIView):
     """POST /api/v1/sellers/register/"""
 
     permission_classes = [IsAuthenticated]
+    serializer_class = SellerRegistrationSerializer
 
     def post(self, request):
         if SellerProfile.objects.filter(
@@ -40,7 +43,7 @@ class SellerRegisterView(APIView):
                 'code': 'DUPLICATE',
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = SellerRegistrationSerializer(
+        serializer = self.get_serializer(
             data=request.data, context={'request': request},
         )
         serializer.is_valid(raise_exception=True)
@@ -60,10 +63,11 @@ class SellerRegisterView(APIView):
         }, status=status.HTTP_201_CREATED)
 
 
-class SellerMyProfileView(APIView):
+class SellerMyProfileView(GenericAPIView):
     """GET/PATCH /api/v1/sellers/my-profile/"""
 
     permission_classes = [IsAuthenticated]
+    serializer_class = SellerProfileSerializer
 
     def get(self, request):
         try:
@@ -103,10 +107,11 @@ class SellerMyProfileView(APIView):
         })
 
 
-class SellerDashboardView(APIView):
+class SellerDashboardView(GenericAPIView):
     """GET /api/v1/sellers/my-dashboard/"""
 
     permission_classes = [IsAuthenticated, IsApprovedSeller]
+    serializer_class = SellerDashboardSerializer
 
     def get(self, request):
         seller = request.user.seller_profile
@@ -139,10 +144,11 @@ class SellerDashboardView(APIView):
 # STORE MANAGEMENT
 # =============================================================================
 
-class StoreCreateView(APIView):
+class StoreCreateView(GenericAPIView):
     """POST /api/v1/stores/create/"""
 
     permission_classes = [IsAuthenticated, IsApprovedSeller]
+    serializer_class = StoreCreateSerializer
 
     def post(self, request):
         seller = request.user.seller_profile
@@ -153,7 +159,7 @@ class StoreCreateView(APIView):
                 'code': 'DUPLICATE',
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = StoreCreateSerializer(
+        serializer = self.get_serializer(
             data=request.data, context={'request': request},
         )
         serializer.is_valid(raise_exception=True)
@@ -165,10 +171,11 @@ class StoreCreateView(APIView):
         }, status=status.HTTP_201_CREATED)
 
 
-class MyStoreView(APIView):
+class MyStoreView(GenericAPIView):
     """GET /api/v1/stores/my-store/"""
 
     permission_classes = [IsAuthenticated, IsApprovedSeller]
+    serializer_class = StoreDetailSerializer
 
     def get(self, request):
         try:
@@ -187,10 +194,11 @@ class MyStoreView(APIView):
         })
 
 
-class StoreUpdateView(APIView):
+class StoreUpdateView(GenericAPIView):
     """PATCH /api/v1/stores/my-store/update/"""
 
     permission_classes = [IsAuthenticated, IsApprovedSeller]
+    serializer_class = StoreUpdateSerializer
 
     def patch(self, request):
         try:
@@ -203,7 +211,7 @@ class StoreUpdateView(APIView):
                 'code': 'NOT_FOUND',
             }, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = StoreUpdateSerializer(store, data=request.data, partial=True)
+        serializer = self.get_serializer(store, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({
@@ -217,6 +225,7 @@ class StoreSubmitForReviewView(APIView):
 
     permission_classes = [IsAuthenticated, IsApprovedSeller]
 
+    @extend_schema(request=None)
     def post(self, request):
         try:
             store = Store.objects.get(
@@ -242,10 +251,11 @@ class StoreSubmitForReviewView(APIView):
         })
 
 
-class PublicStoreDetailView(APIView):
+class PublicStoreDetailView(GenericAPIView):
     """GET /api/v1/stores/{slug}/"""
 
     permission_classes = [AllowAny]
+    serializer_class = StoreDetailSerializer
 
     def get(self, request, slug):
         try:
@@ -264,10 +274,11 @@ class PublicStoreDetailView(APIView):
         })
 
 
-class PublicStoreListView(APIView):
+class PublicStoreListView(GenericAPIView):
     """GET /api/v1/stores/"""
 
     permission_classes = [AllowAny]
+    serializer_class = StoreListSerializer
 
     def get(self, request):
         qs = Store.objects.filter(
@@ -293,13 +304,14 @@ class PublicStoreListView(APIView):
 # PAYOUTS
 # =============================================================================
 
-class PayoutRequestView(APIView):
+class PayoutRequestView(GenericAPIView):
     """POST /api/v1/sellers/payouts/request/"""
 
     permission_classes = [IsAuthenticated, IsApprovedSeller]
+    serializer_class = SellerPayoutRequestSerializer
 
     def post(self, request):
-        serializer = SellerPayoutRequestSerializer(
+        serializer = self.get_serializer(
             data=request.data, context={'request': request},
         )
         serializer.is_valid(raise_exception=True)
@@ -310,10 +322,11 @@ class PayoutRequestView(APIView):
         }, status=status.HTTP_201_CREATED)
 
 
-class PayoutListView(APIView):
+class PayoutListView(GenericAPIView):
     """GET /api/v1/sellers/payouts/"""
 
     permission_classes = [IsAuthenticated, IsApprovedSeller]
+    serializer_class = SellerPayoutRequestSerializer
 
     def get(self, request):
         payouts = SellerPayoutRequest.objects.filter(

@@ -85,6 +85,10 @@ class SellerRegistrationSerializer(serializers.ModelSerializer):
         ext = file_obj.name.rsplit('.', 1)[-1] if '.' in file_obj.name else 'jpg'
         fname = f'{uuid.uuid4().hex}.{ext}'
         try:
+            aws_key = getattr(s, 'AWS_ACCESS_KEY_ID', '')
+            if not aws_key:
+                raise ValueError("S3 not configured")
+
             import boto3
             s3 = boto3.client('s3',
                 aws_access_key_id=getattr(s, 'AWS_ACCESS_KEY_ID', ''),

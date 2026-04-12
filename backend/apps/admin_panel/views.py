@@ -10,7 +10,9 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.generics import GenericAPIView
 from rest_framework.views import APIView
+from drf_spectacular.utils import extend_schema
 
 from core.pagination import CampusHatPagination
 from core.permissions import IsAdminOnly, IsAdminOrModerator
@@ -536,6 +538,7 @@ class NotificationUnreadCountView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=None)
     def get(self, request):
         count = Notification.objects.filter(
             user=request.user, is_read=False,
@@ -548,6 +551,7 @@ class NotificationMarkReadView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=None)
     def post(self, request, notification_id):
         try:
             notification = Notification.objects.get(
@@ -568,6 +572,7 @@ class NotificationMarkAllReadView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=None)
     def post(self, request):
         count = Notification.objects.filter(
             user=request.user, is_read=False,

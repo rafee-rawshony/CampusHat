@@ -59,7 +59,14 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 # FILE STORAGE — Local filesystem (no S3 in development)
 # =============================================================================
 
-DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+    },
+}
 
 # =============================================================================
 # CACHES — Local memory cache for development
