@@ -181,7 +181,7 @@ export function Navbar() {
                                     )}
                                     {(isAdmin() || isModerator()) && (
                                         <DropdownMenuItem asChild>
-                                            <Link href="/admin/dashboard" className="gap-2">
+                                            <Link href="/admin" className="gap-2">
                                                 {isAdmin() ? (
                                                     <LayoutDashboard className="h-4 w-4" />
                                                 ) : (

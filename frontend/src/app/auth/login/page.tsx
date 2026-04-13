@@ -76,7 +76,7 @@ export default function LoginPage() {
             if (redirectTo) {
                 router.push(redirectTo)
             } else if (user.role === 'admin' || user.role === 'moderator' || user.role === 'marketplace_mod') {
-                router.push('/marketplace')
+                router.push('/admin')
             } else if (user.role === 'seller') {
                 router.push('/marketplace')
             } else {

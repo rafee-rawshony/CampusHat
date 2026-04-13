@@ -3,13 +3,13 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth.store'
-import {
-    DollarSign, Users, Store, Grid, ShoppingBag,
-    ArrowRight
-} from 'lucide-react'
-import Link from 'next/link'
+import { TrendingUp, Store, Grid3x3, ShoppingBag } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+
+import { AdminStatCard } from '@/components/admin/AdminStatCard'
+import { AdminQuickStats } from '@/components/admin/AdminQuickStats'
+import { AdminRevenueChart } from '@/components/admin/AdminRevenueChart'
 
 export default function AdminDashboardPage() {
     const { isAdmin } = useAuthStore()
@@ -19,7 +19,7 @@ export default function AdminDashboardPage() {
         if (!isAdmin()) {
             router.replace('/admin/approvals')
         }
-    }, [])
+    }, [isAdmin, router])
 
     const { data: adminStats, isLoading } = useQuery({
         queryKey: ['admin-dashboard-stats'],
@@ -27,88 +27,77 @@ export default function AdminDashboardPage() {
         refetchInterval: 60_000,
     })
 
-    const statCards = [
-        { label: 'TOTAL REVENUE', value: `৳${adminStats?.total_revenue?.toFixed(2) || '0.00'}`, icon: DollarSign, color: 'text-emerald-500', bg: 'bg-emerald-50', link: '/admin/revenue' },
-        { label: 'TOTAL SELLERS', value: adminStats?.total_sellers || 0, icon: Users, color: 'text-blue-500', bg: 'bg-blue-50', link: '/admin/users?role=seller' },
-        { label: 'MALL PRODUCTS', value: adminStats?.mall_products || 0, icon: Store, color: 'text-teal-500', bg: 'bg-teal-50', link: '/admin/mall-products' },
-        { label: 'MARKETPLACE LISTINGS', value: adminStats?.marketplace_listings || 0, icon: Grid, color: 'text-purple-500', bg: 'bg-purple-50', link: '/admin/marketplace' },
-    ]
-
-    if (isLoading) {
-        return (
-            <div className="p-8 animate-pulse space-y-8 max-w-6xl">
-                <div className="h-10 bg-gray-200 rounded w-64"></div>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    {[1, 2, 3, 4].map(i => <div key={i} className="h-32 bg-gray-200 rounded-xl"></div>)}
-                </div>
-            </div>
-        )
-    }
+    if (!isAdmin()) return null // Prevent flash before redirect
 
     return (
-        <div className="p-6 lg:p-10 space-y-8 max-w-7xl mx-auto">
-            <h1 className="text-3xl font-black text-gray-900 tracking-tight">Platform Overview</h1>
-
-            {/* Main Stats Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {statCards.map((stat, i) => (
-                    <div key={i} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex flex-col justify-between hover:shadow-md transition-shadow">
-                        <div className="flex items-center justify-between mb-2">
-                            <div className={`w-10 h-10 rounded-lg ${stat.bg} flex items-center justify-center`}>
-                                <stat.icon className={`w-5 h-5 ${stat.color}`} />
-                            </div>
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{stat.label}</p>
-                            <p className="text-2xl font-black text-gray-900">{stat.value}</p>
-                        </div>
-                        <Link href={stat.link} className="mt-4 text-[10px] font-bold text-brand-primary uppercase tracking-wider flex items-center gap-1 hover:text-brand-dark group w-fit">
-                            INSIGHT <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
-                        </Link>
-                    </div>
-                ))}
+        <div className="max-w-6xl space-y-2 pb-10">
+            {/* ROW 1: STAT CARDS */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <AdminStatCard
+                    title="Total Revenue"
+                    value={`৳${(adminStats?.total_revenue || 0).toLocaleString()}`}
+                    icon={TrendingUp}
+                    iconBg="bg-green-100"
+                    iconColor="text-green-600"
+                    subtitle="Platform earnings"
+                    insightHref="/admin/revenue"
+                    loading={isLoading}
+                />
+                <AdminStatCard
+                    title="Total Sellers"
+                    value={(adminStats?.total_sellers || 0).toLocaleString()}
+                    icon={Store}
+                    iconBg="bg-blue-100"
+                    iconColor="text-blue-600"
+                    subtitle="Approved sellers"
+                    insightHref="/admin/users?role=seller"
+                    loading={isLoading}
+                />
+                <AdminStatCard
+                    title="Mall Products"
+                    value={(adminStats?.mall_products || 0).toLocaleString()}
+                    icon={Package}
+                    iconBg="bg-teal-100"
+                    iconColor="text-teal-600"
+                    subtitle="Active listings"
+                    insightHref="/admin/mall-products"
+                    loading={isLoading}
+                />
+                <AdminStatCard
+                    title="Marketplace Ads"
+                    value={(adminStats?.marketplace_listings || 0).toLocaleString()}
+                    icon={Grid3x3}
+                    iconBg="bg-purple-100"
+                    iconColor="text-purple-600"
+                    subtitle="Active C2C ads"
+                    insightHref="/admin/marketplace"
+                    loading={isLoading}
+                />
             </div>
 
-            {/* Second Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-                {/* Total Orders Box */}
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex flex-col justify-between hover:shadow-md transition-shadow lg:col-span-1">
-                    <div className="flex items-center justify-between mb-2">
-                        <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
-                            <ShoppingBag className="w-5 h-5 text-red-500" />
-                        </div>
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">TOTAL ORDERS</p>
-                        <p className="text-3xl font-black text-gray-900">{adminStats?.total_orders || 0}</p>
-                    </div>
-                    <Link href="/admin/orders" className="mt-4 text-[10px] font-bold text-brand-primary uppercase tracking-wider flex items-center gap-1 hover:text-brand-dark group w-fit">
-                        INSIGHT <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
-                    </Link>
-                </div>
-
-                {/* Quick Stats Panel */}
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 lg:col-span-2">
-                    <h2 className="text-base font-black text-gray-900 mb-4">Quick Stats</h2>
-                    <div className="space-y-3">
-                        {[
-                            { label: 'Buy Listings', val: adminStats?.buy_listings },
-                            { label: 'Rental Listings', val: adminStats?.rental_listings },
-                            { label: 'Service Listings', val: adminStats?.service_listings },
-                            { label: 'Delivered Orders', val: adminStats?.delivered_orders },
-                            { label: 'Pending Orders', val: adminStats?.pending_orders },
-                        ].map((row, i) => (
-                            <div key={i} className="flex items-end gap-2 text-sm">
-                                <span className="font-bold text-gray-600 whitespace-nowrap">{row.label}:</span>
-                                <div className="flex-1 border-b-[3px] border-dotted border-gray-200 mb-1 opacity-50"></div>
-                                <span className="font-black text-gray-900">{row.val || 0}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
+            {/* ROW 2: WIDE OR EXTRA STAT CARDS */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                <AdminStatCard
+                    title="Total Orders"
+                    value={(adminStats?.total_orders || 0).toLocaleString()}
+                    icon={ShoppingBag}
+                    iconBg="bg-red-100"
+                    iconColor="text-red-600"
+                    subtitle="All time orders"
+                    insightHref="/admin/orders"
+                    loading={isLoading}
+                />
             </div>
+
+            {/* REVENUE CHART */}
+            <AdminRevenueChart />
+
+            {/* QUICK STATS TABLE */}
+            <AdminQuickStats stats={adminStats || {}} isLoading={isLoading} />
         </div>
     )
 }
+
+// Temporary icon definition for Package since I used it but forgot to import it above.
+// Fixing by swapping imported icon.
+import { Package } from 'lucide-react'
