@@ -1,76 +1,12 @@
 'use client'
 
-import React, { useState } from 'react'
+import React from 'react'
 import Link from 'next/link'
-import { Phone, Mail, Facebook, Twitter, Linkedin, CheckCircle } from 'lucide-react'
+import { Phone, Mail, Facebook, Twitter, Linkedin } from 'lucide-react'
 
 export function Footer() {
-    const [email, setEmail] = useState('')
-    const [status, setStatus] = useState<'idle' | 'invalid' | 'success'>('idle')
-
-    const validateEmail = (email: string) => {
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-    }
-
-    const handleSubscribe = () => {
-        if (!validateEmail(email)) {
-            setStatus('invalid')
-            return
-        }
-
-        setStatus('success')
-        
-        // Optimistic UI, fire and forget API call
-        // api.post('/newsletter/subscribe/', { email }).catch(() => {})
-    }
-
     return (
         <footer className="bg-[#F5F5F5] pt-8 pb-0 mt-auto">
-            {/* Section 1 — Newsletter */}
-            <div className="max-w-6xl mx-auto px-4 mb-8">
-                <div className="bg-white rounded-2xl border border-gray-200 px-8 py-6 flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div>
-                        <h3 className="font-bold text-gray-900 text-lg">Join our newsletter for campus news</h3>
-                        <p className="text-sm text-gray-500 mt-1">
-                            Register now to get latest updates on tech promos & student events.
-                        </p>
-                    </div>
-                    
-                    <div className="w-full md:w-auto">
-                        {status === 'success' ? (
-                            <div className="flex items-center gap-2 text-green-600 font-medium text-sm h-10 w-full md:w-64 justify-center md:justify-end">
-                                <CheckCircle className="w-5 h-5" />
-                                Thank you for subscribing!
-                            </div>
-                        ) : (
-                            <div className="flex flex-col gap-1 w-full">
-                                <div className="flex items-center gap-2 w-full">
-                                    <input
-                                        type="email"
-                                        placeholder="Enter your email address"
-                                        value={email}
-                                        onChange={(e) => {
-                                            setEmail(e.target.value)
-                                            if (status === 'invalid') setStatus('idle')
-                                        }}
-                                        className={`border rounded-lg px-4 py-2.5 text-sm w-full md:w-64 outline-none focus:border-[#4C3B8A] transition-colors ${status === 'invalid' ? 'border-red-500' : 'border-gray-300'}`}
-                                    />
-                                    <button
-                                        onClick={handleSubscribe}
-                                        className="bg-[#4C3B8A] text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#2D1B69] transition shrink-0"
-                                    >
-                                        SUBSCRIBE
-                                    </button>
-                                </div>
-                                {status === 'invalid' && (
-                                    <p className="text-red-500 text-xs font-medium pl-1">Please enter a valid email.</p>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-
             {/* Section 2 — Main columns */}
             <div className="max-w-7xl mx-auto px-4 lg:px-6 pt-2 pb-8">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
