@@ -6,279 +6,538 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Eye, EyeOff, Store } from 'lucide-react'
+import {
+    Eye, EyeOff, GraduationCap, ShoppingBag, User,
+    Check, AlertCircle, Loader2, ChevronDown, Search
+} from 'lucide-react'
 import toast from 'react-hot-toast'
-
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Separator } from '@/components/ui/separator'
 import { api } from '@/lib/api'
 
-// Customer Schema
-const customerSchema = z.object({
+// ─── Schemas ──────────────────────────────────────────────────────────────────
+
+const baseSchema = z.object({
     full_name: z.string().min(2, 'Name must be at least 2 characters'),
-    email: z.string().email('Please enter a valid email'),
-    phone: z.string().min(10, 'Valid phone required'),
+    email: z.string().email('Please enter a valid email address'),
+    phone: z.string().min(10, 'Enter a valid phone number').max(15),
     password: z.string().min(8, 'Password must be at least 8 characters'),
+    confirm_password: z.string(),
+    terms: z.literal(true, { errorMap: () => ({ message: 'You must accept the terms' }) }),
+}).refine(d => d.password === d.confirm_password, {
+    message: "Passwords don't match",
+    path: ['confirm_password'],
 })
 
-// Student Schema (Customer + university_id)
-const studentSchema = customerSchema.extend({
-    university_id: z.string().min(1, 'Please select a university'),
+const studentSchema = baseSchema.extend({
+    university_id: z.string().min(1, 'Please select your university'),
 })
 
-type CustomerForm = z.infer<typeof customerSchema>
+type BaseForm = z.infer<typeof baseSchema>
 type StudentForm = z.infer<typeof studentSchema>
+type RegType = 'customer' | 'student'
 
-interface University {
-    id: string
-    name: string
-    short_code?: string
+// ─── Password Strength ────────────────────────────────────────────────────────
+
+function getPasswordStrength(pw: string): { score: number; label: string; color: string } {
+    if (!pw) return { score: 0, label: '', color: '' }
+    let score = 0
+    if (pw.length >= 8) score++
+    if (pw.length >= 12) score++
+    if (/[A-Z]/.test(pw)) score++
+    if (/[0-9]/.test(pw)) score++
+    if (/[^a-zA-Z0-9]/.test(pw)) score++
+    if (score <= 1) return { score, label: 'Weak', color: 'bg-red-500' }
+    if (score <= 2) return { score, label: 'Fair', color: 'bg-orange-400' }
+    if (score <= 3) return { score, label: 'Good', color: 'bg-yellow-400' }
+    if (score <= 4) return { score, label: 'Strong', color: 'bg-emerald-400' }
+    return { score, label: 'Very Strong', color: 'bg-emerald-500' }
 }
+
+// ─── University Dropdown ──────────────────────────────────────────────────────
+
+function UniversitySelect({
+    value, onChange, error
+}: { value: string; onChange: (v: string) => void; error?: string }) {
+    const [open, setOpen] = useState(false)
+    const [search, setSearch] = useState('')
+    const [universities, setUniversities] = useState<any[]>([])
+
+    useEffect(() => {
+        api.get('/universities/?page_size=1000').then(res => {
+            const raw = res.data?.data || res.data
+            const results = raw?.results || (Array.isArray(raw) ? raw : [])
+            if (Array.isArray(results)) setUniversities(results)
+        }).catch(() => {})
+    }, [])
+
+    const filtered = universities.filter(u =>
+        u.name.toLowerCase().includes(search.toLowerCase()) ||
+        u.short_name?.toLowerCase().includes(search.toLowerCase())
+    )
+
+    const selected = universities.find(u => String(u.id) === value)
+
+    return (
+        <div className="relative">
+            <button
+                type="button"
+                onClick={() => setOpen(!open)}
+                className={`w-full flex items-center justify-between h-11 px-3 rounded-xl border text-sm font-medium transition-all
+                    ${error ? 'border-red-300 bg-red-50' : open ? 'border-[#634C9F] ring-2 ring-[#634C9F]/20 bg-white' : 'border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-white'}
+                `}
+            >
+                <span className={selected ? 'text-gray-900' : 'text-gray-400'}>
+                    {selected ? `${selected.name} (${selected.short_name})` : 'Select your university'}
+                </span>
+                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+            </button>
+
+            {open && (
+                <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-100 rounded-2xl shadow-2xl overflow-hidden">
+                    <div className="p-2 border-b border-gray-50">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                            <input
+                                autoFocus
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                placeholder="Search university..."
+                                className="w-full pl-8 pr-3 py-2 text-sm bg-gray-50 border border-gray-100 rounded-lg outline-none focus:border-[#634C9F] focus:bg-white"
+                            />
+                        </div>
+                    </div>
+                    <div className="max-h-52 overflow-y-auto custom-scrollbar">
+                        {filtered.length === 0 ? (
+                            <p className="text-center py-4 text-sm text-gray-400">No universities found</p>
+                        ) : filtered.map(u => (
+                            <button
+                                type="button"
+                                key={u.id}
+                                onClick={() => { onChange(String(u.id)); setOpen(false); setSearch('') }}
+                                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-purple-50 transition-colors flex items-center justify-between
+                                    ${String(u.id) === value ? 'bg-purple-50 text-[#634C9F] font-semibold' : 'text-gray-700'}
+                                `}
+                            >
+                                <div>
+                                    <span className="font-medium">{u.name}</span>
+                                </div>
+                                <span className="text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">{u.short_name}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+            {error && <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{error}</p>}
+        </div>
+    )
+}
+
+// ─── Main Register Content ─────────────────────────────────────────────────────
 
 function RegisterContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
-
-    // Check if redirecting to seller
-    useEffect(() => {
-        if (searchParams.get('type') === 'seller') {
-            router.replace('/seller/register')
-        }
-    }, [searchParams, router])
-
-    const initialTab = searchParams.get('type') === 'student' ? 'student' : 'customer'
-    const [regTab, setRegTab] = useState<'customer' | 'student'>(initialTab)
-    const [showPassword, setShowPassword] = useState(false)
-    const [universities, setUniversities] = useState<University[]>([])
+    const [regType, setRegType] = useState<RegType>(
+        searchParams.get('type') === 'student' ? 'student' : 'customer'
+    )
+    const [showPw, setShowPw] = useState(false)
+    const [showConfirmPw, setShowConfirmPw] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
+    const [successEmail, setSuccessEmail] = useState('')
 
-    // Customer Form
-    const customerForm = useForm<CustomerForm>({
-        resolver: zodResolver(customerSchema),
-        defaultValues: { full_name: '', email: '', phone: '', password: '' },
+    // Customer form
+    const customerForm = useForm<BaseForm>({
+        resolver: zodResolver(baseSchema),
+        defaultValues: { full_name: '', email: '', phone: '', password: '', confirm_password: '', terms: undefined as any },
     })
 
-    // Student Form
+    // Student form
     const studentForm = useForm<StudentForm>({
         resolver: zodResolver(studentSchema),
-        defaultValues: { full_name: '', email: '', phone: '', password: '', university_id: '' },
+        defaultValues: { full_name: '', email: '', phone: '', password: '', confirm_password: '', terms: undefined as any, university_id: '' },
     })
 
-    useEffect(() => {
-        const fetchUniversities = async () => {
-            try {
-                const { data } = await api.get('/universities/')
-                const payload = data?.data ?? data
-                const list = Array.isArray(payload) ? payload : (payload?.results ?? [])
-                setUniversities(list)
-            } catch {
-                setUniversities([
-                    { id: '1', name: 'American International University-Bangladesh', short_code: 'AIUB' },
-                    { id: '2', name: 'University of Dhaka', short_code: 'DU' },
-                    { id: '3', name: 'North South University', short_code: 'NSU' },
-                    { id: '4', name: 'BRAC University', short_code: 'BRACU' },
-                ])
-            }
-        }
-        fetchUniversities()
-    }, [])
+    const activeForm = regType === 'student' ? studentForm : customerForm
+    const pw = activeForm.watch('password')
+    const strength = getPasswordStrength(pw || '')
 
     const onSubmit = async (data: any) => {
         setIsLoading(true)
         try {
-            const payload = {
-                ...data,
-                is_seller: false,
+            const payload: Record<string, any> = {
+                full_name: data.full_name,
+                email: data.email,
+                phone: data.phone,
+                password: data.password,
+            }
+            if (regType === 'student' && data.university_id) {
+                payload.university_id = data.university_id
             }
             await api.post('/auth/register/', payload)
-            toast.success('Registration successful! Please verify your email.')
-            router.push(`/auth/verify-email?email=${encodeURIComponent(data.email)}`)
+            setSuccessEmail(data.email)
         } catch (error: any) {
-            const message = error.response?.data?.message || error.response?.data?.email?.[0] || 'Registration failed'
-            toast.error(message)
+            const msg = error.response?.data?.message
+                || error.response?.data?.errors?.email?.[0]
+                || error.response?.data?.email?.[0]
+                || 'Registration failed. Please try again.'
+            toast.error(msg)
         } finally {
             setIsLoading(false)
         }
     }
 
-    // Shared Form Fields component for DRYness
-    const SharedFields = ({ form }: { form: any }) => (
-        <>
-            <div className="space-y-2">
-                <Label htmlFor="full_name">Full Name</Label>
-                <Input id="full_name" placeholder="John Doe" {...form.register('full_name')} />
-                {form.formState.errors.full_name && <p className="text-xs text-destructive">{form.formState.errors.full_name.message}</p>}
+    // ─── Success State ─────────────────────────────────────────────────────
+    if (successEmail) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-purple-50 p-4">
+                <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-8 text-center border border-gray-100">
+                    <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-emerald-100">
+                        <Check className="w-10 h-10 text-emerald-500 stroke-[2.5]" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Check your email!</h2>
+                    <p className="text-gray-500 text-sm leading-relaxed mb-2">
+                        We sent a verification link to
+                    </p>
+                    <p className="font-bold text-[#634C9F] text-base mb-6 break-all bg-purple-50 rounded-xl px-4 py-2 inline-block">
+                        {successEmail}
+                    </p>
+                    <p className="text-gray-400 text-xs mb-8">
+                        Click the link in your email to verify your account. Check your spam folder if you don&apos;t see it.
+                    </p>
+                    <div className="space-y-3">
+                        <button
+                            onClick={() => router.push(`/auth/login`)}
+                            className="w-full bg-[#634C9F] hover:bg-[#45357A] text-white font-bold py-3 px-6 rounded-xl transition-colors"
+                        >
+                            Continue to Login
+                        </button>
+                        <button
+                            onClick={() => { setSuccessEmail(''); customerForm.reset(); studentForm.reset() }}
+                            className="w-full text-sm text-gray-400 hover:text-gray-600 py-2 transition-colors"
+                        >
+                            Use a different email
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    // ─── Shared Form Fields ────────────────────────────────────────────────
+    const renderFields = (form: any) => (
+        <div className="space-y-4">
+            {/* Full Name */}
+            <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full Name</label>
+                <input
+                    {...form.register('full_name')}
+                    placeholder="e.g. Rafee Rawshony"
+                    className={`w-full h-11 px-3 rounded-xl border text-sm font-medium outline-none transition-all
+                        ${form.formState.errors.full_name ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 bg-gray-50 focus:border-[#634C9F] focus:ring-2 focus:ring-[#634C9F]/20 focus:bg-white'}
+                    `}
+                />
+                {form.formState.errors.full_name && (
+                    <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {form.formState.errors.full_name.message}
+                    </p>
+                )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" placeholder="john@example.com" {...form.register('email')} />
-                    {form.formState.errors.email && <p className="text-xs text-destructive">{form.formState.errors.email.message}</p>}
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="phone">Phone</Label>
-                    <Input id="phone" type="tel" placeholder="+8801..." {...form.register('phone')} />
-                    {form.formState.errors.phone && <p className="text-xs text-destructive">{form.formState.errors.phone.message}</p>}
-                </div>
+            {/* Email */}
+            <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email Address</label>
+                <input
+                    {...form.register('email')}
+                    type="email"
+                    placeholder="you@university.edu.bd"
+                    className={`w-full h-11 px-3 rounded-xl border text-sm font-medium outline-none transition-all
+                        ${form.formState.errors.email ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 bg-gray-50 focus:border-[#634C9F] focus:ring-2 focus:ring-[#634C9F]/20 focus:bg-white'}
+                    `}
+                />
+                {form.formState.errors.email && (
+                    <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {form.formState.errors.email.message}
+                    </p>
+                )}
             </div>
 
-            <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                    <Input
-                        id="password"
-                        type={showPassword ? 'text' : 'password'}
-                        placeholder="••••••••"
-                        {...form.register('password')}
+            {/* Phone */}
+            <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Phone Number</label>
+                <input
+                    {...form.register('phone')}
+                    type="tel"
+                    placeholder="+8801XXXXXXXXX"
+                    className={`w-full h-11 px-3 rounded-xl border text-sm font-medium outline-none transition-all
+                        ${form.formState.errors.phone ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 bg-gray-50 focus:border-[#634C9F] focus:ring-2 focus:ring-[#634C9F]/20 focus:bg-white'}
+                    `}
+                />
+                {form.formState.errors.phone && (
+                    <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {form.formState.errors.phone.message}
+                    </p>
+                )}
+            </div>
+
+            {/* University (students only) */}
+            {regType === 'student' && (
+                <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Your University</label>
+                    <UniversitySelect
+                        value={form.watch('university_id') || ''}
+                        onChange={(v) => form.setValue('university_id', v, { shouldValidate: true })}
+                        error={form.formState.errors.university_id?.message}
                     />
-                    <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </div>
+            )}
+
+            {/* Password */}
+            <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Password</label>
+                <div className="relative">
+                    <input
+                        {...form.register('password')}
+                        type={showPw ? 'text' : 'password'}
+                        placeholder="Min. 8 characters"
+                        className={`w-full h-11 px-3 pr-10 rounded-xl border text-sm font-medium outline-none transition-all
+                            ${form.formState.errors.password ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 bg-gray-50 focus:border-[#634C9F] focus:ring-2 focus:ring-[#634C9F]/20 focus:bg-white'}
+                        `}
+                    />
+                    <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                        {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                 </div>
-                {form.formState.errors.password && <p className="text-xs text-destructive">{form.formState.errors.password.message}</p>}
+                {/* Strength Indicator */}
+                {pw && pw.length > 0 && (
+                    <div className="mt-2 space-y-1">
+                        <div className="flex gap-1">
+                            {[1, 2, 3, 4, 5].map(i => (
+                                <div
+                                    key={i}
+                                    className={`h-1 flex-1 rounded-full transition-all duration-300
+                                        ${i <= strength.score ? strength.color : 'bg-gray-100'}
+                                    `}
+                                />
+                            ))}
+                        </div>
+                        <p className={`text-xs font-semibold ${strength.score <= 1 ? 'text-red-500' : strength.score <= 2 ? 'text-orange-500' : strength.score <= 3 ? 'text-yellow-600' : 'text-emerald-600'}`}>
+                            {strength.label}
+                        </p>
+                    </div>
+                )}
+                {form.formState.errors.password && (
+                    <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {form.formState.errors.password.message}
+                    </p>
+                )}
             </div>
-        </>
+
+            {/* Confirm Password */}
+            <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Confirm Password</label>
+                <div className="relative">
+                    <input
+                        {...form.register('confirm_password')}
+                        type={showConfirmPw ? 'text' : 'password'}
+                        placeholder="Re-enter password"
+                        className={`w-full h-11 px-3 pr-10 rounded-xl border text-sm font-medium outline-none transition-all
+                            ${form.formState.errors.confirm_password ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 bg-gray-50 focus:border-[#634C9F] focus:ring-2 focus:ring-[#634C9F]/20 focus:bg-white'}
+                        `}
+                    />
+                    <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                        {showConfirmPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                </div>
+                {form.formState.errors.confirm_password && (
+                    <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {form.formState.errors.confirm_password.message}
+                    </p>
+                )}
+            </div>
+
+            {/* Terms */}
+            <div className="flex items-start gap-3 pt-1">
+                <input
+                    type="checkbox"
+                    id="terms"
+                    {...form.register('terms')}
+                    className="mt-0.5 w-4 h-4 rounded border-gray-200 accent-[#634C9F] cursor-pointer"
+                />
+                <label htmlFor="terms" className="text-sm text-gray-500 leading-snug cursor-pointer">
+                    I agree to the{' '}
+                    <Link href="/terms" className="text-[#634C9F] font-semibold hover:underline">Terms of Service</Link>
+                    {' '}and{' '}
+                    <Link href="/privacy" className="text-[#634C9F] font-semibold hover:underline">Privacy Policy</Link>
+                </label>
+            </div>
+            {form.formState.errors.terms && (
+                <p className="text-xs text-red-500 flex items-center gap-1 -mt-2">
+                    <AlertCircle className="w-3 h-3" />
+                    {form.formState.errors.terms.message}
+                </p>
+            )}
+
+            {/* Submit */}
+            <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full h-12 bg-[#634C9F] hover:bg-[#45357A] disabled:opacity-60 text-white font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-[#634C9F]/25 hover:shadow-[#634C9F]/40 mt-2"
+            >
+                {isLoading ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Creating account...</>
+                ) : (
+                    regType === 'student' ? 'Create Student Account' : 'Create Account'
+                )}
+            </button>
+        </div>
     )
 
     return (
-        <div className="min-h-screen flex bg-surface-base">
-            <div className="flex-1 flex flex-col justify-center py-12 px-4 sm:px-6 lg:flex-none lg:w-1/2 lg:px-20 xl:px-24">
-                <div className="mx-auto w-full max-w-sm lg:max-w-md">
-                    <div className="mb-10 text-center lg:text-left">
-                        <div className="flex items-center justify-center lg:justify-start mb-4">
-                            <span className="text-3xl font-bold text-gray-800">Campus</span>
-                            <span className="text-3xl font-bold text-brand-primary">Hat</span>
-                        </div>
-                        <h2 className="text-2xl font-bold text-gray-900 leading-tight">Create your account</h2>
-                        <p className="text-sm text-gray-500 mt-2">
-                            Unified access for students and faculty
+        <div className="min-h-screen flex bg-gradient-to-br from-gray-50 via-white to-purple-50">
+            {/* Left — Form */}
+            <div className="flex-1 flex flex-col justify-center py-10 px-4 sm:px-8 lg:px-16 xl:px-24 overflow-y-auto">
+                <div className="mx-auto w-full max-w-md">
+                    {/* Brand */}
+                    <div className="mb-8">
+                        <Link href="/" className="inline-flex items-center gap-1 mb-6">
+                            <span className="text-2xl font-black text-gray-800">Campus</span>
+                            <span className="text-2xl font-black text-[#634C9F]">Hat</span>
+                        </Link>
+                        <h1 className="text-3xl font-black text-gray-900 leading-tight">Create your account</h1>
+                        <p className="text-gray-500 mt-2 text-sm">
+                            Already have an account?{' '}
+                            <Link href="/auth/login" className="text-[#634C9F] font-bold hover:underline">Sign in</Link>
                         </p>
                     </div>
 
-                    <div className="bg-white py-8 px-4 shadow-xl sm:rounded-2xl sm:px-10 border border-gray-100 animate-fade-in">
-                        {/* Top-level Auth Switch */}
-                        <Tabs value="register" className="mb-6">
-                            <TabsList className="w-full">
-                                <TabsTrigger value="login" className="flex-1" asChild>
-                                    <Link href="/auth/login">Login</Link>
-                                </TabsTrigger>
-                                <TabsTrigger value="register" className="flex-1">Register</TabsTrigger>
-                            </TabsList>
-                        </Tabs>
-
-                        {/* Customer | Student Sub-tabs */}
-                        <Tabs value={regTab} onValueChange={(v) => setRegTab(v as 'customer' | 'student')}>
-                            <TabsList className="w-full mb-6 relative">
-                                <TabsTrigger value="customer" className="flex-1 z-10">Customer</TabsTrigger>
-                                <TabsTrigger value="student" className="flex-1 z-10">Student</TabsTrigger>
-                            </TabsList>
-
-                            {/* Customer Form */}
-                            <TabsContent value="customer">
-                                <form onSubmit={customerForm.handleSubmit((d) => onSubmit(d))} className="space-y-4">
-                                    <SharedFields form={customerForm} />
-                                    <Button type="submit" className="w-full mt-2" disabled={isLoading}>
-                                        {isLoading ? 'Creating account...' : 'Create Account'}
-                                    </Button>
-                                </form>
-                            </TabsContent>
-
-                            {/* Student Form */}
-                            <TabsContent value="student">
-                                <form onSubmit={studentForm.handleSubmit((d) => onSubmit(d))} className="space-y-4">
-                                    <SharedFields form={studentForm} />
-
-                                    <div className="space-y-2">
-                                        <Label htmlFor="university">Your Campus</Label>
-                                        <Select onValueChange={(val) => studentForm.setValue('university_id', val)}>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="American International University-Bangladesh (AIUB)" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {universities.map((uni) => (
-                                                    <SelectItem key={uni.id} value={uni.id}>
-                                                        {uni.name} {uni.short_code ? `(${uni.short_code})` : ''}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        {studentForm.formState.errors.university_id && (
-                                            <p className="text-xs text-destructive">{studentForm.formState.errors.university_id.message}</p>
-                                        )}
+                    {/* Type Selector */}
+                    <div className="grid grid-cols-2 gap-3 mb-6">
+                        {[
+                            { type: 'customer' as RegType, icon: User, label: 'General User', sub: 'Shop & browse' },
+                            { type: 'student' as RegType, icon: GraduationCap, label: 'Student / Faculty', sub: 'Campus marketplace' },
+                        ].map(({ type, icon: Icon, label, sub }) => (
+                            <button
+                                key={type}
+                                type="button"
+                                onClick={() => setRegType(type)}
+                                className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all duration-200 text-center
+                                    ${regType === type
+                                        ? 'border-[#634C9F] bg-[#634C9F]/5 shadow-md'
+                                        : 'border-gray-100 bg-white hover:border-gray-200 hover:bg-gray-50'
+                                    }
+                                `}
+                            >
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors
+                                    ${regType === type ? 'bg-[#634C9F] text-white' : 'bg-gray-100 text-gray-500'}
+                                `}>
+                                    <Icon className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <p className={`text-sm font-bold leading-tight ${regType === type ? 'text-[#634C9F]' : 'text-gray-700'}`}>{label}</p>
+                                    <p className="text-[10px] text-gray-400 mt-0.5">{sub}</p>
+                                </div>
+                                {regType === type && (
+                                    <div className="w-5 h-5 rounded-full bg-[#634C9F] flex items-center justify-center">
+                                        <Check className="w-3 h-3 text-white stroke-[3]" />
                                     </div>
+                                )}
+                            </button>
+                        ))}
+                    </div>
 
-                                    <Button type="submit" className="w-full mt-2" disabled={isLoading}>
-                                        {isLoading ? 'Creating account...' : 'Create Student Account'}
-                                    </Button>
-                                </form>
-                            </TabsContent>
-                        </Tabs>
+                    {/* Form Card */}
+                    <div className="bg-white rounded-3xl border border-gray-100 shadow-xl p-6">
+                        {regType === 'customer' ? (
+                            <form onSubmit={customerForm.handleSubmit(onSubmit)} noValidate>
+                                {renderFields(customerForm)}
+                            </form>
+                        ) : (
+                            <form onSubmit={studentForm.handleSubmit(onSubmit)} noValidate>
+                                {renderFields(studentForm)}
+                            </form>
+                        )}
+                    </div>
 
-                        {/* Become a Seller Link */}
-                        <div className="mt-6 border border-gray-100 rounded-xl p-4 bg-gray-50 flex flex-col items-center justify-center text-center">
-                            <Store className="h-6 w-6 text-brand-primary mb-2" />
-                            <p className="text-sm text-gray-700 font-medium mb-3">Want to sell on CampusHat?</p>
-                            <Button variant="outline" className="w-full bg-white font-bold text-brand-primary hover:bg-brand-light transition-colors" asChild>
-                                <Link href="/seller/register">Join as Seller</Link>
-                            </Button>
+                    {/* Seller CTA */}
+                    <div className="mt-5 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-100 rounded-2xl p-4 flex items-center gap-4">
+                        <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center shrink-0">
+                            <ShoppingBag className="w-5 h-5 text-orange-600" />
                         </div>
-
-                        {/* Social Login */}
-                        <div className="mt-6">
-                            <div className="relative">
-                                <Separator />
-                                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-xs text-muted-foreground">
-                                    or continue with
-                                </span>
-                            </div>
-                            <div className="flex justify-center gap-4 mt-4">
-                                {['Google', 'Apple', 'Facebook'].map((provider) => (
-                                    <Button key={provider} variant="outline" size="icon" className="rounded-full shadow-sm hover:bg-gray-50">
-                                        <span className="text-xs font-semibold">{provider[0]}</span>
-                                    </Button>
-                                ))}
-                            </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-gray-800">Want to sell on CampusHat?</p>
+                            <p className="text-xs text-gray-500 mt-0.5">Apply separately after registration</p>
                         </div>
+                        <Link
+                            href="/seller/apply"
+                            className="text-xs font-bold text-orange-600 hover:text-orange-700 border border-orange-200 bg-white rounded-lg px-3 py-1.5 transition-colors shrink-0"
+                        >
+                            Apply →
+                        </Link>
                     </div>
                 </div>
             </div>
 
-            <div className="hidden lg:flex flex-1 relative bg-gradient-to-br from-[#634C9F] to-[#45357A] items-center justify-center p-12 overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
-                    <div className="absolute -top-[20%] -right-[10%] w-[70%] h-[70%] rounded-full bg-white/5 blur-[120px]"></div>
-                    <div className="absolute -bottom-[20%] -left-[10%] w-[60%] h-[60%] rounded-full bg-[#8b76c4]/20 blur-[100px]"></div>
+            {/* Right — Hero Panel (desktop only) */}
+            <div className="hidden lg:flex w-[45%] xl:w-[42%] relative bg-gradient-to-br from-[#45357A] via-[#634C9F] to-[#7B5EA7] items-center justify-center p-12 overflow-hidden">
+                {/* Background decorations */}
+                <div className="absolute inset-0 overflow-hidden">
+                    <div className="absolute -top-40 -right-20 w-[500px] h-[500px] rounded-full bg-white/5 blur-[80px]" />
+                    <div className="absolute -bottom-40 -left-20 w-[400px] h-[400px] rounded-full bg-purple-900/30 blur-[80px]" />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] rounded-full bg-white/3 blur-[60px]" />
                 </div>
 
-                <div className="relative z-10 max-w-lg text-white">
-                    <div className="bg-white/10 backdrop-blur-md border border-white/20 p-8 rounded-3xl shadow-2xl">
-                        <div className="bg-white/20 w-12 h-12 rounded-xl flex items-center justify-center mb-6">
-                            <span className="text-2xl font-bold">🎓</span>
+                <div className="relative z-10 max-w-sm text-white text-center">
+                    {/* Floating cards */}
+                    <div className="mb-8 relative">
+                        <div className="w-24 h-24 bg-white/15 backdrop-blur-md rounded-3xl flex items-center justify-center mx-auto border border-white/20 shadow-2xl">
+                            <span className="text-5xl">🎓</span>
                         </div>
-                        <h3 className="text-3xl font-bold mb-4">Empowering campus commerce</h3>
-                        <p className="text-white/80 text-lg leading-relaxed mb-8">
-                            A secure, verifiable marketplace specifically designed for students and faculty. Connect, trade, and discover services from your peers.
-                        </p>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-white/10 rounded-xl p-4 border border-white/10">
-                                <p className="text-2xl font-bold mb-1">10k+</p>
-                                <p className="text-white/60 text-sm">Active Students</p>
-                            </div>
-                            <div className="bg-white/10 rounded-xl p-4 border border-white/10">
-                                <p className="text-2xl font-bold mb-1">5k+</p>
-                                <p className="text-white/60 text-sm">Daily Listings</p>
-                            </div>
+                        {/* Small floating badges */}
+                        <div className="absolute -top-3 -right-6 bg-emerald-400 text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-lg animate-bounce">
+                            VERIFIED
+                        </div>
+                        <div className="absolute -bottom-2 -left-4 bg-yellow-400 text-gray-900 text-[10px] font-black px-2.5 py-1 rounded-full shadow-lg">
+                            17 UNIS
                         </div>
                     </div>
+
+                    <h2 className="text-3xl font-black mb-4 leading-tight">
+                        Campus commerce,<br />made simple
+                    </h2>
+                    <p className="text-white/70 text-sm leading-relaxed mb-10">
+                        Join thousands of students buying, selling, and connecting on Bangladesh&apos;s only verified campus marketplace.
+                    </p>
+
+                    {/* Stats grid */}
+                    <div className="grid grid-cols-3 gap-3 mb-8">
+                        {[
+                            { value: '17+', label: 'Universities' },
+                            { value: '10k+', label: 'Students' },
+                            { value: '5k+', label: 'Listings' },
+                        ].map(s => (
+                            <div key={s.value} className="bg-white/10 backdrop-blur-sm rounded-2xl p-3 border border-white/10">
+                                <p className="text-xl font-black">{s.value}</p>
+                                <p className="text-white/50 text-[10px] uppercase tracking-wider mt-0.5 font-bold">{s.label}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Feature bullets */}
+                    {[
+                        '✓ Student-verified listings',
+                        '✓ Campus-specific marketplace',
+                        '✓ Secure peer-to-peer trading',
+                        '✓ Faculty & student discounts',
+                    ].map(item => (
+                        <div key={item} className="text-left text-sm text-white/80 font-medium py-1.5 flex items-center gap-2">
+                            <span className="text-emerald-400 font-black">{item.substring(0, 1)}</span>
+                            <span>{item.substring(2)}</span>
+                        </div>
+                    ))}
                 </div>
             </div>
         </div>
@@ -287,7 +546,14 @@ function RegisterContent() {
 
 export default function RegisterPage() {
     return (
-        <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-surface-base"><p className="text-muted-foreground">Loading...</p></div>}>
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="flex flex-col items-center gap-3">
+                    <Loader2 className="w-8 h-8 text-[#634C9F] animate-spin" />
+                    <p className="text-gray-400 text-sm font-medium">Loading...</p>
+                </div>
+            </div>
+        }>
             <RegisterContent />
         </Suspense>
     )
