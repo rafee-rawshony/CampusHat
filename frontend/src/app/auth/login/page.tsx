@@ -70,11 +70,15 @@ export default function LoginPage() {
             setUser(user)
             toast.success('Welcome back!')
 
-            // Role-based redirect
-            if (user.role === 'admin') {
-                router.push('/admin/dashboard')
+            // Respect ?redirect=... query param if present
+            const searchParams = new URLSearchParams(window.location.search)
+            const redirectTo = searchParams.get('redirect')
+            if (redirectTo) {
+                router.push(redirectTo)
+            } else if (user.role === 'admin' || user.role === 'moderator' || user.role === 'marketplace_mod') {
+                router.push('/marketplace')
             } else if (user.role === 'seller') {
-                router.push('/seller/dashboard')
+                router.push('/marketplace')
             } else {
                 router.push('/')
             }

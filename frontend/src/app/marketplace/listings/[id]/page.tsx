@@ -52,7 +52,7 @@ interface DetailListing {
 
 export default function MarketplaceAdDetailPage({ params }: { params: { id: string } }) {
     const router = useRouter()
-    const { isAuthenticated, isVerifiedStudent, canAccessMarketplace } = useAuthStore()
+    const { isAuthenticated, canAccessMarketplace } = useAuthStore()
     const [listing, setListing] = useState<DetailListing | null>(null)
     const [loading, setLoading] = useState(true)
     const [activeImage, setActiveImage] = useState(0)
@@ -93,7 +93,7 @@ export default function MarketplaceAdDetailPage({ params }: { params: { id: stri
                     created_at: new Date().toISOString(),
                     expires_at: new Date(Date.now() + 86400000 * 7).toISOString(),
                     // Evaluate locally for dummy purposes:
-                    contact_visible: isAuthenticated && isVerifiedStudent(),
+                    contact_visible: isAuthenticated && canAccessMarketplace(),
                     contact_phone: '+8801900000000'
                 })
             } finally {
@@ -101,7 +101,7 @@ export default function MarketplaceAdDetailPage({ params }: { params: { id: stri
             }
         }
         fetchListing()
-    }, [params.id, isAuthenticated, isVerifiedStudent])
+    }, [params.id, isAuthenticated, canAccessMarketplace])
 
     if (loading) {
         return (

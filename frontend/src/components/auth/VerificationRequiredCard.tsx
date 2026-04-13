@@ -61,17 +61,19 @@ export function VerificationRequiredCard({
 }
 
 export function VerificationBanner() {
-    const { user, isAuthenticated, isVerifiedStudent, isSeller } = useAuthStore()
+    const { user, isAuthenticated, isVerifiedStudent, isSeller, isAdmin, isModerator, canAccessMarketplace } = useAuthStore()
     const [isVisible, setIsVisible] = useState(false)
 
     useEffect(() => {
-        // Only show if authenticated, not verified implicitly or explicitly, and not dismissed
+        // Only show if authenticated, not verified or privileged, and not dismissed
         const isDismissed = sessionStorage.getItem('dismissedVerification') === 'true'
 
-        if (isAuthenticated && !isVerifiedStudent() && !isSeller() && !isDismissed) {
+        if (isAuthenticated && !canAccessMarketplace() && !isDismissed) {
             setIsVisible(true)
+        } else {
+            setIsVisible(false)
         }
-    }, [isAuthenticated, isVerifiedStudent, isSeller])
+    }, [isAuthenticated, canAccessMarketplace])
 
     if (!isVisible) return null
 
