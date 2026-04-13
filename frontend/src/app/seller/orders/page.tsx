@@ -34,7 +34,7 @@ export default function SellerOrdersPage() {
         queryKey: ['seller-orders', currentTab],
         queryFn: () => {
             const params = currentTab === 'all' ? {} : { status: currentTab }
-            return api.get('/seller/orders/', { params }).then(r => r.data?.results || r.data?.data || r.data || [])
+            return api.get('/seller/orders/', { params }).then(r => { const res = r.data?.results || r.data?.data || r.data; return Array.isArray(res) ? res : [] })
         }
     })
     

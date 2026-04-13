@@ -20,13 +20,14 @@ export function CampusSwitcher() {
     const searchRef = useRef<HTMLInputElement>(null)
 
     useEffect(() => {
-        api.get('/universities/').then(res => {
-            const results = res.data?.data?.results || res.data?.results || res.data?.data || res.data || []
+        api.get('/universities/?page_size=1000').then(res => {
+            const raw = res.data?.data || res.data
+            const results = raw?.results || (Array.isArray(raw) ? raw : [])
             if (Array.isArray(results) && results.length > 0) {
                 setCampuses(results.map((u: any) => ({
                     id: String(u.id),
                     name: u.name,
-                    short_name: u.short_name || u.name.substring(0, 5)
+                    short_name: u.short_name || u.short_code || u.name.substring(0, 5)
                 })))
             }
         }).catch(err => console.error("Failed to fetch campuses", err))

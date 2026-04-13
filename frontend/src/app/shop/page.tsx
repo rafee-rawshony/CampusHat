@@ -47,18 +47,18 @@ function ShopPageContent() {
 
     const { data: productsData, isLoading: productsLoading } = useQuery({
         queryKey: ['shop-products', filters],
-        queryFn: () => api.get('/mall/products/', { params: filters }).then(r => r.data?.data?.results || r.data?.results || r.data?.data || r.data || []),
+        queryFn: () => api.get('/mall/products/', { params: filters }).then(r => { const res = r.data?.data?.results || r.data?.results || r.data?.data || r.data; return Array.isArray(res) ? res : [] }),
     })
 
     const { data: categoriesData } = useQuery({
         queryKey: ['mall-categories'],
-        queryFn: () => api.get('/mall/categories/').then(r => r.data?.data?.results || r.data?.results || r.data?.data || r.data || []),
+        queryFn: () => api.get('/mall/categories/').then(r => { const res = r.data?.data?.results || r.data?.results || r.data?.data || r.data; return Array.isArray(res) ? res : [] }),
         staleTime: 300_000,
     })
 
     const { data: brandsData } = useQuery({
         queryKey: ['mall-brands'],
-        queryFn: () => api.get('/mall/products/brands/').then(r => r.data?.data?.results || r.data?.results || r.data?.data || r.data || []),
+        queryFn: () => api.get('/mall/products/brands/').then(r => { const res = r.data?.data?.results || r.data?.results || r.data?.data || r.data; return Array.isArray(res) ? res : [] }),
         staleTime: 300_000,
     })
 

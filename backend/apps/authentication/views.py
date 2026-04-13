@@ -270,7 +270,7 @@ class LoginView(APIView):
             secure=is_production,
             samesite='Lax',
             max_age=60 * 60 * 24 * 7,
-            path='/api/v1/auth/',
+            path='/',
         )
         return response
 
@@ -292,12 +292,28 @@ class CookieTokenRefreshView(APIView):
             )
         try:
             from rest_framework_simplejwt.tokens import RefreshToken
+            from django.conf import settings
             token = RefreshToken(refresh_token)
             access_token = str(token.access_token)
-            return Response({
+            # ROTATE_REFRESH_TOKENS=True means we issue a new refresh token
+            new_refresh_token = str(token)
+            is_production = getattr(settings, 'DEBUG', True) is False
+
+            response = Response({
                 'success': True,
                 'data': {'access_token': access_token}
             }, status=200)
+            # Set the new rotated refresh token cookie
+            response.set_cookie(
+                key='refresh_token',
+                value=new_refresh_token,
+                httponly=True,
+                secure=is_production,
+                samesite='Lax',
+                max_age=60 * 60 * 24 * 7,
+                path='/',
+            )
+            return response
         except Exception:
             return Response(
                 {'error': 'Invalid or expired refresh token.', 'code': 'TOKEN_INVALID'},
@@ -337,7 +353,7 @@ class LogoutView(APIView):
             ).update(revoked=True)
 
         response = Response({'success': True, 'message': 'Logged out.'}, status=200)
-        response.delete_cookie('refresh_token', path='/api/v1/auth/')
+        response.delete_cookie('refresh_token', path='/')
         return response
 
 

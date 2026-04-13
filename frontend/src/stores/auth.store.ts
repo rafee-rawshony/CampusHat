@@ -43,11 +43,16 @@ interface AuthState {
     isMarketplaceModerator: () => boolean
     isAdmin: () => boolean
     canAccessMarketplace: () => boolean
+    _hasHydrated: boolean
+    setHasHydrated: (state: boolean) => void
 }
 
 export const useAuthStore = create<AuthState>()(
     persist(
         (set, get) => ({
+            _hasHydrated: false,
+            setHasHydrated: (state) => set({ _hasHydrated: state }),
+            
             user: null,
             accessToken: null,
             isAuthenticated: false,
@@ -104,6 +109,9 @@ export const useAuthStore = create<AuthState>()(
         {
             name: 'campushat-auth',
             partialize: (state) => ({
+                // Persist user profile and authentication state
+                isAuthenticated: state.isAuthenticated,
+                accessToken: state.accessToken,
                 user: state.user ? {
                     id: state.user.id,
                     email: state.user.email,
@@ -118,6 +126,15 @@ export const useAuthStore = create<AuthState>()(
                     seller_application_status: state.user.seller_application_status,
                 } : null,
             }),
+            onRehydrateStorage: () => (state) => {
+                if (state) {
+                    // If user is in storage, ensure isAuthenticated is true
+                    if (state.user && !state.isAuthenticated) {
+                        state.isAuthenticated = true
+                    }
+                    state.setHasHydrated(true)
+                }
+            }
         }
     )
 )

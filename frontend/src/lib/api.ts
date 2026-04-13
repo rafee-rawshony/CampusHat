@@ -36,7 +36,13 @@ api.interceptors.response.use(
     (response) => response,
     async (error) => {
         const original = error.config
-        if (error.response?.status === 401 && !original._retry) {
+
+        // Only try to refresh on 401, and only once per request, and not on auth endpoints themselves
+        const isAuthEndpoint = original?.url?.includes('/auth/login') || 
+                               original?.url?.includes('/auth/token/refresh') ||
+                               original?.url?.includes('/auth/register')
+
+        if (error.response?.status === 401 && !original._retry && !isAuthEndpoint) {
             if (isRefreshing) {
                 return new Promise((resolve, reject) => {
                     failedQueue.push({ resolve, reject })
@@ -64,10 +70,14 @@ api.interceptors.response.use(
                 return api(original)
             } catch (refreshError) {
                 processQueue(refreshError, null)
-                useAuthStore.getState().logout()
-                if (typeof window !== 'undefined') {
-                    sessionStorage.setItem('session_expired', '1')
-                    window.location.href = '/auth/login'
+                // Only force logout if it's a real session expiry
+                const errCode = (refreshError as any)?.response?.data?.code
+                if (errCode === 'TOKEN_INVALID' || errCode === 'NO_REFRESH_TOKEN') {
+                    useAuthStore.getState().logout()
+                    if (typeof window !== 'undefined') {
+                        sessionStorage.setItem('session_expired', '1')
+                        window.location.href = '/auth/login'
+                    }
                 }
                 return Promise.reject(refreshError)
             } finally {

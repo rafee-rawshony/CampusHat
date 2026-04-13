@@ -56,7 +56,8 @@ export default function AccountPage() {
         const fetchUniversities = async () => {
             try {
                 const { data } = await api.get('/universities/')
-                setUniversities(data.data || data.results || data || [])
+                const res = data?.data || data?.results || data
+                setUniversities(Array.isArray(res) ? res : [])
             } catch {
                 setUniversities([
                     { id: '1', name: 'American International University-Bangladesh', short_code: 'AIUB' },
@@ -129,7 +130,7 @@ export default function AccountPage() {
                                     <SelectValue placeholder="Select your university map" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {universities.map((uni) => (
+                                    {Array.isArray(universities) && universities.map((uni) => (
                                         <SelectItem key={uni.id} value={uni.id}>
                                             {uni.name} {uni.short_code ? `(${uni.short_code})` : ''}
                                         </SelectItem>

@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 export default function SellersPage() {
     const { data: storesData, isLoading } = useQuery({
         queryKey: ['all-stores'],
-        queryFn: () => api.get('/stores/').then(r => r.data?.data?.results || r.data?.results || r.data?.data || r.data || []),
+        queryFn: () => api.get('/stores/').then(r => { const res = r.data?.data?.results || r.data?.results || r.data?.data || r.data; return Array.isArray(res) ? res : [] }),
         staleTime: 300_000,
     })
 

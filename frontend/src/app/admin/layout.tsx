@@ -19,12 +19,14 @@ import {
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter()
     const pathname = usePathname()
-    const { user, isAuthenticated, isAdmin, isModerator, logout } = useAuthStore()
+    const { user, isAuthenticated, isAdmin, isModerator, logout, _hasHydrated } = useAuthStore()
     const [permissions, setPermissions] = useState<string[]>([])
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const { pendingCounts, setPendingCounts } = useAdminStore()
 
     useEffect(() => {
+        if (!_hasHydrated) return
+
         if (!isAuthenticated) {
             router.push('/auth/login?redirect=/admin')
             return

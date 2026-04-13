@@ -16,10 +16,12 @@ import { getInitials } from '@/lib/utils'
 export default function SellerLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter()
     const pathname = usePathname()
-    const { user, isSeller, isAuthenticated, logout } = useAuthStore()
+    const { user, isSeller, isAuthenticated, logout, _hasHydrated } = useAuthStore()
     const [isAlertsOpen, setIsAlertsOpen] = useState(true)
 
     useEffect(() => {
+        if (!_hasHydrated) return
+
         if (!isAuthenticated) {
             router.push('/auth/login')
         } else if (!isSeller() && user?.seller_application_status !== 'pending' && pathname !== '/seller/apply') {
@@ -27,7 +29,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
         }
     }, [isAuthenticated, isSeller, pathname, router, user?.seller_application_status])
 
-    if (!isAuthenticated) return null
+    if (!_hasHydrated || !isAuthenticated) return null
 
     // Don't show layout for apply page, it has its own standalone UI
     if (pathname === '/seller/apply') {

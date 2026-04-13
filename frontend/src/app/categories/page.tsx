@@ -10,7 +10,7 @@ import { ChevronRight, ShoppingBag } from 'lucide-react'
 export default function CategoriesPage() {
     const { data: categoriesData, isLoading } = useQuery({
         queryKey: ['mall-categories'],
-        queryFn: () => api.get('/mall/categories/').then(r => r.data?.data?.results || r.data?.results || r.data?.data || r.data || []),
+        queryFn: () => api.get('/mall/categories/').then(r => { const res = r.data?.data?.results || r.data?.results || r.data?.data || r.data; return Array.isArray(res) ? res : [] }),
         staleTime: 300_000,
     })
 

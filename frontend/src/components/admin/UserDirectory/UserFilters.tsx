@@ -59,7 +59,15 @@ export function UserFilters({ filters, setFilters, totalUsers, startIndex, endIn
 
     const { data: universities = [] } = useQuery({
         queryKey: ['universities-list'],
-        queryFn: () => api.get('/universities/').then(r => r.data?.data || r.data?.results || r.data)
+        queryFn: async () => {
+            try {
+                const r = await api.get('/universities/')
+                const res = r.data?.data || r.data?.results || r.data
+                return Array.isArray(res) ? res : []
+            } catch {
+                return []
+            }
+        }
     })
 
     const hasActiveFilters = filters.search || filters.role !== 'all' || filters.university !== 'all' || filters.status !== 'all'
@@ -110,7 +118,7 @@ export function UserFilters({ filters, setFilters, totalUsers, startIndex, endIn
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">All Universities</SelectItem>
-                                {universities.map((u: any) => (
+                                {Array.isArray(universities) && universities.map((u: any) => (
                                     <SelectItem key={u.id} value={u.id}>{u.short_code || u.name}</SelectItem>
                                 ))}
                             </SelectContent>
