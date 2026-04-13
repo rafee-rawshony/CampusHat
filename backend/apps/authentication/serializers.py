@@ -27,7 +27,9 @@ class UserRegistrationSerializer(serializers.Serializer):
     """
 
     university_id = serializers.UUIDField(
-        help_text='UUID of the university the user belongs to.',
+        required=False,
+        allow_null=True,
+        help_text='UUID of the university the user belongs to (optional for general users).',
     )
     email = serializers.EmailField(
         help_text='Email address for login.',
@@ -41,11 +43,20 @@ class UserRegistrationSerializer(serializers.Serializer):
         max_length=200,
         help_text='Full name of the user.',
     )
+    phone = serializers.CharField(
+        max_length=20,
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text='Phone number (optional).',
+    )
 
     def validate_university_id(self, value):
-        """Ensure the university exists and is active."""
+        """Ensure the university exists and is active (if provided)."""
+        if not value:
+            return None
         try:
-            university = University.objects.get(id=value, is_active=True)
+            University.objects.get(id=value, is_active=True)
         except University.DoesNotExist:
             raise serializers.ValidationError(
                 'University not found or is not active.'
@@ -66,15 +77,19 @@ class UserRegistrationSerializer(serializers.Serializer):
         return value
 
     def create(self, validated_data):
-        university = University.objects.get(id=validated_data['university_id'])
+        university = None
+        university_id = validated_data.get('university_id')
+        if university_id:
+            university = University.objects.get(id=university_id)
+
+        phone = validated_data.get('phone') or None
 
         user = User.objects.create_user(
             email=validated_data['email'],
             password=validated_data['password'],
             full_name=validated_data['full_name'],
             university=university,
-            # DO NOT pass role= here.
-            # The model default 'normal_user' handles it.
+            phone=phone,
         )
         return user
 
