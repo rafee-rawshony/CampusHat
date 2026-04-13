@@ -414,6 +414,20 @@ function RegisterContent() {
                         </p>
                     </div>
 
+                    {/* Login / Register tab bar */}
+                    <div className="bg-gray-100 rounded-xl p-1 flex mb-6">
+                        <button
+                            type="button"
+                            onClick={() => router.push('/auth/login')}
+                            className="flex-1 py-2 rounded-lg text-sm font-semibold text-gray-500 hover:text-gray-700 transition-colors"
+                        >
+                            Login
+                        </button>
+                        <div className="flex-1 py-2 rounded-lg bg-white shadow-sm text-sm font-bold text-gray-900 text-center">
+                            Register
+                        </div>
+                    </div>
+
                     {/* Type Selector */}
                     <div className="grid grid-cols-2 gap-3 mb-6">
                         {[

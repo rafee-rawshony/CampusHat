@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
+
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
@@ -168,12 +168,16 @@ export default function LoginPage() {
                         )}
 
                         {/* Login / Register Tabs */}
-                        <Tabs value={authTab} onValueChange={(v) => setAuthTab(v as 'login' | 'register')}>
+                        <Tabs value={authTab} onValueChange={(v) => {
+                            if (v === 'register') {
+                                router.push('/auth/register')
+                            } else {
+                                setAuthTab(v as 'login')
+                            }
+                        }}>
                             <TabsList className="w-full">
                                 <TabsTrigger value="login" className="flex-1">Login</TabsTrigger>
-                                <TabsTrigger value="register" className="flex-1" asChild>
-                                    <Link href="/auth/register">Register</Link>
-                                </TabsTrigger>
+                                <TabsTrigger value="register" className="flex-1">Register</TabsTrigger>
                             </TabsList>
 
                             <TabsContent value="login" className="mt-6">
