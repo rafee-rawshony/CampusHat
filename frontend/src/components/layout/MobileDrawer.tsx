@@ -35,7 +35,12 @@ export function MobileDrawer() {
               <p className='text-white/80 text-xs mb-4'>Sign in to manage your account</p>
               <Link href='/auth/login'
                 className='bg-white text-brand-primary text-sm font-black
-                           px-4 py-2.5 rounded-xl block text-center shadow-sm w-full hover:bg-gray-50 transition-colors'>
+                           px-4 py-2.5 rounded-xl block text-center shadow-sm w-full hover:bg-gray-50 transition-colors'
+                onClick={() => {
+                    document.cookie = 'campushat-access-token=; path=/; max-age=0;';
+                    document.cookie = 'campushat-auth=; path=/; max-age=0;';
+                }}
+              >
                 Sign In / Register
               </Link>
             </div>

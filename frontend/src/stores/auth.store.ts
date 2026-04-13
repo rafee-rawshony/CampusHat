@@ -114,6 +114,7 @@ export const useAuthStore = create<AuthState>()(
                     profile_picture: state.user.profile_picture,
                     is_email_verified: state.user.is_email_verified,
                     verification_status: state.user.verification_status,
+                    verification_rejection_reason: state.user.verification_rejection_reason,
                     seller_application_status: state.user.seller_application_status,
                 } : null,
             }),

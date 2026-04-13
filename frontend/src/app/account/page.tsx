@@ -150,7 +150,27 @@ export default function AccountPage() {
                 </form>
             </div>
 
-            {user.role === 'normal_user' && (
+            {user.verification_status === 'pending' && (
+                <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-start gap-4">
+                    <span className="text-xl">🕐</span>
+                    <div>
+                        <h3 className="font-bold text-blue-900">Verification under review</h3>
+                        <p className="text-sm text-blue-700 mt-0.5">Usually takes 24-48 hours. We'll email you once it's approved.</p>
+                    </div>
+                </div>
+            )}
+
+            {(user.verification_status === 'approved' || user.role === 'student' || user.role === 'faculty') && (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-start gap-4">
+                    <span className="text-xl font-bold text-emerald-600">✓</span>
+                    <div>
+                        <h3 className="font-bold text-emerald-900">Verified Student</h3>
+                        <p className="text-sm text-emerald-700 mt-0.5">Your student status has been successfully verified.</p>
+                    </div>
+                </div>
+            )}
+
+            {(user.verification_status === 'not_submitted' || !user.verification_status) && user.role === 'normal_user' && (
                 <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
                         <div className="bg-amber-100 p-3 rounded-full shrink-0">
