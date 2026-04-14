@@ -167,7 +167,7 @@ export default function SellerStorePage() {
                     {/* RATINGS QUICK SUMMARY */}
                     <div className="shrink-0 flex items-center bg-gray-50 rounded-2xl p-4 border border-gray-100 w-full sm:w-auto mt-4 md:mt-0">
                         <div className="text-center px-4">
-                            <div className="text-3xl font-black text-gray-900 mb-1">{store.rating.toFixed(1)}</div>
+                            <div className="text-3xl font-black text-gray-900 mb-1">{Number(store.rating || 0).toFixed(1)}</div>
                             <div className="flex justify-center mb-1"><Star className="h-4 w-4 text-amber-500 fill-amber-500" /></div>
                             <div className="text-xs text-brand-primary font-bold hover:underline cursor-pointer">{store.reviews_count} Reviews</div>
                         </div>

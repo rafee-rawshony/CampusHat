@@ -43,7 +43,7 @@ export function ProductCard({ product }: ProductCardProps) {
     const router = useRouter()
     const [isWishlisted, setIsWishlisted] = useState(false) // Optimistic state for now
 
-    const primaryImage = product.images.find(img => img.is_primary)?.image_url || product.images[0]?.image_url
+    const primaryImage = product.images?.find(img => img.is_primary)?.image_url || product.images?.[0]?.image_url || null
     const isOutOfStock = product.stock_quantity <= 0
     const price = product.discount_price ? parseFloat(product.discount_price) : parseFloat(product.base_price)
 

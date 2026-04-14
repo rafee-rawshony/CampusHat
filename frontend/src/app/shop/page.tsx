@@ -8,6 +8,7 @@ import { api } from '@/lib/api'
 import { ProductCard, ProductCardSkeleton } from '@/components/mall/ProductCard'
 import { Filter, ChevronDown, List as ListIcon, Grid as GridIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { SharedMallSidebar } from '@/components/mall/SharedMallSidebar'
 
 export default function ShopPage() {
     return (
@@ -119,84 +120,36 @@ function ShopPageContent() {
                 </div>
 
                 {/* LEFT SIDEBAR: FILTERS */}
-                <aside className={`w-full md:w-[260px] shrink-0 space-y-6 ${isMobileFiltersOpen ? 'fixed inset-0 z-50 bg-white p-6 overflow-y-auto' : 'hidden md:block'}`}>
-                    <div className="flex items-center justify-between mb-2">
-                        <h2 className="font-black text-gray-900 text-lg">Filters</h2>
-                        <button onClick={resetFilters} className="text-xs font-bold text-gray-400 hover:text-brand-primary transition-colors">
-                            Reset All
-                        </button>
-                    </div>
-
-                    <div className="space-y-6">
-                        {/* Categories */}
-                        <div>
-                            <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-3">Categories</h3>
-                            <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
-                                {(categories || []).map((cat: any) => (
-                                    <label key={cat.id || cat.slug} className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer hover:text-brand-primary group">
-                                        <input 
-                                            type="radio" 
-                                            name="category"
-                                            checked={filters.category === cat.slug}
-                                            onChange={() => handleFilterChange('category', cat.slug)}
-                                            className="w-4 h-4 text-brand-primary border-gray-300 focus:ring-brand-primary"
-                                        />
-                                        {cat.name}
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Price Range */}
-                        <div>
-                            <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-3">Price Range</h3>
-                            <div className="flex items-center justify-between gap-2 mb-3">
-                                <input 
-                                    type="number" 
-                                    placeholder="Min ৳" 
-                                    value={localMin}
-                                    onChange={(e) => setLocalMin(e.target.value)}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary" 
-                                />
-                                <span className="text-gray-400">-</span>
-                                <input 
-                                    type="number" 
-                                    placeholder="Max ৳" 
-                                    value={localMax}
-                                    onChange={(e) => setLocalMax(e.target.value)}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary" 
-                                />
-                            </div>
-                            <Button onClick={applyPriceFilter} variant="outline" className="w-full text-xs font-bold rounded-xl border-gray-200">
-                                Apply Filter
-                            </Button>
-                        </div>
-
-                        {/* Availability */}
-                        <div>
-                            <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-3">Availability</h3>
-                            <div className="space-y-2">
-                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
-                                    <input 
-                                        type="checkbox" 
-                                        checked={filters.in_stock === 'true'}
-                                        onChange={(e) => handleFilterChange('in_stock', e.target.checked ? 'true' : '')}
-                                        className="w-4 h-4 rounded text-brand-primary border-gray-300 focus:ring-brand-primary"
-                                    />
-                                    In Stock Only
-                                </label>
-                            </div>
-                        </div>
-                    </div>
+                <div className="w-full md:w-[260px] lg:w-[280px] shrink-0">
+                    <SharedMallSidebar 
+                        mode="filter"
+                        showSearch={true}
+                        searchQuery={filters.search}
+                        onSearchChange={(val) => handleFilterChange('q', val)}
+                        searchPlaceholder="Search products..."
+                        showCategories={true}
+                        selectedCategories={filters.category ? [filters.category] : []}
+                        onCategoryToggle={(slug) => handleFilterChange('category', filters.category === slug ? '' : slug)}
+                        showPriceRange={true}
+                        localMinPrice={localMin}
+                        localMaxPrice={localMax}
+                        onMinPriceChange={setLocalMin}
+                        onMaxPriceChange={setLocalMax}
+                        onApplyPrice={applyPriceFilter}
+                        showAvailability={true}
+                        inStockOnly={filters.in_stock === 'true'}
+                        onInStockChange={(val) => handleFilterChange('in_stock', val ? 'true' : '')}
+                        className={isMobileFiltersOpen ? 'fixed inset-0 z-50 bg-[#F5F5F5] p-6 overflow-y-auto rounded-none border-none' : 'hidden md:block sticky top-4'}
+                    />
 
                     {isMobileFiltersOpen && (
-                        <div className="mt-8 pt-4 border-t border-gray-100 pb-20">
-                            <Button className="w-full bg-brand-primary hover:bg-brand-dark rounded-xl font-bold" onClick={() => setIsMobileFiltersOpen(false)}>
-                                Show Results
+                        <div className="md:hidden mt-8 pt-4 border-t border-gray-100 pb-20 fixed bottom-0 left-0 right-0 p-4 bg-white z-[60] shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
+                            <Button className="w-full bg-[#4C3B8A] hover:bg-gray-800 rounded-xl font-bold h-12" onClick={() => setIsMobileFiltersOpen(false)}>
+                                View Results ({products.length})
                             </Button>
                         </div>
                     )}
-                </aside>
+                </div>
 
                 {/* RIGHT CONTENT: Products */}
                 <main className="flex-1 space-y-6">
