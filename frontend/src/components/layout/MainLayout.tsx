@@ -6,12 +6,14 @@ import { Navbar } from './Navbar'
 import { SecondaryNav } from './SecondaryNav'
 import { MobileBottomNav } from './MobileBottomNav'
 import { Footer } from './Footer'
+import { usePathname } from 'next/navigation'
 
 interface MainLayoutProps {
     children: React.ReactNode
 }
 
 export function MainLayout({ children }: MainLayoutProps) {
+    const pathname = usePathname()
     const headerRef = useRef<HTMLElement>(null)
     const [headerHeight, setHeaderHeight] = useState(0)
 
@@ -25,6 +27,12 @@ export function MainLayout({ children }: MainLayoutProps) {
         window.addEventListener('resize', update)
         return () => window.removeEventListener('resize', update)
     }, [])
+
+    // Exclude global layout wrappers for admin dashboard routes
+    // as it manages its own internal Sidebar and top bar.
+    if (pathname && pathname.startsWith('/admin')) {
+        return <>{children}</>
+    }
 
     return (
         <div className="min-h-screen flex flex-col">

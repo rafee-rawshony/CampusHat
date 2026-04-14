@@ -42,10 +42,32 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 .catch(() => setPermissions([]))
         }
 
-        // Initialize pending counts block if needed
-        api.get('/admin/approvals/counts/')
-            .then(r => setPendingCounts({ total: r.data?.data?.total || r.data?.total || 0}))
-            .catch(()=> {/* silent ignore */})
+        const fetchPendingCounts = async () => {
+             try {
+                const results = await Promise.allSettled([
+                    api.get('/admin/verifications/pending/?page_size=1'),
+                    api.get('/admin/sellers/pending/?page_size=1'),
+                    api.get('/admin/marketplace/pending/?page_size=1'),
+                ])
+                let total = 0
+                results.forEach(result => {
+                    if (result.status === 'fulfilled') {
+                        const count = result.value.data?.data?.pagination?.count
+                            ?? result.value.data?.count
+                            ?? result.value.data?.data?.length
+                            ?? 0
+                        total += count
+                    }
+                })
+                setPendingCounts({ total })
+            } catch {
+                // silently fail — badge just won't show
+            }
+        }
+
+        fetchPendingCounts()
+        const interval = setInterval(fetchPendingCounts, 60_000)
+        return () => clearInterval(interval)
 
     }, [isAuthenticated, isAdmin, isModerator, router, setPendingCounts])
 
