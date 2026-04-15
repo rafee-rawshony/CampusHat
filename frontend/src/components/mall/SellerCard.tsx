@@ -2,7 +2,6 @@
 
 import React from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { Star } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -10,120 +9,103 @@ export interface SellerCardProps {
     store: {
         id: string
         slug: string
-        store_name: string
-        store_category?: string
+        name?: string
+        store_name?: string
+        description?: string
+        logo?: string
         logo_url?: string
         profile_picture?: string
-        color?: string
+        banner?: string
+        store_banner?: string
         banner_color?: string
+        color?: string
+        badge_label?: string
+        follower_count?: number
+        followers_count?: number
+        product_count?: number
+        total_products?: number
         rating_avg?: number | string
-        total_products?: number | string
         created_at?: string
     }
 }
 
-// Map color classes to hex for fallback rendering
-const FALLBACK_COLORS = [
-    '#3B82F6', // Blue
-    '#F59E0B', // Orange
-    '#6366F1', // Indigo
-    '#EC4899', // Pink
-    '#10B981', // Green
-]
+const FALLBACK_COLORS = ['#4C3B8A', '#3B82F6', '#F59E0B', '#10B981', '#EC4899', '#6366F1']
 
 export function SellerCard({ store }: SellerCardProps) {
-    const storeName = store.store_name || (store as any).name || 'CampusHat Partner'
+    const storeName = store.name || store.store_name || 'CampusHat Store'
+    const initials = storeName.slice(0, 2).toUpperCase()
 
-    // Generate initials (up to 2 chars)
-    const initials = storeName.substring(0, 2).toUpperCase()
-    
-    // Attempt extracting year
-    const memberSinceYear = store.created_at ? new Date(store.created_at).getFullYear() : '2023'
+    const bannerColor = (store.banner_color && store.banner_color.startsWith('#'))
+        ? store.banner_color
+        : FALLBACK_COLORS[storeName.length % FALLBACK_COLORS.length]
 
-    // Colors mapping (handling old classes vs new hex if present)
-    let bannerColor = store.banner_color || store.color
-    if (!bannerColor || !bannerColor.startsWith('#')) {
-        // use a determinist fallback based on ID length or string
-        const hash = storeName.length % FALLBACK_COLORS.length
-        bannerColor = FALLBACK_COLORS[hash]
-    }
-
-    // Default numeric falsy handling
-    const rating = Number(store.rating_avg) || 0
-    // If backend doesn't provide products count yet, fallback to a pseudo-random or 0
-    const productsCount = store.total_products !== undefined ? store.total_products : (storeName.length % 10 + 1)
+    const bannerUrl = store.banner || store.store_banner || null
+    const logoUrl   = store.logo || store.logo_url || store.profile_picture || null
+    const rating    = Number(store.rating_avg || 0)
+    const products  = store.product_count ?? store.total_products ?? 0
+    const followers = store.follower_count ?? store.followers_count ?? 0
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col relative group hover:shadow-md transition-shadow">
-            
-            {/* Top Banner Area */}
-            <div 
-                className="h-[100px] w-full flex items-center justify-center px-4"
-                style={{ backgroundColor: bannerColor }}
-            >
-                {/* Category or Banner text */}
-                <h3 className="text-white font-medium text-[15px] truncate max-w-full -mt-2">
-                    {store.store_category || 'Official Partner'}
-                </h3>
-            </div>
+        <Link href={`/sellers/${store.slug}`} className="group block">
+            <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-md transition-all cursor-pointer">
 
-            {/* Logo Center Circle */}
-            <div className="relative -mt-10 mx-auto z-10 w-20 h-20 rounded-full border-4 border-white bg-white shadow-sm overflow-hidden flex items-center justify-center">
-                {store.logo_url || store.profile_picture ? (
-                    <Image 
-                        src={store.logo_url || store.profile_picture || ''} 
-                        alt={storeName} 
-                        fill 
-                        className="object-cover" 
-                    />
-                ) : (
-                    <div 
-                        className="w-full h-full flex items-center justify-center text-white text-2xl font-bold"
+                {/* Banner */}
+                <div className="h-24 relative w-full" style={{ backgroundColor: bannerColor }}>
+                    {bannerUrl && (
+                        <img src={bannerUrl} alt={storeName} className="w-full h-full object-cover" />
+                    )}
+                </div>
+
+                {/* Logo — overlaps banner */}
+                <div className="relative px-4">
+                    <div
+                        className="w-12 h-12 rounded-xl border-2 border-white shadow-sm overflow-hidden -mt-5 inline-flex items-center justify-center"
                         style={{ backgroundColor: bannerColor }}
                     >
-                        {initials}
-                    </div>
-                )}
-            </div>
-
-            {/* Body */}
-            <div className="flex-1 px-4 pt-3 pb-5 flex flex-col items-center">
-                
-                {/* Store Name & Year */}
-                <h2 className="font-bold text-gray-900 text-[17px] text-center line-clamp-1 mb-0.5">
-                    {storeName}
-                </h2>
-                <p className="text-[11px] text-gray-400 font-medium mb-4">
-                    Member since {memberSinceYear}
-                </p>
-
-                {/* Stats Row */}
-                <div className="flex items-center gap-6 mb-5">
-                    <div className="flex flex-col items-center">
-                        <div className="flex items-center gap-1 font-bold text-gray-900 text-sm">
-                            {rating > 0 ? rating.toFixed(1) : 'New'}
-                            <Star className="w-3.5 h-3.5 fill-[#FBBF24] text-[#FBBF24]" />
-                        </div>
-                        <span className="text-[10px] text-gray-500 font-medium mt-0.5 uppercase tracking-wide">Rating</span>
-                    </div>
-                    
-                    <div className="h-6 w-[1px] bg-gray-200"></div>
-                    
-                    <div className="flex flex-col items-center">
-                        <span className="font-bold text-gray-900 text-sm">{productsCount}</span>
-                        <span className="text-[10px] text-gray-500 font-medium mt-0.5 uppercase tracking-wide">Products</span>
+                        {logoUrl ? (
+                            <img src={logoUrl} alt={storeName} className="w-full h-full object-cover" />
+                        ) : (
+                            <span className="text-white font-bold text-sm">{initials}</span>
+                        )}
                     </div>
                 </div>
 
-                {/* Button */}
-                <Link 
-                    href={`/sellers/${store.slug}`}
-                    className="w-full mt-auto block text-center bg-[#4C3B8A]/90 hover:bg-[#4C3B8A] text-white font-semibold py-2.5 rounded-lg text-[13px] transition-colors"
-                >
-                    Visit Store
-                </Link>
+                {/* Body */}
+                <div className="pt-2 px-4 pb-4">
+                    <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-bold text-gray-900 text-sm leading-tight line-clamp-1">
+                            {storeName}
+                        </h3>
+                    </div>
+
+                    {store.badge_label && (
+                        <span className="text-[10px] bg-[#4C3B8A]/10 text-[#4C3B8A] font-semibold px-2 py-0.5 rounded-full mt-1 inline-block">
+                            {store.badge_label}
+                        </span>
+                    )}
+
+                    {/* Stats */}
+                    <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
+                        <span>{products} products</span>
+                        <span>{followers.toLocaleString()} followers</span>
+                    </div>
+
+                    {/* Rating */}
+                    {rating > 0 && (
+                        <div className="flex items-center gap-1 mt-1.5">
+                            <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                            <span className="text-xs font-semibold text-gray-700">{rating.toFixed(1)}</span>
+                        </div>
+                    )}
+
+                    {/* CTA Button */}
+                    <div className="mt-3">
+                        <span className="block w-full border border-[#4C3B8A] text-[#4C3B8A] text-xs font-semibold text-center py-2 rounded-lg hover:bg-[#4C3B8A] hover:text-white transition-colors group-hover:bg-[#4C3B8A] group-hover:text-white">
+                            Visit Store
+                        </span>
+                    </div>
+                </div>
             </div>
-            
-        </div>
+        </Link>
     )
 }

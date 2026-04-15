@@ -1,70 +1,82 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
-import { ChevronRight, SearchX } from 'lucide-react'
-import { ProductCard, ProductCardSkeleton } from '@/components/mall/ProductCard'
+import { ChevronRight } from 'lucide-react'
+import * as LucideIcons from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 export default function CategoriesRootPage() {
-    // Fetch all products since no specific category is selected
-    const { data: productsData, isLoading: productsLoading } = useQuery({
-        queryKey: ['mall-products-all'],
-        queryFn: () => api.get('/mall/products/', { params: { is_active: true } }).then(r => { 
-            const res = r.data?.data?.results || r.data?.results || r.data?.data || r.data; 
-            return Array.isArray(res) ? res : [] 
-        }),
+    const { data: categoriesData, isLoading } = useQuery({
+        queryKey: ['mall-categories'],
+        queryFn: () =>
+            api.get('/mall/categories/').then(r => {
+                const res = r.data?.data?.results || r.data?.results || r.data?.data || r.data
+                return Array.isArray(res) ? res : []
+            }),
+        staleTime: 300_000,
     })
 
-    const products = productsData || []
+    const categories: any[] = categoriesData || []
 
     return (
-        <>
-            {/* Breadcrumbs */}
-            <div className="flex items-center text-xs font-bold text-gray-400 gap-2 mb-2">
-                <Link href="/" className="hover:text-brand-primary transition-colors">Home</Link>
-                <ChevronRight className="w-3 h-3" />
-                <span className="text-gray-900">Categories</span>
-            </div>
-
-            {/* Header Region */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
-                <h1 className="text-2xl md:text-3xl font-black text-gray-900 uppercase">
-                    ALL PRODUCTS
-                </h1>
-                <p className="text-sm font-bold text-gray-500 bg-white px-3 py-1 rounded-full shadow-sm border border-gray-100">
-                    {productsLoading ? '...' : products.length} products found
-                </p>
-            </div>
-
-            {/* Products Grid */}
-            {productsLoading ? (
-                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-                    {Array(8).fill(null).map((_, i) => <ProductCardSkeleton key={i} />)}
+        <div className="bg-[#F5F5F5] min-h-screen py-6 md:py-8">
+            <div className="max-w-7xl mx-auto px-4">
+                {/* Breadcrumb */}
+                <div className="flex items-center text-xs font-semibold text-gray-400 gap-2 mb-5">
+                    <Link href="/" className="hover:text-[#4C3B8A] transition-colors">Home</Link>
+                    <ChevronRight className="w-3 h-3" />
+                    <span className="text-gray-700">Categories</span>
                 </div>
-            ) : products.length > 0 ? (
-                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-                    {products.map((product: any) => (
-                        <ProductCard key={product.id} product={product} />
-                    ))}
+
+                {/* Header */}
+                <div className="mb-6">
+                    <h1 className="font-bold text-2xl text-gray-900">Product Categories</h1>
+                    <p className="text-sm text-gray-500 mt-1">Browse all categories available on CampusHat Mall</p>
                 </div>
-            ) : (
-                <div className="bg-white rounded-2xl border border-gray-100 p-12 flex flex-col items-center justify-center text-center shadow-sm">
-                    <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-6">
-                        <SearchX className="w-10 h-10 text-gray-300" />
+
+                {/* Category Grid */}
+                {isLoading ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        {Array(10).fill(0).map((_, i) => (
+                            <div key={i} className="bg-white rounded-2xl p-5 h-[140px] animate-pulse border border-gray-100" />
+                        ))}
                     </div>
-                    <h3 className="text-xl font-black text-gray-900 mb-2">No products found</h3>
-                    <p className="text-sm font-medium text-gray-500 max-w-sm">
-                        Please check back later or browse specific categories from the sidebar.
-                    </p>
-                    <Link href="/">
-                        <button className="mt-6 bg-brand-primary text-white font-bold px-6 py-2.5 rounded-full hover:bg-brand-dark transition-all">
-                            Back to Homepage
-                        </button>
-                    </Link>
-                </div>
-            )}
-        </>
+                ) : categories.length === 0 ? (
+                    <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+                        <p className="text-gray-400 text-sm">No categories found.</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        {categories.map((cat: any) => {
+                            const IconComp = cat.icon ? (LucideIcons as any)[cat.icon] : null
+                            return (
+                                <Link
+                                    key={cat.id || cat.slug}
+                                    href={`/categories/${cat.slug}`}
+                                    className="group bg-white border border-gray-100 rounded-2xl p-5 hover:shadow-md hover:border-[#4C3B8A]/30 transition-all cursor-pointer flex flex-col items-center text-center gap-3"
+                                >
+                                    <div className="w-16 h-16 bg-[#4C3B8A]/10 rounded-2xl flex items-center justify-center group-hover:bg-[#4C3B8A]/15 transition-colors">
+                                        {IconComp ? (
+                                            <IconComp className="w-8 h-8 text-[#4C3B8A]" />
+                                        ) : (
+                                            <LucideIcons.Tag className="w-8 h-8 text-[#4C3B8A]" />
+                                        )}
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold text-gray-900 text-sm leading-tight">{cat.name}</p>
+                                        {cat.product_count !== undefined && (
+                                            <p className="text-xs text-gray-400 mt-1">{cat.product_count} products</p>
+                                        )}
+                                    </div>
+                                </Link>
+                            )
+                        })}
+                    </div>
+                )}
+            </div>
+        </div>
     )
 }
