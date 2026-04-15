@@ -18,10 +18,10 @@ export default function SellersPage() {
     // Query 
     const { data: storesRaw, isLoading } = useQuery({
         queryKey: ['all-stores-redesign'],
-        queryFn: () => api.get('/sellers/stores/').catch(() => api.get('/stores/')).then(r => { 
+        queryFn: () => api.get('/stores/').then(r => { 
             const res = r.data?.data?.results || r.data?.results || r.data?.data || r.data
             return Array.isArray(res) ? res : [] 
-        }),
+        }).catch(() => []),
         staleTime: 300_000,
     })
 

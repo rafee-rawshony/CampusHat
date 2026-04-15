@@ -47,7 +47,7 @@ export function ProductStoreInfoTab({ store }: { store: ProductStore }) {
 
         setIsUpdating(true)
         try {
-            await api.post(`/sellers/stores/${store.slug}/follow/`)
+            await api.post(`/stores/${store.slug}/follow/`)
             
             // Toggle local state
             setIsFollowing(prev => !prev)

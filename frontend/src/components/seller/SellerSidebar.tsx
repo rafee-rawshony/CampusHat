@@ -51,11 +51,10 @@ export function SellerSidebarContent() {
     }
 
     // Attempt to parse out store info if api provided it inside user, else fallback
-    // Actually, usually in a seller app you fetch the user's store from GET /sellers/my_store/
-    // For now we'll mock the styling requested until the endpoint binds
+    // Fetch the seller's own store from GET /stores/my-store/ (authenticated)
     const { data: storeData } = useQuery({
         queryKey: ['my-store'],
-        queryFn: () => api.get('/sellers/my_store/').then(r => r.data).catch(() => null),
+        queryFn: () => api.get('/stores/my-store/').then(r => r.data).catch(() => null),
         staleTime: 300_000
     })
 

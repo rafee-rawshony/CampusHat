@@ -35,7 +35,7 @@ export default function SellerStorePage() {
     // Fetch store
     const { data: store, isLoading: storeLoading, isError: storeError } = useQuery({
         queryKey: ['store', slug],
-        queryFn: () => api.get(`/sellers/stores/${slug}/`).then(r => r.data),
+        queryFn: () => api.get(`/stores/${slug}/`).then(r => r.data),
         enabled: !!slug,
         retry: 1,
     })
@@ -43,14 +43,14 @@ export default function SellerStorePage() {
     // Fetch following status
     const { data: followData } = useQuery({
         queryKey: ['store-follow', slug],
-        queryFn: () => api.get(`/sellers/stores/${slug}/follow_status/`).then(r => r.data).catch(() => ({ is_following: false })),
+        queryFn: () => api.get(`/stores/${slug}/follow_status/`).then(r => r.data).catch(() => ({ is_following: false })),
         enabled: !!slug && isAuthenticated,
     })
     const isFollowing = followData?.is_following || false
 
     // Follow toggle
     const followMutation = useMutation({
-        mutationFn: () => api.post(`/sellers/stores/${slug}/follow/`),
+        mutationFn: () => api.post(`/stores/${slug}/follow/`),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['store-follow', slug] })
             queryClient.invalidateQueries({ queryKey: ['store', slug] })

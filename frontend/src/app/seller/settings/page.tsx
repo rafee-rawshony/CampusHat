@@ -29,7 +29,7 @@ export default function SellerSettingsPage() {
 
     const { data: store } = useQuery({
         queryKey: ['my-store'],
-        queryFn: () => api.get('/sellers/my_store/').then(r => r.data).catch(() => null),
+        queryFn: () => api.get('/stores/my-store/').then(r => r.data).catch(() => null),
         staleTime: 300_000,
     })
 
@@ -54,7 +54,7 @@ export default function SellerSettingsPage() {
 
     const storeMutation = useMutation({
         mutationFn: (data: z.infer<typeof storeSchema>) =>
-            api.patch(`/sellers/stores/${store?.slug}/`, data),
+            api.patch(`/stores/${store?.slug}/`, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['my-store'] })
             toast.success('Store settings updated!')
@@ -64,7 +64,7 @@ export default function SellerSettingsPage() {
 
     const payoutMutation = useMutation({
         mutationFn: (data: z.infer<typeof payoutSchema>) =>
-            api.patch(`/sellers/stores/${store?.slug}/`, data),
+            api.patch(`/stores/${store?.slug}/`, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['my-store'] })
             toast.success('Payout settings updated!')
