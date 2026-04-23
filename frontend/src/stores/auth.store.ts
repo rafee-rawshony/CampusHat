@@ -59,14 +59,11 @@ export const useAuthStore = create<AuthState>()(
 
             setUser: (user) => set({ user, isAuthenticated: true }),
             setAccessToken: (accessToken) => {
+                // The access token lives in memory (zustand state) only.
+                // Route-protection uses the HttpOnly `refresh_token` cookie
+                // set by the backend, so we do NOT mirror the access token
+                // to a readable cookie here (that would be an XSS target).
                 set({ accessToken })
-                if (typeof window !== 'undefined') {
-                    if (accessToken) {
-                        document.cookie = `campushat-access-token=${accessToken}; path=/; max-age=86400; SameSite=Lax;`
-                    } else {
-                        document.cookie = 'campushat-access-token=; path=/; max-age=0;'
-                    }
-                }
             },
             logout: async () => {
                 try {

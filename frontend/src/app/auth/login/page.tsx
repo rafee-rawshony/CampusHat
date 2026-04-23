@@ -16,8 +16,16 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
-import { api } from '@/lib/api'
+import {
+    login as loginApi,
+    resendVerification,
+    sendOtp,
+    verifyOtp,
+} from '@/services/auth.service'
 import { useAuthStore } from '@/stores/auth.store'
+
+// OTP login is backed by /auth/otp/send/ and /auth/otp/verify/ on the backend.
+const OTP_LOGIN_ENABLED = true
 
 const loginSchema = z.object({
     email: z.string().email('Please enter a valid email'),
@@ -65,8 +73,7 @@ export default function LoginPage() {
         setIsLoading(true)
         setEmailNotVerified(false)
         try {
-            const response = await api.post('/auth/login/', data)
-            const { user, access_token } = response.data.data || response.data
+            const { user, access_token } = await loginApi(data)
             setAccessToken(access_token)
             setUser(user)
             toast.success('Welcome back!')
@@ -98,7 +105,7 @@ export default function LoginPage() {
     const handleSendOtp = async (data: OTPRequestForm) => {
         setIsLoading(true)
         try {
-            await api.post('/auth/otp/send/', { identifier: data.identifier })
+            await sendOtp({ identifier: data.identifier })
             setOtpSent(true)
             toast.success('OTP sent! Check your inbox.')
         } catch (error: any) {
@@ -111,11 +118,10 @@ export default function LoginPage() {
     const handleVerifyOtp = async () => {
         setIsLoading(true)
         try {
-            const response = await api.post('/auth/otp/verify/', {
+            const { user, access_token } = await verifyOtp({
                 identifier: otpForm.getValues('identifier'),
                 otp,
             })
-            const { user, access_token } = response.data.data || response.data
             setAccessToken(access_token)
             setUser(user)
             toast.success('Welcome!')
@@ -129,7 +135,7 @@ export default function LoginPage() {
 
     const handleResendVerification = async () => {
         try {
-            await api.post('/auth/resend-verification/', { email: unverifiedEmail })
+            await resendVerification(unverifiedEmail)
             toast.success('Verification email sent!')
         } catch {
             toast.error('Failed to resend verification')
@@ -182,16 +188,18 @@ export default function LoginPage() {
                             </TabsList>
 
                             <TabsContent value="login" className="mt-6">
-                                {/* Password / OTP sub-tabs */}
+                                {/* Password / OTP sub-tabs — OTP tab hidden until backend is ready */}
                                 <Tabs value={methodTab} onValueChange={(v) => setMethodTab(v as 'password' | 'otp')}>
-                                    <TabsList className="w-full mb-4">
-                                        <TabsTrigger value="password" className="flex-1 gap-1.5">
-                                            <Eye className="h-3.5 w-3.5" /> Password
-                                        </TabsTrigger>
-                                        <TabsTrigger value="otp" className="flex-1 gap-1.5">
-                                            <Smartphone className="h-3.5 w-3.5" /> OTP
-                                        </TabsTrigger>
-                                    </TabsList>
+                                    {OTP_LOGIN_ENABLED && (
+                                        <TabsList className="w-full mb-4">
+                                            <TabsTrigger value="password" className="flex-1 gap-1.5">
+                                                <Eye className="h-3.5 w-3.5" /> Password
+                                            </TabsTrigger>
+                                            <TabsTrigger value="otp" className="flex-1 gap-1.5">
+                                                <Smartphone className="h-3.5 w-3.5" /> OTP
+                                            </TabsTrigger>
+                                        </TabsList>
+                                    )}
 
                                     {/* Password Login */}
                                     <TabsContent value="password">
@@ -235,7 +243,8 @@ export default function LoginPage() {
                                         </form>
                                     </TabsContent>
 
-                                    {/* OTP Login */}
+                                    {/* OTP Login — kept as dead code until backend is ready */}
+                                    {OTP_LOGIN_ENABLED && (
                                     <TabsContent value="otp">
                                         {!otpSent ? (
                                             <form onSubmit={otpForm.handleSubmit(handleSendOtp)} className="space-y-4">
@@ -278,6 +287,7 @@ export default function LoginPage() {
                                             </div>
                                         )}
                                     </TabsContent>
+                                    )}
                                 </Tabs>
 
                                 {/* Join as Seller */}

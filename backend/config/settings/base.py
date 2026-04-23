@@ -223,8 +223,14 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.UserRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '100000/hour',
-        'user': '100000/hour',
+        # Baseline per-IP and per-user limits
+        'anon': '120/min',
+        'user': '600/min',
+        # Scoped throttles for sensitive endpoints
+        'login': '10/min',        # brute-force protection for password login
+        'register': '10/hour',    # limit new account spam
+        'otp_send': '5/min',      # max 5 OTP send requests per IP per minute
+        'otp_verify': '10/min',   # max 10 OTP verify attempts per IP per minute
     },
     'DATETIME_FORMAT': '%Y-%m-%dT%H:%M:%S%z',
     'DATE_FORMAT': '%Y-%m-%d',
@@ -278,6 +284,14 @@ CORS_ALLOW_HEADERS = [
     'x-csrftoken',
     'x-requested-with',
 ]
+
+# =============================================================================
+# CSRF (important when running behind Nginx on a different port)
+# =============================================================================
+
+# Example: CSRF_TRUSTED_ORIGINS=http://localhost:8081,http://127.0.0.1:8081
+_csrf_trusted = config('CSRF_TRUSTED_ORIGINS', default='', cast=Csv())
+CSRF_TRUSTED_ORIGINS = [origin for origin in _csrf_trusted if origin]
 
 # =============================================================================
 # CELERY

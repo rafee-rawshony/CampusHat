@@ -93,6 +93,21 @@ REST_FRAMEWORK['DEFAULT_RENDERER_CLASSES'] = (
 CORS_ALLOW_ALL_ORIGINS = True
 
 # =============================================================================
+# THROTTLING — Relaxed in dev so hot-reload + manual testing don't get blocked.
+# Production keeps the strict rates from base.py.
+# =============================================================================
+
+REST_FRAMEWORK['DEFAULT_THROTTLE_RATES'] = {
+    **REST_FRAMEWORK.get('DEFAULT_THROTTLE_RATES', {}),
+    'anon': '10000/min',
+    'user': '10000/min',
+    'login': '1000/min',
+    'register': '1000/hour',
+    'otp_send': '1000/min',
+    'otp_verify': '1000/min',
+}
+
+# =============================================================================
 # LOGGING
 # =============================================================================
 

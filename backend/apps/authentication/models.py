@@ -331,6 +331,88 @@ class EmailVerificationToken(UUIDMixin):
 
 
 # =============================================================================
+# OTP CODE (Passwordless Login)
+# =============================================================================
+
+class OTPCode(UUIDMixin):
+    """
+    Short-lived one-time passcode for passwordless login.
+
+    OTP codes are 6-digit numeric, stored as SHA-256 hashes (never plaintext),
+    valid for 10 minutes, and limited to 5 verification attempts. Sending a
+    new code invalidates previous unused codes for the same identifier.
+    """
+
+    PURPOSE_CHOICES = [
+        ('login', 'Login'),
+    ]
+
+    MAX_ATTEMPTS = 5
+    EXPIRY_MINUTES = 10
+
+    identifier = models.CharField(
+        max_length=255,
+        db_index=True,
+        help_text='Email address or phone number this OTP was sent to.',
+    )
+    code_hash = models.CharField(
+        max_length=64,
+        help_text='SHA-256 hash of the 6-digit OTP (plaintext is never stored).',
+    )
+    purpose = models.CharField(
+        max_length=20,
+        choices=PURPOSE_CHOICES,
+        default='login',
+        help_text='Why this OTP was issued.',
+    )
+    expires_at = models.DateTimeField(
+        db_index=True,
+        help_text='When this OTP expires.',
+    )
+    used = models.BooleanField(
+        default=False,
+        help_text='Whether this OTP has been consumed.',
+    )
+    attempts = models.PositiveSmallIntegerField(
+        default=0,
+        help_text='Number of failed verification attempts on this code.',
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text='When this OTP was created.',
+    )
+
+    class Meta:
+        db_table = 'auth_otp_codes'
+        verbose_name = 'OTP Code'
+        verbose_name_plural = 'OTP Codes'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(
+                fields=['identifier', 'used'],
+                name='idx_otp_identifier_used',
+            ),
+        ]
+
+    def __str__(self):
+        return f'OTP for {self.identifier} (used={self.used})'
+
+    @property
+    def is_expired(self):
+        """True if the OTP has passed its expiry time."""
+        return timezone.now() >= self.expires_at
+
+    @property
+    def is_valid(self):
+        """True only if the OTP can still be consumed."""
+        return (
+            not self.used
+            and not self.is_expired
+            and self.attempts < self.MAX_ATTEMPTS
+        )
+
+
+# =============================================================================
 # USER VERIFICATION (Phase 03)
 # =============================================================================
 

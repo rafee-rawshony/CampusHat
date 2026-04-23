@@ -154,7 +154,8 @@ services:
       - frontend_node_modules:/app/node_modules
     command: sh -c "npm install --legacy-peer-deps && npm run dev"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost/api/v1
+      # User PC-তে 80/8080 busy থাকলে, nginx যে port-এ expose হবে সেটাই এখানে দিন
+      - NEXT_PUBLIC_API_URL=http://localhost:8081/api/v1
     networks:
       - campushat_network
 
@@ -167,7 +168,7 @@ services:
     container_name: campushat_nginx
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "8081:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - backend_static:/app/staticfiles:ro

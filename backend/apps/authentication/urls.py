@@ -15,6 +15,8 @@ from .views import (
     LogoutView,
     MeUpdateView,
     MeView,
+    OTPSendView,
+    OTPVerifyView,
     RegisterView,
     ResendVerificationView,
     CookieTokenRefreshView,
@@ -47,6 +49,10 @@ urlpatterns = [
     path('login/', LoginView.as_view(), name='login'),
     path('token/refresh/', CookieTokenRefreshView.as_view(), name='token-refresh'),
     path('logout/', LogoutView.as_view(), name='logout'),
+
+    # Passwordless OTP Login
+    path('otp/send/', OTPSendView.as_view(), name='otp-send'),
+    path('otp/verify/', OTPVerifyView.as_view(), name='otp-verify'),
 
     # Profile (Phase 02)
     path('me/', MeView.as_view(), name='me'),
