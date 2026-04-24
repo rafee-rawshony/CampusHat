@@ -151,7 +151,7 @@ export function ExplorerResultsGrid({
                     <p className="text-sm text-gray-500 mb-4">No listings match your filters.<br/>Try removing some filters.</p>
                 )}
                 
-                <button onClick={clearFilters} className="text-[#634C9F] text-sm font-medium hover:underline">
+                <button onClick={clearFilters} className="text-[#4C3B8A] text-sm font-medium hover:underline">
                     Clear all filters
                 </button>
             </div>

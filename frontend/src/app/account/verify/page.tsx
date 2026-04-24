@@ -45,7 +45,7 @@ export default function VerifyAccountPage() {
         // While waiting for redirect to happen or user to load
         return (
             <div className="flex items-center justify-center min-h-[50vh]">
-                <div className="w-8 h-8 rounded-full border-4 border-[#634C9F] border-t-transparent animate-spin" />
+                <div className="w-8 h-8 rounded-full border-4 border-[#4C3B8A] border-t-transparent animate-spin" />
             </div>
         )
     }

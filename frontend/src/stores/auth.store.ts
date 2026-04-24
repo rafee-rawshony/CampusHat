@@ -106,9 +106,8 @@ export const useAuthStore = create<AuthState>()(
         {
             name: 'campushat-auth',
             partialize: (state) => ({
-                // Persist user profile and authentication state
-                isAuthenticated: state.isAuthenticated,
-                accessToken: state.accessToken,
+                // accessToken is EXCLUDED — lives in Zustand memory only (XSS safe)
+                // Backend uses HttpOnly refresh_token cookie for session persistence
                 user: state.user ? {
                     id: state.user.id,
                     email: state.user.email,

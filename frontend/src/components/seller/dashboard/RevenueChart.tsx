@@ -32,7 +32,7 @@ export function RevenueChart() {
 
     const { data, isLoading } = useQuery({
         queryKey: ['seller-revenue-chart', period],
-        queryFn: () => api.get(`/seller/analytics/revenue/?period=${period}`).then(r => r.data),
+        queryFn: () => api.get(`/analytics/seller/revenue/?period=${period}`).then(r => r.data?.data || r.data),
         staleTime: 60_000,
     })
 

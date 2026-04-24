@@ -82,7 +82,7 @@ function UniversitySelect({
                 type="button"
                 onClick={() => setOpen(!open)}
                 className={`w-full flex items-center justify-between h-11 px-3 rounded-xl border text-sm font-medium transition-all
-                    ${error ? 'border-red-300 bg-red-50' : open ? 'border-[#634C9F] ring-2 ring-[#634C9F]/20 bg-white' : 'border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-white'}
+                    ${error ? 'border-red-300 bg-red-50' : open ? 'border-[#4C3B8A] ring-2 ring-[#4C3B8A]/20 bg-white' : 'border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-white'}
                 `}
             >
                 <span className={selected ? 'text-gray-900' : 'text-gray-400'}>
@@ -101,7 +101,7 @@ function UniversitySelect({
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
                                 placeholder="Search university..."
-                                className="w-full pl-8 pr-3 py-2 text-sm bg-gray-50 border border-gray-100 rounded-lg outline-none focus:border-[#634C9F] focus:bg-white"
+                                className="w-full pl-8 pr-3 py-2 text-sm bg-gray-50 border border-gray-100 rounded-lg outline-none focus:border-[#4C3B8A] focus:bg-white"
                             />
                         </div>
                     </div>
@@ -114,7 +114,7 @@ function UniversitySelect({
                                 key={u.id}
                                 onClick={() => { onChange(String(u.id)); setOpen(false); setSearch('') }}
                                 className={`w-full text-left px-4 py-2.5 text-sm hover:bg-purple-50 transition-colors flex items-center justify-between
-                                    ${String(u.id) === value ? 'bg-purple-50 text-[#634C9F] font-semibold' : 'text-gray-700'}
+                                    ${String(u.id) === value ? 'bg-purple-50 text-[#4C3B8A] font-semibold' : 'text-gray-700'}
                                 `}
                             >
                                 <div>
@@ -197,7 +197,7 @@ function RegisterContent() {
                     <p className="text-gray-500 text-sm leading-relaxed mb-2">
                         We sent a verification link to
                     </p>
-                    <p className="font-bold text-[#634C9F] text-base mb-6 break-all bg-purple-50 rounded-xl px-4 py-2 inline-block">
+                    <p className="font-bold text-[#4C3B8A] text-base mb-6 break-all bg-purple-50 rounded-xl px-4 py-2 inline-block">
                         {successEmail}
                     </p>
                     <p className="text-gray-400 text-xs mb-8">
@@ -206,7 +206,7 @@ function RegisterContent() {
                     <div className="space-y-3">
                         <button
                             onClick={() => router.push(`/auth/login`)}
-                            className="w-full bg-[#634C9F] hover:bg-[#45357A] text-white font-bold py-3 px-6 rounded-xl transition-colors"
+                            className="w-full bg-[#4C3B8A] hover:bg-[#45357A] text-white font-bold py-3 px-6 rounded-xl transition-colors"
                         >
                             Continue to Login
                         </button>
@@ -232,7 +232,7 @@ function RegisterContent() {
                     {...form.register('full_name')}
                     placeholder="e.g. Rafee Rawshony"
                     className={`w-full h-11 px-3 rounded-xl border text-sm font-medium outline-none transition-all
-                        ${form.formState.errors.full_name ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 bg-gray-50 focus:border-[#634C9F] focus:ring-2 focus:ring-[#634C9F]/20 focus:bg-white'}
+                        ${form.formState.errors.full_name ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 bg-gray-50 focus:border-[#4C3B8A] focus:ring-2 focus:ring-[#4C3B8A]/20 focus:bg-white'}
                     `}
                 />
                 {form.formState.errors.full_name && (
@@ -251,7 +251,7 @@ function RegisterContent() {
                     type="email"
                     placeholder="you@university.edu.bd"
                     className={`w-full h-11 px-3 rounded-xl border text-sm font-medium outline-none transition-all
-                        ${form.formState.errors.email ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 bg-gray-50 focus:border-[#634C9F] focus:ring-2 focus:ring-[#634C9F]/20 focus:bg-white'}
+                        ${form.formState.errors.email ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 bg-gray-50 focus:border-[#4C3B8A] focus:ring-2 focus:ring-[#4C3B8A]/20 focus:bg-white'}
                     `}
                 />
                 {form.formState.errors.email && (
@@ -270,7 +270,7 @@ function RegisterContent() {
                     type="tel"
                     placeholder="+8801XXXXXXXXX"
                     className={`w-full h-11 px-3 rounded-xl border text-sm font-medium outline-none transition-all
-                        ${form.formState.errors.phone ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 bg-gray-50 focus:border-[#634C9F] focus:ring-2 focus:ring-[#634C9F]/20 focus:bg-white'}
+                        ${form.formState.errors.phone ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 bg-gray-50 focus:border-[#4C3B8A] focus:ring-2 focus:ring-[#4C3B8A]/20 focus:bg-white'}
                     `}
                 />
                 {form.formState.errors.phone && (
@@ -302,7 +302,7 @@ function RegisterContent() {
                         type={showPw ? 'text' : 'password'}
                         placeholder="Min. 8 characters"
                         className={`w-full h-11 px-3 pr-10 rounded-xl border text-sm font-medium outline-none transition-all
-                            ${form.formState.errors.password ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 bg-gray-50 focus:border-[#634C9F] focus:ring-2 focus:ring-[#634C9F]/20 focus:bg-white'}
+                            ${form.formState.errors.password ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 bg-gray-50 focus:border-[#4C3B8A] focus:ring-2 focus:ring-[#4C3B8A]/20 focus:bg-white'}
                         `}
                     />
                     <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -344,7 +344,7 @@ function RegisterContent() {
                         type={showConfirmPw ? 'text' : 'password'}
                         placeholder="Re-enter password"
                         className={`w-full h-11 px-3 pr-10 rounded-xl border text-sm font-medium outline-none transition-all
-                            ${form.formState.errors.confirm_password ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 bg-gray-50 focus:border-[#634C9F] focus:ring-2 focus:ring-[#634C9F]/20 focus:bg-white'}
+                            ${form.formState.errors.confirm_password ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 bg-gray-50 focus:border-[#4C3B8A] focus:ring-2 focus:ring-[#4C3B8A]/20 focus:bg-white'}
                         `}
                     />
                     <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -365,13 +365,13 @@ function RegisterContent() {
                     type="checkbox"
                     id="terms"
                     {...form.register('terms')}
-                    className="mt-0.5 w-4 h-4 rounded border-gray-200 accent-[#634C9F] cursor-pointer"
+                    className="mt-0.5 w-4 h-4 rounded border-gray-200 accent-[#4C3B8A] cursor-pointer"
                 />
                 <label htmlFor="terms" className="text-sm text-gray-500 leading-snug cursor-pointer">
                     I agree to the{' '}
-                    <Link href="/terms" className="text-[#634C9F] font-semibold hover:underline">Terms of Service</Link>
+                    <Link href="/terms" className="text-[#4C3B8A] font-semibold hover:underline">Terms of Service</Link>
                     {' '}and{' '}
-                    <Link href="/privacy" className="text-[#634C9F] font-semibold hover:underline">Privacy Policy</Link>
+                    <Link href="/privacy" className="text-[#4C3B8A] font-semibold hover:underline">Privacy Policy</Link>
                 </label>
             </div>
             {form.formState.errors.terms && (
@@ -385,7 +385,7 @@ function RegisterContent() {
             <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-12 bg-[#634C9F] hover:bg-[#45357A] disabled:opacity-60 text-white font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-[#634C9F]/25 hover:shadow-[#634C9F]/40 mt-2"
+                className="w-full h-12 bg-[#4C3B8A] hover:bg-[#45357A] disabled:opacity-60 text-white font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-[#4C3B8A]/25 hover:shadow-[#4C3B8A]/40 mt-2"
             >
                 {isLoading ? (
                     <><Loader2 className="w-4 h-4 animate-spin" /> Creating account...</>
@@ -405,12 +405,12 @@ function RegisterContent() {
                     <div className="mb-8">
                         <Link href="/" className="inline-flex items-center gap-1 mb-6">
                             <span className="text-2xl font-black text-gray-800">Campus</span>
-                            <span className="text-2xl font-black text-[#634C9F]">Hat</span>
+                            <span className="text-2xl font-black text-[#4C3B8A]">Hat</span>
                         </Link>
                         <h1 className="text-3xl font-black text-gray-900 leading-tight">Create your account</h1>
                         <p className="text-gray-500 mt-2 text-sm">
                             Already have an account?{' '}
-                            <Link href="/auth/login" className="text-[#634C9F] font-bold hover:underline">Sign in</Link>
+                            <Link href="/auth/login" className="text-[#4C3B8A] font-bold hover:underline">Sign in</Link>
                         </p>
                     </div>
 
@@ -440,22 +440,22 @@ function RegisterContent() {
                                 onClick={() => setRegType(type)}
                                 className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all duration-200 text-center
                                     ${regType === type
-                                        ? 'border-[#634C9F] bg-[#634C9F]/5 shadow-md'
+                                        ? 'border-[#4C3B8A] bg-[#4C3B8A]/5 shadow-md'
                                         : 'border-gray-100 bg-white hover:border-gray-200 hover:bg-gray-50'
                                     }
                                 `}
                             >
                                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors
-                                    ${regType === type ? 'bg-[#634C9F] text-white' : 'bg-gray-100 text-gray-500'}
+                                    ${regType === type ? 'bg-[#4C3B8A] text-white' : 'bg-gray-100 text-gray-500'}
                                 `}>
                                     <Icon className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <p className={`text-sm font-bold leading-tight ${regType === type ? 'text-[#634C9F]' : 'text-gray-700'}`}>{label}</p>
+                                    <p className={`text-sm font-bold leading-tight ${regType === type ? 'text-[#4C3B8A]' : 'text-gray-700'}`}>{label}</p>
                                     <p className="text-[10px] text-gray-400 mt-0.5">{sub}</p>
                                 </div>
                                 {regType === type && (
-                                    <div className="w-5 h-5 rounded-full bg-[#634C9F] flex items-center justify-center">
+                                    <div className="w-5 h-5 rounded-full bg-[#4C3B8A] flex items-center justify-center">
                                         <Check className="w-3 h-3 text-white stroke-[3]" />
                                     </div>
                                 )}
@@ -496,7 +496,7 @@ function RegisterContent() {
             </div>
 
             {/* Right — Hero Panel (desktop only) */}
-            <div className="hidden lg:flex w-[45%] xl:w-[42%] relative bg-gradient-to-br from-[#45357A] via-[#634C9F] to-[#7B5EA7] items-center justify-center p-12 overflow-hidden">
+            <div className="hidden lg:flex w-[45%] xl:w-[42%] relative bg-gradient-to-br from-[#45357A] via-[#4C3B8A] to-[#7B5EA7] items-center justify-center p-12 overflow-hidden">
                 {/* Background decorations */}
                 <div className="absolute inset-0 overflow-hidden">
                     <div className="absolute -top-40 -right-20 w-[500px] h-[500px] rounded-full bg-white/5 blur-[80px]" />
@@ -563,7 +563,7 @@ export default function RegisterPage() {
         <Suspense fallback={
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
                 <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="w-8 h-8 text-[#634C9F] animate-spin" />
+                    <Loader2 className="w-8 h-8 text-[#4C3B8A] animate-spin" />
                     <p className="text-gray-400 text-sm font-medium">Loading...</p>
                 </div>
             </div>

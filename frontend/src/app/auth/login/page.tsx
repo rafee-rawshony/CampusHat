@@ -237,6 +237,11 @@ export default function LoginPage() {
                                                     <p className="text-xs text-destructive">{loginForm.formState.errors.password.message}</p>
                                                 )}
                                             </div>
+                                            <div className="flex justify-end">
+                                                <Link href="/auth/forgot-password" className="text-xs text-brand-primary hover:underline font-medium">
+                                                    Forgot password?
+                                                </Link>
+                                            </div>
                                             <Button type="submit" className="w-full" disabled={isLoading}>
                                                 {isLoading ? 'Signing in...' : 'Sign In'}
                                             </Button>
@@ -321,7 +326,7 @@ export default function LoginPage() {
                 </div>
             </div>
 
-            <div className="hidden lg:flex flex-1 relative bg-gradient-to-br from-[#634C9F] to-[#45357A] items-center justify-center p-12 overflow-hidden">
+            <div className="hidden lg:flex flex-1 relative bg-gradient-to-br from-[#4C3B8A] to-[#45357A] items-center justify-center p-12 overflow-hidden">
                 {/* Decorative background elements */}
                 <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
                     <div className="absolute -top-[20%] -right-[10%] w-[70%] h-[70%] rounded-full bg-white/5 blur-[120px]"></div>

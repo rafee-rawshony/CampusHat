@@ -105,7 +105,7 @@ export function ExplorerSearchBar() {
 
     return (
         <div className="max-w-2xl mx-auto w-full mb-6 relative">
-            <div className={`flex items-center bg-white border ${isFocused ? 'border-[#634C9F] ring-1 ring-[#634C9F]' : 'border-gray-300'} rounded-xl px-4 py-3 gap-3 shadow-sm transition-all`}>
+            <div className={`flex items-center bg-white border ${isFocused ? 'border-[#4C3B8A] ring-1 ring-[#4C3B8A]' : 'border-gray-300'} rounded-xl px-4 py-3 gap-3 shadow-sm transition-all`}>
                 <Search className="w-5 h-5 text-gray-400 shrink-0" />
                 
                 <input
@@ -150,7 +150,7 @@ export function ExplorerSearchBar() {
                     </div>
                     {recentSearches.length > 0 && (
                         <div className="bg-gray-50 border-t border-gray-100 px-4 py-2 flex justify-end">
-                            <button onClick={clearHistory} className="text-xs text-[#634C9F] hover:underline font-medium">
+                            <button onClick={clearHistory} className="text-xs text-[#4C3B8A] hover:underline font-medium">
                                 Clear history
                             </button>
                         </div>

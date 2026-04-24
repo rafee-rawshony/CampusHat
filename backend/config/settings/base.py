@@ -32,6 +32,7 @@ ALLOWED_HOSTS = config('DJANGO_ALLOWED_HOSTS', default='localhost', cast=Csv())
 # =============================================================================
 
 DJANGO_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -49,6 +50,7 @@ THIRD_PARTY_APPS = [
     'storages',
     'drf_spectacular',
     'django_celery_beat',
+    'channels',
 ]
 
 LOCAL_APPS = [
@@ -112,6 +114,20 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
+ASGI_APPLICATION = 'config.asgi.application'
+
+# =============================================================================
+# CHANNEL LAYERS (Django Channels — WebSocket support)
+# =============================================================================
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [config('REDIS_URL', default='redis://localhost:6379/0')],
+        },
+    },
+}
 
 # =============================================================================
 # DATABASE — PostgreSQL

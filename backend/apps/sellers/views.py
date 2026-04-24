@@ -13,7 +13,9 @@ from rest_framework.views import APIView
 
 from core.permissions import IsApprovedSeller
 
-from .models import SellerProfile, Store, SellerPayoutRequest
+from django.db.models import F
+
+from .models import SellerProfile, Store, SellerPayoutRequest, StoreFollower
 from .serializers import (
     SellerRegistrationSerializer, SellerProfileSerializer,
     StoreCreateSerializer, StoreUpdateSerializer, StoreDetailSerializer,
@@ -300,6 +302,36 @@ class PublicStoreListView(GenericAPIView):
         })
 
 
+class FeaturedStoresView(APIView):
+    """GET /api/v1/sellers/featured/ — top stores by rating and follower count."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        limit = int(request.query_params.get('limit', 8))
+        stores = Store.objects.filter(
+            status='active', deleted_at__isnull=True,
+        ).order_by('-rating', '-follower_count')[:limit]
+
+        data = []
+        for store in stores:
+            seller = getattr(store, 'seller', None)
+            data.append({
+                'id': str(store.id),
+                'store': {
+                    'slug': store.slug,
+                    'name': store.name,
+                    'logo': store.logo.url if store.logo else None,
+                    'banner_color': '#4C3B8A',
+                    'badge_label': store.badge_label,
+                },
+                'rating_avg': float(store.rating),
+                'follower_count': store.follower_count,
+            })
+
+        return Response({'success': True, 'data': data})
+
+
 # =============================================================================
 # PAYOUTS
 # =============================================================================
@@ -336,4 +368,65 @@ class PayoutListView(GenericAPIView):
         return Response({
             'success': True, 'message': 'Data retrieved successfully.',
             'data': serializer.data,
+        })
+
+
+# =============================================================================
+# STORE FOLLOW / UNFOLLOW
+# =============================================================================
+
+class StoreFollowToggleView(APIView):
+    """POST /api/v1/stores/<slug>/follow/ — toggle follow/unfollow."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, slug):
+        try:
+            store = Store.objects.get(slug=slug, deleted_at__isnull=True)
+        except Store.DoesNotExist:
+            return Response(
+                {'success': False, 'message': 'Store not found.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        existing = StoreFollower.objects.filter(store=store, user=request.user).first()
+        if existing:
+            existing.delete()
+            Store.objects.filter(pk=store.pk).update(follower_count=F('follower_count') - 1)
+            return Response({
+                'success': True,
+                'message': 'Unfollowed.',
+                'data': {'is_following': False},
+            })
+
+        StoreFollower.objects.create(store=store, user=request.user)
+        Store.objects.filter(pk=store.pk).update(follower_count=F('follower_count') + 1)
+        return Response({
+            'success': True,
+            'message': 'Following.',
+            'data': {'is_following': True},
+        }, status=status.HTTP_201_CREATED)
+
+
+class StoreFollowStatusView(APIView):
+    """GET /api/v1/stores/<slug>/follow_status/ — check if user follows store."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, slug):
+        try:
+            store = Store.objects.get(slug=slug, deleted_at__isnull=True)
+        except Store.DoesNotExist:
+            return Response(
+                {'success': False, 'message': 'Store not found.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        is_following = StoreFollower.objects.filter(
+            store=store, user=request.user
+        ).exists()
+
+        return Response({
+            'success': True,
+            'data': {'is_following': is_following},
         })

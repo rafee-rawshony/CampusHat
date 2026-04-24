@@ -29,8 +29,9 @@ export function ListingContactSection({ listing, isAuthenticated, onOpenOfferMod
 
     const handleSendMessage = async () => {
         try {
-            const res = await api.post('/marketplace/chats/start/', { listing_id: listing.id })
-            router.push(`/marketplace/chat/${res.data?.chat_id || res.data?.id}`)
+            const res = await api.post('/marketplace/chats/start/', { product_id: listing.id })
+            const chatData = res.data?.data || res.data
+            router.push(`/marketplace/chat/${chatData?.id || chatData?.chat_id}`)
         } catch {
             router.push(`/marketplace/chat?user=${listing.user_info.id}&listing=${listing.id}`)
         }
@@ -104,7 +105,7 @@ export function ListingContactSection({ listing, isAuthenticated, onOpenOfferMod
                 <div className="flex flex-col gap-3">
                     <Button
                         onClick={handleSendMessage}
-                        className="w-full bg-[#634C9F] hover:bg-[#523f8a] text-white rounded-xl h-12 font-bold shadow-md gap-2"
+                        className="w-full bg-[#4C3B8A] hover:bg-[#2D1B69] text-white rounded-xl h-12 font-bold shadow-md gap-2"
                     >
                         <MessageCircle className="w-5 h-5" />
                         Send Message

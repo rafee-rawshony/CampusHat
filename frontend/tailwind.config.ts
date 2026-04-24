@@ -7,9 +7,9 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          primary: '#634C9F',
-          dark: '#523f8a',
-          light: '#F5F3FF',
+          primary: '#4C3B8A',
+          dark: '#2D1B69',
+          light: '#EDE9FF',
           accent: '#1A1A2E',
         },
         marketplace: {

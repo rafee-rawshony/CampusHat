@@ -21,7 +21,7 @@ export default function SellerOrdersPage() {
 
     const { data: counts } = useQuery({
         queryKey: ['seller-order-counts'],
-        queryFn: () => api.get('/seller/orders/counts/').then(r => r.data).catch(() => ({})),
+        queryFn: () => api.get('/seller/orders/counts/').then(r => r.data?.data || r.data).catch(() => ({})),
         staleTime: 30_000,
     })
 

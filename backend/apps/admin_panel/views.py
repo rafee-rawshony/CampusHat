@@ -69,7 +69,7 @@ class AdminDashboardView(APIView):
 
         # Pending approvals
         pending_seller_approvals = SellerProfile.objects.filter(
-            is_approved=False, is_rejected=False,
+            status='pending',
         ).count()
         pending_store_approvals = Store.objects.filter(
             is_active=False,
@@ -155,6 +155,58 @@ class AdminRestoreView(APIView):
 
         obj.restore()
         return Response({'message': f'{resource_type} restored.'}, status=200)
+
+
+class AdminMyPermissionsView(APIView):
+    """GET /api/v1/admin/my-permissions/ — returns the current user's role permissions."""
+
+    permission_classes = [IsAuthenticated, IsAdminOrModerator]
+
+    def get(self, request):
+        user_roles = UserRole.objects.filter(
+            user=request.user, is_active=True,
+        ).select_related('role')
+        all_perms = set()
+        for ur in user_roles:
+            role_perms = RolePermission.objects.filter(
+                role=ur.role,
+            ).select_related('permission')
+            for rp in role_perms:
+                all_perms.add(rp.permission.codename)
+
+        return Response({
+            'success': True,
+            'data': {
+                'permissions': list(all_perms),
+            },
+        })
+
+
+class AdminApprovalCountsView(APIView):
+    """GET /api/v1/admin/approvals/counts/ — pending counts for approval tabs."""
+
+    permission_classes = [IsAuthenticated, IsAdminOrModerator]
+
+    def get(self, request):
+        from apps.authentication.models import UserVerification
+        from apps.marketplace.models import MarketplaceProduct
+        from apps.sellers.models import SellerProfile
+
+        verifications = UserVerification.objects.filter(status='pending').count()
+        sellers = SellerProfile.objects.filter(
+            status='pending',
+        ).count()
+        marketplace = MarketplaceProduct.objects.filter(status='pending').count()
+
+        return Response({
+            'success': True,
+            'data': {
+                'verifications': verifications,
+                'sellers': sellers,
+                'marketplace': marketplace,
+                'total': verifications + sellers + marketplace,
+            },
+        })
 
 # ═══════════════════════════════════════════════════════════════════
 # USER MANAGEMENT

@@ -345,6 +345,7 @@ class OTPCode(UUIDMixin):
 
     PURPOSE_CHOICES = [
         ('login', 'Login'),
+        ('password_reset', 'Password Reset'),
     ]
 
     MAX_ATTEMPTS = 5

@@ -11,6 +11,7 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     ChangePasswordView,
+    ForgotPasswordView,
     LoginView,
     LogoutView,
     MeUpdateView,
@@ -19,6 +20,7 @@ from .views import (
     OTPVerifyView,
     RegisterView,
     ResendVerificationView,
+    ResetPasswordView,
     CookieTokenRefreshView,
     VerifyEmailView,
 )
@@ -60,6 +62,8 @@ urlpatterns = [
 
     # Password (Phase 02)
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),
+    path('forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
+    path('reset-password/', ResetPasswordView.as_view(), name='reset-password'),
 
     # Verification (Phase 03)
     path('verification/submit/', SubmitVerificationView.as_view(), name='verification-submit'),

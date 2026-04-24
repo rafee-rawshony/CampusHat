@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Send, Paperclip, Wifi, WifiOff } from 'lucide-react'
+import { ArrowLeft, Send, Paperclip } from 'lucide-react'
 import { format, isToday, isYesterday, isSameDay } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/auth.store'
@@ -49,7 +49,7 @@ export function ChatWindow({ chatId, chatData }: ChatWindowProps) {
     const router = useRouter()
     const { user } = useAuthStore()
     const { toast } = useToast()
-    const { messages, setMessages, isConnected, sendMessage } = useWebSocket(chatId)
+    const { messages, setMessages, isConnected, isTyping, sendMessage, sendTyping, markRead } = useWebSocket(chatId)
     const [inputText, setInputText] = useState('')
     const [isLoadingHistory, setIsLoadingHistory] = useState(true)
     const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -88,8 +88,8 @@ export function ChatWindow({ chatId, chatData }: ChatWindowProps) {
 
     // Mark as read when opening
     useEffect(() => {
-        api.post(`/marketplace/chats/${chatId}/read/`).catch(() => {})
-    }, [chatId])
+        markRead()
+    }, [chatId, markRead])
 
     // Track scroll position
     const handleScroll = useCallback(() => {
@@ -116,12 +116,13 @@ export function ChatWindow({ chatId, chatData }: ChatWindowProps) {
         }
     }, [isLoadingHistory])
 
-    // Auto-resize textarea
+    // Auto-resize textarea + send typing indicator
     const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setInputText(e.target.value)
         const textarea = e.target
         textarea.style.height = 'auto'
         textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px'
+        sendTyping()
     }
 
     const handleSend = () => {
@@ -338,6 +339,16 @@ export function ChatWindow({ chatId, chatData }: ChatWindowProps) {
                                 </React.Fragment>
                             )
                         })}
+                        {isTyping && (
+                            <div className="flex items-center gap-2 text-gray-400 text-xs pl-8">
+                                <div className="flex gap-1">
+                                    <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                    <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                    <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                </div>
+                                <span>{otherUser?.name || 'User'} is typing...</span>
+                            </div>
+                        )}
                         <div ref={messagesEndRef} />
                     </>
                 )}

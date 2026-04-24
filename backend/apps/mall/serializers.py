@@ -15,6 +15,7 @@ from rest_framework import serializers
 from apps.sellers.models import SellerBadge, Store
 
 from .models import (
+    Brand,
     Cart,
     CartItem,
     MallCategory,
@@ -181,6 +182,9 @@ class StoreProductListSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(
         source='category.name', read_only=True, default=None,
     )
+    brand_name = serializers.CharField(
+        source='brand.name', read_only=True, default=None,
+    )
 
     class Meta:
         model = StoreProduct
@@ -188,8 +192,8 @@ class StoreProductListSerializer(serializers.ModelSerializer):
             'id', 'name', 'slug', 'base_price', 'discount_price',
             'current_price', 'sku', 'stock_quantity', 'is_in_stock',
             'is_featured', 'rating_avg', 'review_count', 'sold_count',
-            'primary_image_url', 'store', 'category_name', 'tags',
-            'has_variants', 'created_at',
+            'primary_image_url', 'store', 'category_name', 'brand_name',
+            'tags', 'has_variants', 'created_at',
         ]
         read_only_fields = fields
 
@@ -214,6 +218,9 @@ class StoreProductDetailSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(
         source='category.name', read_only=True, default=None,
     )
+    brand_name = serializers.CharField(
+        source='brand.name', read_only=True, default=None,
+    )
 
     class Meta:
         model = StoreProduct
@@ -223,7 +230,8 @@ class StoreProductDetailSerializer(serializers.ModelSerializer):
             'is_featured', 'rating_avg', 'review_count', 'sold_count',
             'description', 'short_description', 'weight_grams',
             'all_images', 'variants', 'is_active', 'has_variants',
-            'tags', 'store', 'category_name', 'created_at',
+            'tags', 'store', 'category_name', 'brand_name',
+            'view_count', 'created_at',
         ]
         read_only_fields = fields
 
@@ -249,7 +257,7 @@ class StoreProductCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = StoreProduct
         fields = [
-            'category', 'name', 'description', 'short_description',
+            'category', 'brand', 'name', 'description', 'short_description',
             'base_price', 'discount_price', 'sku', 'stock_quantity',
             'has_variants', 'is_featured', 'is_active', 'weight_grams',
             'tags', 'images',

@@ -353,7 +353,7 @@ export default function ProductDetailPage() {
                                         ❌ Out of Stock
                                     </p>
                                 ) : maxStock <= 5 ? (
-                                    <div className="flex items-center gap-2 bg-orange-50 inline-flex px-3 py-1.5 rounded-full">
+                                    <div className="inline-flex items-center gap-2 bg-orange-50 px-3 py-1.5 rounded-full">
                                         <span className="relative flex h-2.5 w-2.5">
                                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
                                           <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500"></span>

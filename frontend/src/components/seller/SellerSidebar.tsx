@@ -26,7 +26,7 @@ export function SellerSidebarContent() {
     // We can fetch basic store info / stats to show badge
     const { data: statsData } = useQuery({
         queryKey: ['seller-stats'],
-        queryFn: () => api.get('/seller/dashboard/stats/').then(r => r.data),
+        queryFn: () => api.get('/sellers/my-dashboard/').then(r => r.data?.data || r.data),
         staleTime: 30_000,
         // Don't refetch too aggressively here, the main dashboard will handle the heavy lifting
     })

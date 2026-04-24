@@ -176,6 +176,10 @@ class AdminVerificationReviewView(APIView):
 
     permission_classes = [IsAuthenticated, IsVerificationModerator]
 
+    def post(self, request, pk):
+        # Frontend uses POST; delegate to patch handler
+        return self.patch(request, pk)
+
     def patch(self, request, pk):
         try:
             verification = UserVerification.objects.get(

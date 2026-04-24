@@ -21,7 +21,7 @@ export function PWAInstallPrompt() {
     prompt.prompt()
     const { outcome } = await prompt.userChoice
     if (outcome === 'accepted') {
-      console.log('User accepted the install prompt')
+      // Install accepted
     }
     setShow(false)
     setPrompt(null)

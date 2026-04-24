@@ -91,7 +91,7 @@ export function Navbar() {
                         <MobileDrawer />
 
                         <Link href="/" className="text-2xl md:text-3xl font-bold text-gray-800 mr-4">
-                            <span className="text-gray-800">Campus</span><span className="text-[#634C9F]">Hat</span>
+                            <span className="text-gray-800">Campus</span><span className="text-[#4C3B8A]">Hat</span>
                         </Link>
 
                         {/* Mode Toggle */}
@@ -106,7 +106,7 @@ export function Navbar() {
                                 href="/"
                                 className={cn(
                                     'relative z-10 w-1/2 py-1.5 text-center font-semibold rounded-full transition-colors duration-300 text-xs md:text-sm',
-                                    !isMarketplace ? 'text-[#634C9F]' : 'text-gray-500 hover:text-gray-700'
+                                    !isMarketplace ? 'text-[#4C3B8A]' : 'text-gray-500 hover:text-gray-700'
                                 )}
                             >
                                 Mall
@@ -115,7 +115,7 @@ export function Navbar() {
                                 href="/marketplace"
                                 className={cn(
                                     'relative z-10 w-1/2 py-1.5 text-center font-semibold rounded-full transition-colors duration-300 text-xs md:text-sm',
-                                    isMarketplace ? 'text-[#634C9F]' : 'text-gray-500 hover:text-gray-700'
+                                    isMarketplace ? 'text-[#4C3B8A]' : 'text-gray-500 hover:text-gray-700'
                                 )}
                             >
                                 Marketplace
@@ -132,7 +132,7 @@ export function Navbar() {
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 onKeyDown={handleSearch}
                                 placeholder="Search for products, categories or brands..."
-                                className="w-full border border-gray-300 rounded-md py-2.5 pl-4 pr-12 focus:ring-[#634C9F] focus:border-[#634C9F] outline-none text-sm"
+                                className="w-full border border-gray-300 rounded-md py-2.5 pl-4 pr-12 focus:ring-[#4C3B8A] focus:border-[#4C3B8A] outline-none text-sm"
                             />
                             <button onClick={handleSearch} className="absolute inset-y-0 right-0 flex items-center pr-3">
                                 <Search className="w-5 h-5 text-gray-400" />
@@ -149,7 +149,7 @@ export function Navbar() {
                         {isAuthenticated ? (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <button className="flex items-center text-gray-600 hover:text-[#634C9F] py-2">
+                                    <button className="flex items-center text-gray-600 hover:text-[#4C3B8A] py-2">
                                         <User className="w-6 h-6 md:w-7 md:h-7" />
                                         <span className="text-sm ml-2 hidden lg:inline font-semibold">
                                             Hi, {user?.full_name?.split(' ')[0] || 'User'}
@@ -174,7 +174,7 @@ export function Navbar() {
                                     </DropdownMenuItem>
                                     {isSeller() && (
                                         <DropdownMenuItem asChild>
-                                            <Link href="/seller/dashboard" className="gap-2">
+                                            <Link href="/seller" className="gap-2">
                                                 <Store className="h-4 w-4" /> Seller Dashboard
                                             </Link>
                                         </DropdownMenuItem>
@@ -203,7 +203,7 @@ export function Navbar() {
                         ) : (
                             <Link 
                                 href="/auth/login" 
-                                className="flex items-center text-gray-600 hover:text-[#634C9F]"
+                                className="flex items-center text-gray-600 hover:text-[#4C3B8A]"
                                 onClick={() => {
                                     document.cookie = 'campushat-access-token=; path=/; max-age=0;';
                                     document.cookie = 'campushat-auth=; path=/; max-age=0;';
@@ -217,20 +217,20 @@ export function Navbar() {
                         {/* Mall mode: Heart + Cart */}
                         {!isMarketplace ? (
                             <>
-                                <Link href="/wishlist" className="relative text-gray-600 hover:text-[#634C9F]">
+                                <Link href="/wishlist" className="relative text-gray-600 hover:text-[#4C3B8A]">
                                     <Heart className="w-6 h-6 md:w-7 md:h-7" />
                                     <span className="absolute -top-1 -right-2 bg-red-500 text-white text-xs rounded-full h-4 w-4 md:h-5 md:w-5 flex items-center justify-center">0</span>
                                 </Link>
-                                <button onClick={() => setIsOpen(true)} className="relative flex items-center text-gray-600 hover:text-[#634C9F]">
+                                <button onClick={() => setIsOpen(true)} className="relative flex items-center text-gray-600 hover:text-[#4C3B8A]">
                                     <ShoppingCart className="w-6 h-6 md:w-7 md:h-7" />
-                                    <span className="absolute -top-1 -right-2 bg-[#634C9F] text-white text-xs rounded-full h-4 w-4 md:h-5 md:w-5 flex items-center justify-center">{getItemCount()}</span>
+                                    <span className="absolute -top-1 -right-2 bg-[#4C3B8A] text-white text-xs rounded-full h-4 w-4 md:h-5 md:w-5 flex items-center justify-center">{getItemCount()}</span>
                                 </button>
                             </>
                         ) : (
                             /* Marketplace mode: Post Ad button */
                             <button
                                 onClick={isAuthenticated ? handlePostAdClick : () => router.push('/auth/login')}
-                                className="bg-[#634C9F] text-white font-bold py-2 px-3 md:px-4 rounded-md hover:bg-[#523f8a] transition-colors flex items-center text-xs md:text-sm whitespace-nowrap"
+                                className="bg-[#4C3B8A] text-white font-bold py-2 px-3 md:px-4 rounded-md hover:bg-[#2D1B69] transition-colors flex items-center text-xs md:text-sm whitespace-nowrap"
                             >
                                 <Plus className="w-4 h-4 mr-2" /> Post Ad
                             </button>

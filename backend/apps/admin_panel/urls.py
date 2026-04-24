@@ -4,9 +4,11 @@ from django.urls import path
 
 from .views import (
     AdminActionLogListView,
+    AdminApprovalCountsView,
     AdminAssignRoleView,
     AdminBroadcastNotificationView,
     AdminDashboardView,
+    AdminMyPermissionsView,
     AdminPlatformBalanceView,
     AdminPlatformTransactionsView,
     AdminRoleAddPermissionView,
@@ -39,6 +41,7 @@ notification_urlpatterns = [
 admin_dashboard_urlpatterns = [
     path('', AdminDashboardView.as_view(), name='dashboard'),
     path('restore/<str:resource_type>/<uuid:pk>/', AdminRestoreView.as_view(), name='restore'),
+    path('stats/', AdminDashboardView.as_view(), name='dashboard-stats'),
 ]
 
 # ── Admin user management ──
@@ -74,4 +77,10 @@ admin_notification_urlpatterns = [
 # ── Admin action logs ──
 admin_log_urlpatterns = [
     path('', AdminActionLogListView.as_view(), name='log-list'),
+]
+
+# ── Admin permissions + approvals ──
+admin_permissions_urlpatterns = [
+    path('my-permissions/', AdminMyPermissionsView.as_view(), name='my-permissions'),
+    path('approvals/counts/', AdminApprovalCountsView.as_view(), name='approval-counts'),
 ]

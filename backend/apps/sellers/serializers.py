@@ -284,6 +284,7 @@ class StoreDetailSerializer(serializers.ModelSerializer):
             'store_category', 'return_policy', 'avg_dispatch_hours',
             'shipping_coverage', 'business_phone', 'business_email',
             'status', 'rating_avg', 'review_count', 'total_sales_count',
+            'follower_count', 'response_rate',
             'seller_name', 'university_name', 'badges',
             'created_at', 'updated_at',
         ]

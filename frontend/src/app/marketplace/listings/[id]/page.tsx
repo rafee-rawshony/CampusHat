@@ -7,13 +7,10 @@ import { useRouter } from 'next/navigation'
 import {
     MapPin,
     Clock,
-    Phone,
     MessageCircle,
     Flag,
-    ShieldCheck,
     ChevronDown,
     ChevronUp,
-    User,
     Tag
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -55,6 +52,7 @@ export default function MarketplaceAdDetailPage({ params }: { params: { id: stri
     const { isAuthenticated, canAccessMarketplace } = useAuthStore()
     const [listing, setListing] = useState<DetailListing | null>(null)
     const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
     const [activeImage, setActiveImage] = useState(0)
     const [descExpanded, setDescExpanded] = useState(false)
 
@@ -64,44 +62,21 @@ export default function MarketplaceAdDetailPage({ params }: { params: { id: stri
     useEffect(() => {
         const fetchListing = async () => {
             try {
-                // In production, this hits GET /api/v1/marketplace/listings/{id}/
-                // The backend automatically evaluates contact_visible based on the JWT token.
                 const res = await api.get(`/marketplace/listings/${params.id}/`)
                 setListing(res.data?.data || res.data)
             } catch (err: any) {
-                console.warn('Listing fetch failed, falling back to dummy data', err)
-                // Fallback dummy
-                setListing({
-                    id: params.id,
-                    title: 'Brand New Calculator Campus Edition',
-                    description: 'This is a detailed description of the item. It includes all the specifications, history, and reasons for selling.\n\nLorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam in dui mauris. Vivamus hendrerit arcu sed erat molestie vehicula. Sed auctor neque eu tellus rhoncus ut eleifend nibh porttitor.',
-                    price: '1200',
-                    images: [
-                        { id: 1, image: 'https://placehold.co/800x600/F5F5F5/1A1A2E.png?text=Preview+1' },
-                        { id: 2, image: 'https://placehold.co/800x600/E5E5E5/1A1A2E.png?text=Preview+2' },
-                    ],
-                    condition: 'USED-LIKE NEW',
-                    post_type: 'buy',
-                    category: 'Electronics',
-                    university_name: 'Daffodil International University',
-                    meetup_location: 'Library Area, Main Campus',
-                    user_info: {
-                        id: 99,
-                        full_name: 'Alex Smith',
-                        reputation_score: 4.8
-                    },
-                    created_at: new Date().toISOString(),
-                    expires_at: new Date(Date.now() + 86400000 * 7).toISOString(),
-                    // Evaluate locally for dummy purposes:
-                    contact_visible: isAuthenticated && canAccessMarketplace(),
-                    contact_phone: '+8801900000000'
-                })
+                const status = err?.response?.status
+                if (status === 404) {
+                    setError('This listing was not found or may have been removed.')
+                } else {
+                    setError('Failed to load listing. Please try again later.')
+                }
             } finally {
                 setLoading(false)
             }
         }
         fetchListing()
-    }, [params.id, isAuthenticated, canAccessMarketplace])
+    }, [params.id])
 
     if (loading) {
         return (
@@ -119,7 +94,14 @@ export default function MarketplaceAdDetailPage({ params }: { params: { id: stri
         )
     }
 
-    if (!listing) return <div className="text-center py-20 text-gray-500">Listing not found.</div>
+    if (error || !listing) return (
+        <div className="text-center py-20">
+            <p className="text-gray-500 mb-4">{error || 'Listing not found.'}</p>
+            <Link href="/marketplace" className="text-brand-primary font-bold hover:underline">
+                Back to Marketplace
+            </Link>
+        </div>
+    )
 
     const categoryName = typeof listing.category === 'string' ? listing.category : listing.category?.name || 'Various'
     const isContactVisible = listing.contact_visible
@@ -258,8 +240,9 @@ export default function MarketplaceAdDetailPage({ params }: { params: { id: stri
                 <div className='fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-white border-t px-4 py-3 flex gap-3 pb-[calc(12px+env(safe-area-inset-bottom))] shadow-[0_-4px_10px_rgba(0,0,0,0.05)]'>
                     <button onClick={async () => {
                             try {
-                                const res = await api.post('/marketplace/chats/start/', { listing_id: listing.id })
-                                router.push(`/marketplace/chat/${res.data?.chat_id || res.data?.id}`)
+                                const res = await api.post('/marketplace/chats/start/', { product_id: listing.id })
+                                const chatData = res.data?.data || res.data
+                                router.push(`/marketplace/chat/${chatData?.id || chatData?.chat_id}`)
                             } catch {
                                 router.push(`/marketplace/chat?user=${listing.user_info.id}&listing=${listing.id}`)
                             }

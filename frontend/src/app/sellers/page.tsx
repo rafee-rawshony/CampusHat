@@ -10,7 +10,7 @@ import { SharedMallSidebar } from '@/components/mall/SharedMallSidebar'
 import { SellerCard, SellerCardProps } from '@/components/mall/SellerCard'
 
 export default function SellersPage() {
-    // Basic local state for mock filtering (since API may not support it directly yet)
+    // Client-side filtering state
     const [searchQuery, setSearchQuery] = useState('')
     const [selectedCategories, setSelectedCategories] = useState<string[]>([])
     const [selectedRating, setSelectedRating] = useState<number | null>(null)
@@ -32,10 +32,10 @@ export default function SellersPage() {
         // Search
         if (searchQuery && !s.store_name?.toLowerCase().includes(searchQuery.toLowerCase())) return false
         
-        // Category (assuming `store_category` field as per card component)
+        // Category filter
         if (selectedCategories.length > 0) {
-            const cat = s.store_category || 'Electronics & Laptops' // fallback for demo mock filtering if unset
-            if (!selectedCategories.includes(cat)) return false
+            const cat = s.store_category || ''
+            if (!cat || !selectedCategories.includes(cat)) return false
         }
 
         // Rating

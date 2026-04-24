@@ -24,6 +24,8 @@ from rest_framework_simplejwt.views import TokenRefreshView as SimpleJWTTokenRef
 from .models import EmailVerificationToken, OTPCode, User, UserSession, UserVerification
 from .serializers import (
     ChangePasswordSerializer,
+    ForgotPasswordSerializer,
+    ResetPasswordSerializer,
     UserDetailSerializer,
     UserLoginSerializer,
     UserRegistrationSerializer,
@@ -656,6 +658,114 @@ class ChangePasswordView(GenericAPIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+# =============================================================================
+# FORGOT / RESET PASSWORD
+# =============================================================================
+
+class ForgotPasswordView(APIView):
+    """
+    POST /api/v1/auth/forgot-password/
+
+    Send a 6-digit OTP to the user's email for password reset.
+    Always returns 200 to prevent email enumeration.
+    """
+
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'otp_send'
+
+    def post(self, request):
+        serializer = ForgotPasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data['email'].strip().lower()
+
+        user = User.objects.filter(email__iexact=email, is_active=True).first()
+
+        if user:
+            OTPCode.objects.filter(
+                identifier=email, purpose='password_reset', used=False
+            ).update(used=True)
+
+            code = ''.join(secrets.choice('0123456789') for _ in range(6))
+            code_hash = hashlib.sha256(code.encode('utf-8')).hexdigest()
+
+            OTPCode.objects.create(
+                identifier=email,
+                code_hash=code_hash,
+                purpose='password_reset',
+                expires_at=timezone.now() + timedelta(minutes=OTPCode.EXPIRY_MINUTES),
+            )
+
+            try:
+                from .tasks import send_password_reset_email
+                send_password_reset_email.delay(user.email, code, user.full_name)
+            except Exception as exc:
+                logger.exception(
+                    'Failed to queue password reset email for %s: %s', user.email, exc,
+                )
+
+        return Response({
+            'success': True,
+            'message': 'If an account exists with this email, a password reset code has been sent.',
+        }, status=status.HTTP_200_OK)
+
+
+class ResetPasswordView(APIView):
+    """
+    POST /api/v1/auth/reset-password/
+
+    Verify the OTP and set a new password. No authentication required.
+    """
+
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'otp_verify'
+
+    def post(self, request):
+        serializer = ResetPasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data['email'].strip().lower()
+        otp = serializer.validated_data['otp']
+        new_password = serializer.validated_data['new_password']
+
+        invalid_response = Response({
+            'success': False,
+            'message': 'OTP is invalid or has expired. Please request a new one.',
+            'code': 'OTP_INVALID',
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+        otp_obj = (
+            OTPCode.objects
+            .filter(identifier=email, purpose='password_reset', used=False)
+            .order_by('-created_at')
+            .first()
+        )
+        if not otp_obj or not otp_obj.is_valid:
+            return invalid_response
+
+        given_hash = hashlib.sha256(otp.encode('utf-8')).hexdigest()
+        if not secrets.compare_digest(otp_obj.code_hash, given_hash):
+            otp_obj.attempts += 1
+            otp_obj.save(update_fields=['attempts'])
+            return invalid_response
+
+        otp_obj.used = True
+        otp_obj.save(update_fields=['used'])
+
+        user = User.objects.filter(email__iexact=email, is_active=True).first()
+        if not user:
+            return invalid_response
+
+        user.set_password(new_password)
+        user.save(update_fields=['password'])
+
+        return Response({
+            'success': True,
+            'message': 'Password has been reset successfully. You can now log in.',
+        }, status=status.HTTP_200_OK)
 
 
 

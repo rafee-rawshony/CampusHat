@@ -117,7 +117,7 @@ export function ExplorerFilterBar({ typeCounts }: ExplorerFilterBarProps) {
                 {activeFilters > 0 && (
                     <div className="flex items-center gap-2">
                         <span className="text-xs text-gray-500">{activeFilters} filters active</span>
-                        <button onClick={clearAll} className="text-xs text-[#634C9F] hover:underline">Clear all</button>
+                        <button onClick={clearAll} className="text-xs text-[#4C3B8A] hover:underline">Clear all</button>
                     </div>
                 )}
             </div>
@@ -203,7 +203,7 @@ export function ExplorerFilterBar({ typeCounts }: ExplorerFilterBarProps) {
                                     value={minPrice}
                                     onChange={(e) => setMinPrice(e.target.value)}
                                     placeholder="Min"
-                                    className="w-full border border-gray-300 rounded text-sm px-2 py-1.5 focus:ring-1 focus:ring-[#634C9F] outline-none"
+                                    className="w-full border border-gray-300 rounded text-sm px-2 py-1.5 focus:ring-1 focus:ring-[#4C3B8A] outline-none"
                                 />
                             </div>
                             <span className="text-gray-400 mt-5">-</span>
@@ -215,13 +215,13 @@ export function ExplorerFilterBar({ typeCounts }: ExplorerFilterBarProps) {
                                     value={maxPrice}
                                     onChange={(e) => setMaxPrice(e.target.value)}
                                     placeholder="Max"
-                                    className="w-full border border-gray-300 rounded text-sm px-2 py-1.5 focus:ring-1 focus:ring-[#634C9F] outline-none"
+                                    className="w-full border border-gray-300 rounded text-sm px-2 py-1.5 focus:ring-1 focus:ring-[#4C3B8A] outline-none"
                                 />
                             </div>
                         </div>
                         <button
                             onClick={handleApplyPrice}
-                            className="w-full bg-[#634C9F] text-white text-sm font-medium py-2 rounded shadow hover:bg-[#523f8a] transition-colors"
+                            className="w-full bg-[#4C3B8A] text-white text-sm font-medium py-2 rounded shadow hover:bg-[#2D1B69] transition-colors"
                         >
                             Apply
                         </button>

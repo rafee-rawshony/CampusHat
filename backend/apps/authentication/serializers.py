@@ -282,3 +282,28 @@ class ChangePasswordSerializer(serializers.Serializer):
         user.set_password(self.validated_data['new_password'])
         user.save(update_fields=['password'])
         return user
+
+
+# =============================================================================
+# FORGOT / RESET PASSWORD
+# =============================================================================
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField(help_text='Registered email address.')
+
+
+class ResetPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField(help_text='Registered email address.')
+    otp = serializers.RegexField(
+        regex=r'^\d{6}$',
+        error_messages={'invalid': 'OTP must be 6 digits.'},
+    )
+    new_password = serializers.CharField(
+        write_only=True,
+        min_length=8,
+        help_text='New password (min 8 characters).',
+    )
+
+    def validate_new_password(self, value):
+        validate_password(value)
+        return value

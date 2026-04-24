@@ -87,3 +87,17 @@ export async function getMe(): Promise<User> {
     const { data } = await api.get('/auth/me/')
     return unwrap<User>(data)
 }
+
+export async function forgotPassword(email: string): Promise<void> {
+    await api.post('/auth/forgot-password/', { email })
+}
+
+export interface ResetPasswordPayload {
+    email: string
+    otp: string
+    new_password: string
+}
+
+export async function resetPassword(payload: ResetPasswordPayload): Promise<void> {
+    await api.post('/auth/reset-password/', payload)
+}

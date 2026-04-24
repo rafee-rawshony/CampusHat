@@ -3,6 +3,8 @@
 from django.contrib import admin
 
 from .models import (
+    Banner,
+    Brand,
     Cart,
     CartItem,
     MallCategory,
@@ -10,6 +12,7 @@ from .models import (
     ProductVariant,
     StoreProduct,
     StoreProductImage,
+    Wishlist,
 )
 
 
@@ -21,6 +24,14 @@ class StoreProductImageInline(admin.TabularInline):
 class ProductVariantInline(admin.TabularInline):
     model = ProductVariant
     extra = 0
+
+
+@admin.register(Brand)
+class BrandAdmin(admin.ModelAdmin):
+    list_display = ('name', 'slug', 'is_active')
+    search_fields = ('name', 'slug')
+    prepopulated_fields = {'slug': ('name',)}
+    list_filter = ('is_active',)
 
 
 @admin.register(MallCategory)
@@ -57,3 +68,19 @@ class CartItemInline(admin.TabularInline):
 class CartAdmin(admin.ModelAdmin):
     list_display = ('user', 'created_at')
     inlines = [CartItemInline]
+
+
+@admin.register(Wishlist)
+class WishlistAdmin(admin.ModelAdmin):
+    list_display = ('user', 'product', 'created_at')
+    list_filter = ('created_at',)
+    search_fields = ('user__email', 'product__name')
+    raw_id_fields = ('user', 'product')
+
+
+@admin.register(Banner)
+class BannerAdmin(admin.ModelAdmin):
+    list_display = ('title', 'is_active', 'ordering', 'created_at')
+    list_filter = ('is_active',)
+    list_editable = ('is_active', 'ordering')
+    search_fields = ('title', 'subtitle')

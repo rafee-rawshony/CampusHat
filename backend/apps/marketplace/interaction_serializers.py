@@ -71,12 +71,15 @@ class OfferActionSerializer(serializers.Serializer):
 # =============================================================================
 
 class MarketplaceChatSerializer(serializers.ModelSerializer):
-    """Chat thread list serializer."""
+    """Chat thread serializer — frontend-friendly with other_user, listing, last_message."""
 
     buyer_name = serializers.CharField(source='buyer.full_name', read_only=True)
     seller_name = serializers.CharField(source='seller.full_name', read_only=True)
     product_title = serializers.CharField(source='product.title', read_only=True)
     unread_count = serializers.SerializerMethodField()
+    other_user = serializers.SerializerMethodField()
+    listing = serializers.SerializerMethodField()
+    last_message = serializers.SerializerMethodField()
 
     class Meta:
         model = MarketplaceChat
@@ -84,7 +87,8 @@ class MarketplaceChatSerializer(serializers.ModelSerializer):
             'id', 'product', 'buyer', 'seller',
             'buyer_name', 'seller_name', 'product_title',
             'is_blocked', 'last_message_at',
-            'unread_count', 'created_at',
+            'unread_count', 'other_user', 'listing',
+            'last_message', 'created_at',
         ]
         read_only_fields = fields
 
@@ -96,6 +100,41 @@ class MarketplaceChatSerializer(serializers.ModelSerializer):
             sender=request.user,
         ).count()
 
+    def get_other_user(self, obj):
+        """Return the other participant's info relative to the request user."""
+        request = self.context.get('request')
+        if not request:
+            return None
+        other = obj.seller if request.user == obj.buyer else obj.buyer
+        return {
+            'id': str(other.id),
+            'name': other.full_name,
+            'profile_picture': other.profile_picture or None,
+        }
+
+    def get_listing(self, obj):
+        """Return listing (product) info with first image."""
+        product = obj.product
+        images = []
+        for img in product.images.all()[:3]:
+            images.append({'image': img.image_url})
+        return {
+            'id': str(product.id),
+            'title': product.title,
+            'images': images,
+        }
+
+    def get_last_message(self, obj):
+        """Return the most recent message in this thread."""
+        msg = obj.messages.order_by('-created_at').first()
+        if not msg:
+            return None
+        return {
+            'content': msg.content,
+            'created_at': msg.created_at.isoformat(),
+            'message_type': msg.message_type,
+        }
+
 
 class StartChatSerializer(serializers.Serializer):
     """Start a chat with a product's seller."""
@@ -104,17 +143,24 @@ class StartChatSerializer(serializers.Serializer):
 
 
 class MarketplaceMessageSerializer(serializers.ModelSerializer):
-    """Individual message serializer."""
+    """Individual message serializer with nested sender object."""
 
-    sender_name = serializers.CharField(source='sender.full_name', read_only=True)
+    sender = serializers.SerializerMethodField()
 
     class Meta:
         model = MarketplaceMessage
         fields = [
-            'id', 'chat', 'sender', 'sender_name',
+            'id', 'chat', 'sender',
             'message_type', 'content', 'is_read', 'created_at',
         ]
-        read_only_fields = ['id', 'chat', 'sender', 'sender_name', 'is_read', 'created_at']
+        read_only_fields = ['id', 'chat', 'sender', 'is_read', 'created_at']
+
+    def get_sender(self, obj):
+        return {
+            'id': str(obj.sender.id),
+            'full_name': obj.sender.full_name,
+            'profile_picture': obj.sender.profile_picture or None,
+        }
 
 
 class SendMessageSerializer(serializers.Serializer):

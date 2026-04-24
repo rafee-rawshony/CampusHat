@@ -91,8 +91,8 @@ from apps.sellers.admin_urls import (
     payout_admin_urlpatterns,
 )
 
-# --- Phase 06 Cart URL patterns ---
-from apps.mall.urls import cart_urlpatterns
+# --- Phase 06 Cart + Wishlist + Seller Products URL patterns ---
+from apps.mall.urls import cart_urlpatterns, wishlist_urlpatterns, seller_product_urlpatterns
 
 # --- Phase 07 Order URL patterns (seller + admin) ---
 from apps.orders.urls import seller_order_urlpatterns, admin_order_urlpatterns
@@ -117,6 +117,7 @@ from apps.admin_panel.urls import (
     admin_wallet_urlpatterns as admin_panel_wallet_urlpatterns,
     admin_notification_urlpatterns,
     admin_log_urlpatterns,
+    admin_permissions_urlpatterns,
 )
 
 # --- Phase 10 URL patterns ---
@@ -128,7 +129,9 @@ urlpatterns += [
     path('api/v1/admin/stores/', include((store_admin_urlpatterns, 'admin-stores'))),
     path('api/v1/admin/payouts/', include((payout_admin_urlpatterns, 'admin-payouts'))),
     path('api/v1/cart/', include((cart_urlpatterns, 'cart'))),
+    path('api/v1/wishlist/', include((wishlist_urlpatterns, 'wishlist'))),
     path('api/v1/seller/orders/', include((seller_order_urlpatterns, 'seller-orders'))),
+    path('api/v1/seller/products/', include((seller_product_urlpatterns, 'seller-products'))),
     path('api/v1/admin/orders/', include((admin_order_urlpatterns, 'admin-orders'))),
     # Phase 08
     path('api/v1/admin/refunds/', include((admin_refund_urlpatterns, 'admin-refunds'))),
@@ -146,6 +149,7 @@ urlpatterns += [
     path('api/v1/admin/wallet/', include((admin_panel_wallet_urlpatterns, 'admin-wallet'))),
     path('api/v1/admin/notifications/', include((admin_notification_urlpatterns, 'admin-notifications'))),
     path('api/v1/admin/action-logs/', include((admin_log_urlpatterns, 'admin-logs'))),
+    path('api/v1/admin/', include((admin_permissions_urlpatterns, 'admin-permissions'))),
     # Phase 10
     path('api/v1/analytics/seller/', include((seller_analytics_urlpatterns, 'seller-analytics'))),
     path('api/v1/admin/analytics/', include((admin_analytics_urlpatterns, 'admin-analytics'))),

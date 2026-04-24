@@ -35,7 +35,7 @@ export function ListingSection({ title, postType, viewAllHref }: ListingSectionP
                 <h2 className="text-xl font-bold text-gray-900">{title}</h2>
                 <Link
                     href={viewAllHref}
-                    className="text-[#634C9F] text-sm font-semibold hover:underline flex items-center gap-1"
+                    className="text-[#4C3B8A] text-sm font-semibold hover:underline flex items-center gap-1"
                 >
                     View All <ArrowRight className="w-4 h-4" />
                 </Link>
@@ -52,7 +52,7 @@ export function ListingSection({ title, postType, viewAllHref }: ListingSectionP
                     <p className="mb-2 font-medium">Could not load listings. Try again.</p>
                     <button
                         onClick={() => refetch()}
-                        className="text-[#634C9F] text-sm font-semibold hover:underline"
+                        className="text-[#4C3B8A] text-sm font-semibold hover:underline"
                     >
                         Retry
                     </button>

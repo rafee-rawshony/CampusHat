@@ -205,7 +205,7 @@ export function MarketplaceListingCard({ listing }: MarketplaceListingCardProps)
                 </div>
 
                 {/* Title */}
-                <h3 className="font-semibold text-sm text-gray-900 leading-snug line-clamp-2 min-h-[36px] mb-1.5 group-hover:text-[#634C9F] transition-colors">
+                <h3 className="font-semibold text-sm text-gray-900 leading-snug line-clamp-2 min-h-[36px] mb-1.5 group-hover:text-[#4C3B8A] transition-colors">
                     {listing.title}
                 </h3>
 

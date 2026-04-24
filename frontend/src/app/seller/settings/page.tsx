@@ -54,7 +54,7 @@ export default function SellerSettingsPage() {
 
     const storeMutation = useMutation({
         mutationFn: (data: z.infer<typeof storeSchema>) =>
-            api.patch(`/stores/${store?.slug}/`, data),
+            api.patch('/stores/my-store/update/', data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['my-store'] })
             toast.success('Store settings updated!')
@@ -64,7 +64,7 @@ export default function SellerSettingsPage() {
 
     const payoutMutation = useMutation({
         mutationFn: (data: z.infer<typeof payoutSchema>) =>
-            api.patch(`/stores/${store?.slug}/`, data),
+            api.patch('/stores/my-store/update/', data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['my-store'] })
             toast.success('Payout settings updated!')

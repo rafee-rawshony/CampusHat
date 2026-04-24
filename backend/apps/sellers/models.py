@@ -287,6 +287,11 @@ class Store(BaseModel):
     rating_avg = models.DecimalField(max_digits=3, decimal_places=2, default=0.00)
     review_count = models.IntegerField(default=0)
     total_sales_count = models.IntegerField(default=0)
+    follower_count = models.IntegerField(default=0)
+    response_rate = models.DecimalField(
+        max_digits=5, decimal_places=2, default=0.00,
+        help_text='Percentage of messages responded to within 24 hours.',
+    )
     approved_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -446,3 +451,36 @@ class StudentBenefit(BaseModel):
 
     def __str__(self):
         return f'{self.benefit_type} for {self.seller.business_name}'
+
+
+# =============================================================================
+# MODEL 6: STORE FOLLOWER
+# =============================================================================
+
+class StoreFollower(UUIDMixin, TimestampMixin):
+    """
+    Tracks which users follow which stores.
+
+    Uses a unique constraint to prevent duplicate follows.
+    """
+
+    store = models.ForeignKey(
+        Store,
+        on_delete=models.CASCADE,
+        related_name='followers',
+        db_index=True,
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='followed_stores',
+        db_index=True,
+    )
+
+    class Meta:
+        db_table = 'store_followers'
+        unique_together = ('store', 'user')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.user} follows {self.store.name}'

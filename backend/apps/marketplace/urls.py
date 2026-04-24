@@ -15,6 +15,7 @@ from .product_views import (
 from .offer_views import CreateOfferView, ListOffersView, OfferActionView
 from .chat_views import (
     BlockChatView,
+    ChatDetailView,
     ChatMessagesView,
     MarkReadView,
     MyChatListView,
@@ -54,6 +55,7 @@ urlpatterns = [
     # Chat
     path('chats/start/', StartChatView.as_view(), name='chat-start'),
     path('chats/', MyChatListView.as_view(), name='chat-list'),
+    path('chats/<uuid:pk>/', ChatDetailView.as_view(), name='chat-detail'),
     path('chats/<uuid:pk>/messages/', ChatMessagesView.as_view(), name='chat-messages'),
     path('chats/<uuid:pk>/send/', SendMessageView.as_view(), name='chat-send'),
     path('chats/<uuid:pk>/block/', BlockChatView.as_view(), name='chat-block'),

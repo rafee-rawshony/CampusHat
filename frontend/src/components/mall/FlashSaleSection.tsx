@@ -12,7 +12,7 @@ export function FlashSaleSection() {
     const { data: flashSale, isLoading } = useQuery({
         queryKey: ['flash-sales-active'],
         queryFn: async () => {
-            const res = await api.get('/mall/flash-sales/active/')
+            const res = await api.get('/flash-sales/active/')
             const d = res.data?.data ?? res.data
             // API may return a single object or an array; handle both
             if (Array.isArray(d)) return d.length > 0 ? d[0] : null

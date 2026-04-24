@@ -5,8 +5,9 @@ from django.urls import path
 from .views import (
     SellerRegisterView, SellerMyProfileView, SellerDashboardView,
     StoreCreateView, MyStoreView, StoreUpdateView, StoreSubmitForReviewView,
-    PublicStoreDetailView, PublicStoreListView,
+    PublicStoreDetailView, PublicStoreListView, FeaturedStoresView,
     PayoutRequestView, PayoutListView,
+    StoreFollowToggleView, StoreFollowStatusView,
 )
 
 app_name = 'sellers'
@@ -16,6 +17,7 @@ urlpatterns = [
     path('register/', SellerRegisterView.as_view(), name='register'),
     path('my-profile/', SellerMyProfileView.as_view(), name='my-profile'),
     path('my-dashboard/', SellerDashboardView.as_view(), name='dashboard'),
+    path('featured/', FeaturedStoresView.as_view(), name='featured'),
 
     # Payouts
     path('payouts/request/', PayoutRequestView.as_view(), name='payout-request'),
@@ -30,4 +32,6 @@ store_urlpatterns = [
     path('my-store/submit-for-review/', StoreSubmitForReviewView.as_view(), name='store-submit'),
     path('', PublicStoreListView.as_view(), name='store-list'),
     path('<slug:slug>/', PublicStoreDetailView.as_view(), name='store-detail'),
+    path('<slug:slug>/follow/', StoreFollowToggleView.as_view(), name='store-follow'),
+    path('<slug:slug>/follow_status/', StoreFollowStatusView.as_view(), name='store-follow-status'),
 ]
