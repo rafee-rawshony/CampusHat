@@ -53,7 +53,7 @@ class IsAdminOrModerator(BasePermission):
         user = request.user
         if not user or not user.is_authenticated:
             return False
-        return getattr(user, 'role', None) in ('admin', 'moderator')
+        return getattr(user, 'role', None) in ('admin', 'moderator', 'seller_mod', 'marketplace_mod')
 
 
 class IsOwnerOrAdmin(BasePermission):
@@ -130,28 +130,33 @@ class HasPermission(BasePermission):
 
 class IsVerifiedForMarketplace(BasePermission):
     """
-    Allows marketplace posting, chatting, and seeing contact info.
-    Requires: verified student OR verified faculty OR approved seller OR admin.
-    Normal users: DENIED.
+    Marketplace access rule (mirrors frontend canAccessMarketplace):
+    - Admin / any moderator: always allowed
+    - Anyone else: allowed only if they have an approved student/faculty verification
+      (student_id or faculty_id). This covers:
+      - Verified students (role=student, approved verification)
+      - Verified faculty (role=faculty, approved verification)
+      - Mall sellers who were previously verified students (role=seller, approved verification)
+      - Normal users who verified as students (role=normal_user → student after signal)
+    - Normal user with no verification: DENIED
+    - Seller with no verification: DENIED
     """
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
-        if request.user.role == 'admin': return True
-        
-        from apps.sellers.models import SellerProfile
-        if request.user.role == 'seller':
-            return SellerProfile.objects.filter(
-                user=request.user, status='approved').exists()
-                
+        role = getattr(request.user, 'role', None)
+
+        # Admins and all moderator types have full access
+        if role in ('admin', 'moderator', 'seller_mod', 'marketplace_mod'):
+            return True
+
+        # Anyone else needs an approved student/faculty ID verification
         from apps.authentication.models import UserVerification
-        if request.user.role in ['student', 'faculty']:
-            return UserVerification.objects.filter(
-                user=request.user,
-                verification_type__in=['student_id', 'faculty_id'],
-                status='approved'
-            ).exists()
-        return False  # normal_user and moderator: no marketplace access
+        return UserVerification.objects.filter(
+            user=request.user,
+            verification_type__in=['student_id', 'faculty_id'],
+            status='approved'
+        ).exists()
 
 
 class IsNormalUserOrAbove(BasePermission):

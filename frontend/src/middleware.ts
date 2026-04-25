@@ -6,12 +6,13 @@ const protectedRoutes = [
     '/admin',
     '/moderator',
     '/account',
+    '/wallet',
+    '/wishlist',
     '/marketplace/post',
     '/marketplace/chat',
     '/checkout',
     '/orders',
 ]
-const authRoutes = ['/auth/login', '/auth/register']
 
 /**
  * The `refresh_token` cookie is the only reliable signal that a user has an
@@ -35,28 +36,22 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(loginUrl)
     }
 
-    // Redirect authenticated users away from auth pages
-    if (
-        authRoutes.some((route) => pathname.startsWith(route)) &&
-        hasSession
-    ) {
-        return NextResponse.redirect(new URL('/', request.url))
-    }
-
     return NextResponse.next()
 }
 
 export const config = {
     matcher: [
-        '/seller/:path*', 
-        '/admin/:path*', 
-        '/account/:path*', 
-        '/marketplace/post', 
-        '/marketplace/post/:path*', 
-        '/marketplace/chat', 
-        '/marketplace/chat/:path*', 
-        '/checkout', 
-        '/orders/:path*', 
-        '/auth/:path*'
+        '/seller/:path*',
+        '/admin/:path*',
+        '/account/:path*',
+        '/wallet',
+        '/wallet/:path*',
+        '/wishlist',
+        '/marketplace/post',
+        '/marketplace/post/:path*',
+        '/marketplace/chat',
+        '/marketplace/chat/:path*',
+        '/checkout',
+        '/orders/:path*',
     ],
 }

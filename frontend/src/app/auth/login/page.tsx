@@ -39,9 +39,22 @@ const otpRequestSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>
 type OTPRequestForm = z.infer<typeof otpRequestSchema>
 
+// Shared redirect logic — used after both password and OTP login.
+// seller_application_status is checked because the backend never changes
+// user.role to 'seller' on approval — it only sets SellerProfile.status.
+function getRoleRedirect(
+    user: { role: string; seller_application_status?: string | null },
+    redirectParam: string | null
+): string {
+    if (redirectParam) return redirectParam
+    if (['admin', 'moderator', 'seller_mod', 'marketplace_mod'].includes(user.role)) return '/admin'
+    if (user.seller_application_status === 'approved') return '/seller'
+    return '/'
+}
+
 export default function LoginPage() {
     const router = useRouter()
-    const { setUser, setAccessToken } = useAuthStore()
+    const { user, isAuthenticated, _hasHydrated, setUser, setAccessToken } = useAuthStore()
     const [showPassword, setShowPassword] = useState(false)
     const [authTab, setAuthTab] = useState<'login' | 'register'>('login')
     const [methodTab, setMethodTab] = useState<'password' | 'otp'>('password')
@@ -50,6 +63,14 @@ export default function LoginPage() {
     const [isLoading, setIsLoading] = useState(false)
     const [emailNotVerified, setEmailNotVerified] = useState(false)
     const [unverifiedEmail, setUnverifiedEmail] = useState('')
+
+    // If store has hydrated and user is already signed in, redirect them away
+    useEffect(() => {
+        if (_hasHydrated && isAuthenticated && user) {
+            const searchParams = new URLSearchParams(window.location.search)
+            window.location.href = getRoleRedirect(user, searchParams.get('redirect'))
+        }
+    }, [_hasHydrated, isAuthenticated, user])
 
     useEffect(() => {
         if (sessionStorage.getItem('session_expired')) {
@@ -78,18 +99,8 @@ export default function LoginPage() {
             setUser(user)
             toast.success('Welcome back!')
 
-            // Respect ?redirect=... query param if present
             const searchParams = new URLSearchParams(window.location.search)
-            const redirectTo = searchParams.get('redirect')
-            if (redirectTo) {
-                router.push(redirectTo)
-            } else if (user.role === 'admin' || user.role === 'moderator' || user.role === 'marketplace_mod') {
-                router.push('/admin')
-            } else if (user.role === 'seller') {
-                router.push('/marketplace')
-            } else {
-                router.push('/')
-            }
+            window.location.href = getRoleRedirect(user, searchParams.get('redirect'))
         } catch (error: any) {
             const message = error.response?.data?.message || error.response?.data?.detail || 'Login failed'
             if (message.includes('not verified') || error.response?.data?.code === 'EMAIL_NOT_VERIFIED') {
@@ -125,7 +136,9 @@ export default function LoginPage() {
             setAccessToken(access_token)
             setUser(user)
             toast.success('Welcome!')
-            router.push('/')
+
+            const searchParams = new URLSearchParams(window.location.search)
+            window.location.href = getRoleRedirect(user, searchParams.get('redirect'))
         } catch (error: any) {
             toast.error(error.response?.data?.message || 'Invalid OTP')
         } finally {
@@ -141,6 +154,9 @@ export default function LoginPage() {
             toast.error('Failed to resend verification')
         }
     }
+
+    // Show blank while store hydrates or while redirecting an already-logged-in user
+    if (!_hasHydrated || (_hasHydrated && isAuthenticated)) return null
 
     return (
         <div className="min-h-screen flex bg-surface-base">

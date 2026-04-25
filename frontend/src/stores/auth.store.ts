@@ -82,9 +82,11 @@ export const useAuthStore = create<AuthState>()(
             isNormalUser: () => get().user?.role === 'normal_user',
             isVerified: () =>
                 ['student', 'faculty'].includes(get().user?.role || ''),
-            isVerifiedStudent: () =>
-                ['student', 'faculty'].includes(get().user?.role || ''),
-            isSeller: () => get().user?.role === 'seller',
+            // True if user has an approved student/faculty verification (regardless of current role)
+            isVerifiedStudent: () => get().user?.verification_status === 'approved',
+            // Backend never changes role to 'seller' on approval — it sets SellerProfile.status.
+            // So we check seller_application_status, not role.
+            isSeller: () => get().user?.seller_application_status === 'approved',
             isModerator: () => {
                 const role = get().user?.role
                 return ['moderator', 'seller_mod', 'marketplace_mod'].includes(role || '')
@@ -98,9 +100,18 @@ export const useAuthStore = create<AuthState>()(
                 return role === 'marketplace_mod' || role === 'moderator'
             },
             isAdmin: () => get().user?.role === 'admin',
+            // Marketplace access rule:
+            // - Admin / mods: always
+            // - Anyone else (student, faculty, seller, normal_user):
+            //   only if they have an approved student/faculty verification
+            // This means: a student who becomes a mall seller keeps marketplace access
+            // because their approved verification record stays in the DB.
             canAccessMarketplace: () => {
-                const role = get().user?.role
-                return ['student', 'faculty', 'seller', 'admin', 'moderator', 'seller_mod', 'marketplace_mod'].includes(role || '')
+                const user = get().user
+                const role = user?.role
+                if (!role) return false
+                if (['admin', 'moderator', 'seller_mod', 'marketplace_mod'].includes(role)) return true
+                return user?.verification_status === 'approved'
             },
         }),
         {

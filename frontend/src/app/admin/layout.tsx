@@ -139,7 +139,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
                         {/* Breadcrumbs + Page title */}
                         <div>
-                            <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mb-0.5 hidden sm:flex">
+                            <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-gray-400 mb-0.5">
                                 <Link href="/admin" className="hover:text-gray-600 transition-colors">Admin</Link>
                                 {pathname !== '/admin' && (
                                     <>

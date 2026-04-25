@@ -99,6 +99,8 @@ class User(AbstractBaseUser, PermissionsMixin, UUIDMixin, TimestampMixin):
         ('student', 'Student'),
         ('faculty', 'Faculty'),
         ('seller', 'Seller'),
+        ('seller_mod', 'Seller Moderator'),
+        ('marketplace_mod', 'Marketplace Moderator'),
         ('moderator', 'Moderator'),
         ('admin', 'Admin'),
     ]

@@ -6,7 +6,13 @@ import Link from 'next/link'
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 
 export function MobileDrawer() {
-  const { user, isAuthenticated, logout } = useAuthStore()
+  const { user, isAuthenticated, _hasHydrated, logout } = useAuthStore()
+
+  const handleLogout = async () => {
+    await logout()
+    window.location.href = '/'
+  }
+
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -17,9 +23,16 @@ export function MobileDrawer() {
       </SheetTrigger>
       <SheetContent side='left' className='w-[280px] p-0 flex flex-col justify-start border-r-0'>
         <DialogPrimitive.Title className="sr-only">Menu</DialogPrimitive.Title>
+
         {/* USER HEADER */}
         <div className='bg-brand-primary p-6'>
-          {isAuthenticated && user ? (
+          {/* While Zustand hydrates, show a neutral skeleton so Sign In never flickers for logged-in users */}
+          {!_hasHydrated ? (
+            <div className='space-y-2'>
+              <div className='w-14 h-14 rounded-full bg-white/20 animate-pulse' />
+              <div className='h-4 w-32 bg-white/20 rounded animate-pulse mt-3' />
+            </div>
+          ) : isAuthenticated && user ? (
             <div className='text-white'>
               <div className='w-14 h-14 rounded-full bg-white/20
                             flex items-center justify-center
@@ -36,16 +49,13 @@ export function MobileDrawer() {
               <Link href='/auth/login'
                 className='bg-white text-brand-primary text-sm font-black
                            px-4 py-2.5 rounded-xl block text-center shadow-sm w-full hover:bg-gray-50 transition-colors'
-                onClick={() => {
-                    document.cookie = 'campushat-access-token=; path=/; max-age=0;';
-                    document.cookie = 'campushat-auth=; path=/; max-age=0;';
-                }}
               >
                 Sign In / Register
               </Link>
             </div>
           )}
         </div>
+
         {/* NAVIGATION */}
         <nav className='p-4 space-y-1 flex-1 overflow-y-auto no-scrollbar'>
           <p className='text-[10px] font-black text-gray-400 uppercase tracking-widest pl-3 mb-2 mt-2'>Mall</p>
@@ -86,7 +96,7 @@ export function MobileDrawer() {
                 hover:bg-brand-primary/10 hover:text-brand-primary rounded-xl text-gray-700'>
                 My Listings
               </Link>
-              <button onClick={logout}
+              <button onClick={handleLogout}
                 className='w-full text-left px-3 py-2.5 text-red-500 font-bold transition-colors
                            hover:bg-red-50 hover:text-red-600 rounded-xl mt-2'>
                 Log Out
@@ -94,6 +104,7 @@ export function MobileDrawer() {
             </>
           )}
         </nav>
+
         {/* FOOTER */}
         <div className='p-4 border-t border-gray-100 text-[10px] font-bold text-gray-400 bg-gray-50/50'>
           <p>0 800 300-HAT</p>

@@ -57,7 +57,7 @@ export function CartDrawer() {
                             className="w-full sm:w-auto px-8"
                             onClick={() => {
                                 setIsOpen(false)
-                                router.push('/marketplace')
+                                router.push('/shop')
                             }}
                         >
                             Shop Now

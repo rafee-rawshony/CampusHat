@@ -152,10 +152,14 @@ services:
     volumes:
       - ./frontend:/app
       - frontend_node_modules:/app/node_modules
-    command: sh -c "npm install --legacy-peer-deps && npm run dev"
+    # -H 0.0.0.0 → binds to all interfaces so nginx can reach it inside Docker
+    command: sh -c "npm install --legacy-peer-deps && npx next dev -H 0.0.0.0 -p 3000"
     environment:
-      # User PC-তে 80/8080 busy থাকলে, nginx যে port-এ expose হবে সেটাই এখানে দিন
       - NEXT_PUBLIC_API_URL=http://localhost:8081/api/v1
+      # Polling is required on Windows Docker — inotify events don't cross the volume mount
+      - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=true
+      - NODE_ENV=development
     networks:
       - campushat_network
 
@@ -175,6 +179,7 @@ services:
       - backend_media:/app/mediafiles:ro
     depends_on:
       - backend
+      - frontend
     networks:
       - campushat_network
 

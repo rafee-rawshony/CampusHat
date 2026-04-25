@@ -6,13 +6,13 @@ via WebSocket instead of polling REST endpoints.
 """
 
 from channels.db import database_sync_to_async
-from channels.generic.websocket import AsyncJsonWebSocketConsumer
+from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.utils import timezone
 
 from .models import MarketplaceChat, MarketplaceMessage
 
 
-class ChatConsumer(AsyncJsonWebSocketConsumer):
+class ChatConsumer(AsyncJsonWebsocketConsumer):
     """
     WebSocket consumer for a single marketplace chat thread.
 

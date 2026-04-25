@@ -30,19 +30,18 @@ export default function VerifyAccountPage() {
     const [step1Data, setStep1Data] = useState({ student_id_number: '', university_email: '' })
     const [step2Data, setStep2Data] = useState({ university_id: '' })
 
-    // Redirect if approved
+    // Redirect if already verified (regardless of role)
     useEffect(() => {
-        if (user?.verification_status === 'approved' || user?.role === 'student' || user?.role === 'faculty') {
+        if (user?.verification_status === 'approved') {
             toast.success('Your account is already verified!')
             const timer = setTimeout(() => {
                 router.push('/account')
             }, 2000)
             return () => clearTimeout(timer)
         }
-    }, [user?.verification_status, user?.role, router])
+    }, [user?.verification_status, router])
 
-    if (!user || user.verification_status === 'approved' || user.role === 'student' || user.role === 'faculty') {
-        // While waiting for redirect to happen or user to load
+    if (!user || user.verification_status === 'approved') {
         return (
             <div className="flex items-center justify-center min-h-[50vh]">
                 <div className="w-8 h-8 rounded-full border-4 border-[#4C3B8A] border-t-transparent animate-spin" />

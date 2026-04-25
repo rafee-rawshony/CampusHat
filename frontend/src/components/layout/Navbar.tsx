@@ -40,11 +40,16 @@ import { cn } from '@/lib/utils'
 
 export function Navbar() {
     const pathname = usePathname()
-    const { user, isAuthenticated, logout, isSeller, isAdmin, isModerator, isVerifiedStudent } =
+    const { user, isAuthenticated, _hasHydrated, logout, isSeller, isAdmin, isModerator, canAccessMarketplace } =
         useAuthStore()
     const { getItemCount, setIsOpen } = useCartStore()
     const isMarketplace = pathname?.startsWith('/marketplace')
     const router = useRouter()
+
+    const handleLogout = async () => {
+        await logout()
+        window.location.href = '/'
+    }
 
     // Mobile Search State
     const [isSearchOpen, setIsSearchOpen] = useState(false)
@@ -67,13 +72,14 @@ export function Navbar() {
 
     const handlePostAdClick = (e: React.MouseEvent) => {
         e.preventDefault()
-        if (!isAuthenticated) return // Could handle login redirect but let's assume middleware catches it
-
-        // If they are admin, mod, seller, or verified, they can post
-        if (isAdmin() || isModerator() || isSeller() || isVerifiedStudent()) {
+        if (!isAuthenticated) {
+            router.push('/auth/login?redirect=/marketplace/post')
+            return
+        }
+        // Only verified students/faculty and admins/mods can post
+        if (canAccessMarketplace()) {
             router.push('/marketplace/post')
         } else {
-            // Normal unverified user
             setIsVerificationModalOpen(true)
         }
     }
@@ -146,7 +152,10 @@ export function Navbar() {
 
                     {/* Right: Auth + Actions */}
                     <div className="flex items-center space-x-3 md:space-x-6 ml-auto md:ml-0">
-                        {isAuthenticated ? (
+                        {/* Skeleton placeholder while Zustand hydrates from localStorage */}
+                        {!_hasHydrated ? (
+                            <div className="w-7 h-7 rounded-full bg-gray-200 animate-pulse" />
+                        ) : isAuthenticated ? (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <button className="flex items-center text-gray-600 hover:text-[#4C3B8A] py-2">
@@ -193,7 +202,7 @@ export function Navbar() {
                                     )}
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem
-                                        onClick={() => logout()}
+                                        onClick={handleLogout}
                                         className="text-destructive gap-2"
                                     >
                                         <LogOut className="h-4 w-4" /> Logout
@@ -201,13 +210,9 @@ export function Navbar() {
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         ) : (
-                            <Link 
-                                href="/auth/login" 
+                            <Link
+                                href="/auth/login"
                                 className="flex items-center text-gray-600 hover:text-[#4C3B8A]"
-                                onClick={() => {
-                                    document.cookie = 'campushat-access-token=; path=/; max-age=0;';
-                                    document.cookie = 'campushat-auth=; path=/; max-age=0;';
-                                }}
                             >
                                 <User className="w-6 h-6 md:w-7 md:h-7" />
                                 <span className="text-sm ml-2 hidden lg:inline font-semibold">Sign In</span>

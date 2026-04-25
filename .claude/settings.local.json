@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker --version)",
+      "Bash(docker compose *)",
+      "Bash(python -c \"import PyPDF2; print\\('OK'\\)\")",
+      "Bash(grep -E \"\\\\.tsx$|^d\")",
+      "Bash(npx next *)",
+      "Bash(grep -v \"^$\")",
+      "Bash(npx tsc *)",
+      "Bash(pdftotext \"H:/CampusHat/docs/Confidential_CampusHat_Platform_Documentation_v1_Updated.pdf\" /tmp/doc1.txt)",
+      "Bash(pdftotext \"H:/CampusHat/docs/CampusHat_Backend_Prompts_v2.pdf\" /tmp/doc2.txt)",
+      "Bash(pdftotext \"H:/CampusHat/docs/CampusHat_Complete_Rebuild.pdf\" /tmp/doc3.txt)"
+    ]
+  }
+}
