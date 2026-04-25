@@ -12,7 +12,7 @@ export default function SellerWalletPage() {
 
     const { data: balance, isLoading } = useQuery({
         queryKey: ['seller-wallet'],
-        queryFn: () => api.get('/wallet/').then(r => r.data),
+        queryFn: () => api.get('/wallet/balance/').then(r => r.data?.data || r.data),
         staleTime: 30_000,
     })
 

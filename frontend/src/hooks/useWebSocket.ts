@@ -23,8 +23,10 @@ export interface ChatMessage {
 export default function useWebSocket(chatId: string) {
     const [messages, setMessages] = useState<ChatMessage[]>([])
     const [isConnected, setIsConnected] = useState(false)
+    const [isTyping, setIsTyping] = useState(false)
     const wsRef = useRef<WebSocket | null>(null)
     const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const reconnectAttemptsRef = useRef(0)
     const maxReconnectAttempts = 5
     const { accessToken } = useAuthStore()
@@ -33,7 +35,7 @@ export default function useWebSocket(chatId: string) {
         if (!chatId || !accessToken) return
 
         const wsBase = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000'
-        const wsUrl = `${wsBase}/ws/chat/${chatId}/?token=${accessToken}`
+        const wsUrl = `${wsBase}/ws/marketplace/chat/${chatId}/?token=${accessToken}`
 
         try {
             const ws = new WebSocket(wsUrl)
@@ -47,13 +49,23 @@ export default function useWebSocket(chatId: string) {
             ws.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data)
-                    if (data.type === 'message' || data.type === 'chat_message') {
-                        const newMsg: ChatMessage = data.message || data
+
+                    if (data.type === 'chat.message') {
+                        const newMsg: ChatMessage = data.data
                         setMessages(prev => {
-                            // Deduplicate by id
                             if (prev.some(m => m.id === newMsg.id)) return prev
-                            return [...prev, newMsg]
+                            // Replace optimistic message if it exists
+                            const filtered = prev.filter(m => !m.id.startsWith('temp-'))
+                            return [...filtered, newMsg]
                         })
+                    } else if (data.type === 'chat.typing') {
+                        setIsTyping(true)
+                        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+                        typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 3000)
+                    } else if (data.type === 'chat.read_receipt') {
+                        setMessages(prev =>
+                            prev.map(m => ({ ...m, is_read: true }))
+                        )
                     }
                 } catch {
                     // Ignore malformed messages
@@ -68,7 +80,6 @@ export default function useWebSocket(chatId: string) {
                 setIsConnected(false)
                 wsRef.current = null
 
-                // Attempt reconnect with exponential backoff
                 if (reconnectAttemptsRef.current < maxReconnectAttempts) {
                     const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000)
                     reconnectAttemptsRef.current++
@@ -89,6 +100,9 @@ export default function useWebSocket(chatId: string) {
             if (reconnectTimeoutRef.current) {
                 clearTimeout(reconnectTimeoutRef.current)
             }
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current)
+            }
             if (wsRef.current) {
                 wsRef.current.close()
                 wsRef.current = null
@@ -99,13 +113,13 @@ export default function useWebSocket(chatId: string) {
     const sendMessage = useCallback((content: string, messageType = 'text') => {
         if (wsRef.current?.readyState === WebSocket.OPEN) {
             wsRef.current.send(JSON.stringify({
-                type: 'message',
+                type: 'chat.message',
                 content,
                 message_type: messageType,
             }))
         } else {
             // Fallback: REST API if WebSocket not connected
-            api.post(`/marketplace/chats/${chatId}/messages/`, {
+            api.post(`/marketplace/chats/${chatId}/send/`, {
                 content,
                 message_type: messageType,
             }).then(res => {
@@ -116,11 +130,23 @@ export default function useWebSocket(chatId: string) {
                         return [...prev, msg]
                     })
                 }
-            }).catch(() => {
-                // Silent fail — message will be retried or user can resend
-            })
+            }).catch(() => {})
         }
     }, [chatId])
 
-    return { messages, setMessages, isConnected, sendMessage }
+    const sendTyping = useCallback(() => {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({ type: 'chat.typing' }))
+        }
+    }, [])
+
+    const markRead = useCallback(() => {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({ type: 'chat.mark_read' }))
+        } else {
+            api.post(`/marketplace/chats/${chatId}/mark-read/`).catch(() => {})
+        }
+    }, [chatId])
+
+    return { messages, setMessages, isConnected, isTyping, sendMessage, sendTyping, markRead }
 }

@@ -10,7 +10,7 @@ import { RecentOrdersTable } from '@/components/seller/dashboard/RecentOrdersTab
 export default function SellerDashboardPage() {
     const { data: stats, isLoading: statsLoading } = useQuery({
         queryKey: ['seller-stats'],
-        queryFn: () => api.get('/seller/dashboard/stats/').then(r => r.data),
+        queryFn: () => api.get('/sellers/my-dashboard/').then(r => r.data?.data || r.data),
         staleTime: 0,
         refetchInterval: 30_000,
     })

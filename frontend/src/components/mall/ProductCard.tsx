@@ -9,6 +9,7 @@ import toast from 'react-hot-toast'
 
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { api } from '@/lib/api'
 import { useCartStore } from '@/stores/cart.store'
 import { useAuthStore } from '@/stores/auth.store'
 import { useRouter } from 'next/navigation'
@@ -76,11 +77,22 @@ export function ProductCard({ product }: ProductCardProps) {
         toast.success('Added to cart')
     }
 
-    const toggleWishlist = (e: React.MouseEvent) => {
+    const toggleWishlist = async (e: React.MouseEvent) => {
         e.preventDefault()
-        setIsWishlisted(!isWishlisted)
-        toast.success(isWishlisted ? 'Removed from wishlist' : 'Added to wishlist')
-        // TODO: Tie to API
+        const { isAuthenticated } = useAuthStore.getState()
+        if (!isAuthenticated) {
+            router.push('/auth/login')
+            return
+        }
+        const prev = isWishlisted
+        setIsWishlisted(!prev)
+        try {
+            await api.post('/wishlist/toggle/', { product_id: product.id })
+            toast.success(prev ? 'Removed from wishlist' : 'Added to wishlist')
+        } catch {
+            setIsWishlisted(prev)
+            toast.error('Failed to update wishlist')
+        }
     }
 
     // Determine Discount %

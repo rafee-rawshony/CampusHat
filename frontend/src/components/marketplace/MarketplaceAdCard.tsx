@@ -31,7 +31,7 @@ interface MarketplaceAdCardProps {
 export function MarketplaceAdCard({ listing }: MarketplaceAdCardProps) {
     const imageUrl = listing.images && listing.images.length > 0
         ? listing.images[0].image
-        : 'https://placehold.co/600x400/F5F5F5/1A1A2E.png?text=No+Image'
+        : null
 
     const timeAgo = formatDistanceToNow(new Date(listing.created_at), { addSuffix: true })
     const isOwnerVerifiedOrContactVisible = listing.contact_visible
@@ -41,13 +41,19 @@ export function MarketplaceAdCard({ listing }: MarketplaceAdCardProps) {
         <Link href={`/marketplace/listings/${listing.id}`} className="group block bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden relative">
             {/* Image Area */}
             <div className="relative aspect-[4/3] w-full bg-gray-50 overflow-hidden">
-                <Image
-                    src={imageUrl}
-                    alt={listing.title}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                />
+                {imageUrl ? (
+                    <Image
+                        src={imageUrl}
+                        alt={listing.title}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400 text-sm font-medium">
+                        No Image
+                    </div>
+                )}
 
                 {/* Badges Overlay */}
                 <div className="absolute top-2 left-2 flex flex-col gap-1.5 items-start">

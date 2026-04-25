@@ -75,7 +75,7 @@ export function CampusSwitcher() {
                                 placeholder="Find your university..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#634C9F] outline-none text-gray-800 font-medium"
+                                className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#4C3B8A] outline-none text-gray-800 font-medium"
                             />
                         </div>
                     </div>
@@ -84,7 +84,7 @@ export function CampusSwitcher() {
                     <div className="max-h-64 overflow-y-auto p-2">
                         <button
                             onClick={() => { clearCampus(); setOpen(false); setSearchQuery('') }}
-                            className={`w-full text-left px-4 py-3 rounded-xl text-sm transition-colors mb-1 ${!selectedCampusId ? 'bg-purple-50 text-[#634C9F] font-bold' : 'text-gray-600 hover:bg-gray-50 font-semibold'}`}
+                            className={`w-full text-left px-4 py-3 rounded-xl text-sm transition-colors mb-1 ${!selectedCampusId ? 'bg-purple-50 text-[#4C3B8A] font-bold' : 'text-gray-600 hover:bg-gray-50 font-semibold'}`}
                         >
                             <Globe className="inline-block w-4 h-4 mr-2 opacity-50" /> All Campuses (Global)
                         </button>
@@ -93,7 +93,7 @@ export function CampusSwitcher() {
                             <button
                                 key={campus.id}
                                 onClick={() => { setCampus(campus.id, campus.name); setOpen(false); setSearchQuery('') }}
-                                className={`w-full text-left px-4 py-3 rounded-xl text-xs transition-colors leading-tight ${String(selectedCampusId) === campus.id ? 'bg-purple-50 text-[#634C9F] font-bold' : 'text-gray-600 hover:bg-gray-50 font-medium'}`}
+                                className={`w-full text-left px-4 py-3 rounded-xl text-xs transition-colors leading-tight ${String(selectedCampusId) === campus.id ? 'bg-purple-50 text-[#4C3B8A] font-bold' : 'text-gray-600 hover:bg-gray-50 font-medium'}`}
                             >
                                 {campus.name}
                             </button>

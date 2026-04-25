@@ -19,6 +19,8 @@ from core.permissions import IsAdminOrModerator, IsApprovedSeller, IsNormalUserO
 
 from .filters import StoreProductFilter
 from .models import (
+    Banner,
+    Brand,
     Cart,
     CartItem,
     MallCategory,
@@ -26,6 +28,7 @@ from .models import (
     ProductVariant,
     StoreProduct,
     StoreProductImage,
+    Wishlist,
 )
 from .serializers import (
     AddToCartSerializer,
@@ -241,6 +244,10 @@ class StoreProductViewSet(ViewSet):
                 'code': 'NOT_FOUND',
             }, status=status.HTTP_404_NOT_FOUND)
 
+        StoreProduct.objects.filter(pk=product.pk).update(
+            view_count=F('view_count') + 1
+        )
+
         serializer = StoreProductDetailSerializer(product)
         return Response({
             'success': True,
@@ -328,6 +335,81 @@ class StoreProductViewSet(ViewSet):
         return Response({
             'success': True,
             'message': 'Product deleted.',
+        })
+
+
+# =============================================================================
+# BRAND LIST
+# =============================================================================
+
+class BrandListView(APIView):
+    """GET /api/v1/mall/products/brands/ — list all active brands."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        brands = Brand.objects.filter(is_active=True).order_by('name')
+        data = [
+            {'id': str(b.id), 'name': b.name, 'slug': b.slug, 'logo_url': b.logo_url}
+            for b in brands
+        ]
+        return Response({
+            'success': True,
+            'message': 'Data retrieved successfully.',
+            'data': data,
+        })
+
+
+class BannerListView(APIView):
+    """GET /api/v1/mall/banners/ — active hero carousel banners."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        banners = Banner.objects.filter(is_active=True).order_by('ordering', '-created_at')
+        data = [
+            {
+                'id': str(b.id),
+                'title': b.title,
+                'subtitle': b.subtitle,
+                'image_url': b.image_url or (b.image.url if b.image else None),
+                'link_url': b.link_url,
+                'badge_text': b.badge_text,
+                'cta_text': b.cta_text,
+            }
+            for b in banners
+        ]
+        return Response({'success': True, 'data': data})
+
+
+# =============================================================================
+# SELLER PRODUCT MANAGEMENT
+# =============================================================================
+
+class SellerProductListView(APIView):
+    """GET /api/v1/seller/products/ — list all products for the logged-in seller."""
+
+    permission_classes = [IsAuthenticated, IsApprovedSeller]
+
+    def get(self, request):
+        seller = request.user.seller_profile
+        store = getattr(seller, 'store', None)
+        if not store:
+            return Response({
+                'success': True,
+                'message': 'No store found.',
+                'data': [],
+            })
+
+        products = StoreProduct.objects.filter(
+            store=store, deleted_at__isnull=True,
+        ).select_related('category').prefetch_related('images').order_by('-created_at')
+
+        serializer = StoreProductListSerializer(products, many=True)
+        return Response({
+            'success': True,
+            'message': 'Data retrieved successfully.',
+            'data': serializer.data,
         })
 
 
@@ -818,3 +900,69 @@ class CartSummaryView(APIView):
             'message': 'Request successful.',
             'data': serializer.data,
         })
+
+
+# =============================================================================
+# WISHLIST
+# =============================================================================
+
+class WishlistView(APIView):
+    """GET /api/v1/wishlist/ — list user's wishlist."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        items = Wishlist.objects.filter(
+            user=request.user,
+        ).select_related('product__store').order_by('-created_at')
+
+        from .serializers import StoreProductListSerializer
+        products = [item.product for item in items if item.product.is_active]
+        serializer = StoreProductListSerializer(products, many=True)
+        return Response({
+            'success': True,
+            'data': serializer.data,
+        })
+
+
+class WishlistToggleView(APIView):
+    """POST /api/v1/wishlist/toggle/ — add or remove from wishlist."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        product_id = request.data.get('product_id')
+        if not product_id:
+            return Response({
+                'success': False,
+                'message': 'product_id is required.',
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            product = StoreProduct.objects.get(
+                id=product_id, is_active=True, deleted_at__isnull=True,
+            )
+        except StoreProduct.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'Product not found.',
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        existing = Wishlist.objects.filter(
+            user=request.user, product=product,
+        ).first()
+
+        if existing:
+            existing.delete()
+            return Response({
+                'success': True,
+                'message': 'Removed from wishlist.',
+                'data': {'is_wishlisted': False},
+            })
+
+        Wishlist.objects.create(user=request.user, product=product)
+        return Response({
+            'success': True,
+            'message': 'Added to wishlist.',
+            'data': {'is_wishlisted': True},
+        }, status=status.HTTP_201_CREATED)

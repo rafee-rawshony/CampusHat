@@ -45,7 +45,7 @@ export function AnnouncementBar() {
     }
 
     return (
-        <div className="bg-[#634C9F] text-white transition-all duration-500 overflow-visible">
+        <div className="bg-[#4C3B8A] text-white transition-all duration-500 overflow-visible">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative flex items-center justify-center min-h-[44px] py-1.5">
                 {/* Status Indicator (Left) — DEV ONLY, remove before production */}
                 <div className="absolute left-4 hidden md:flex items-center gap-2">

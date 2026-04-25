@@ -94,7 +94,7 @@ function ExplorerContent() {
 
 export default function ExplorerPage() {
     return (
-        <Suspense fallback={<div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center p-8"><div className="w-8 h-8 border-4 border-[#634C9F] border-t-transparent rounded-full animate-spin"></div></div>}>
+        <Suspense fallback={<div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center p-8"><div className="w-8 h-8 border-4 border-[#4C3B8A] border-t-transparent rounded-full animate-spin"></div></div>}>
             <ExplorerContent />
         </Suspense>
     )

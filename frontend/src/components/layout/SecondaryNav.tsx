@@ -40,8 +40,8 @@ export function SecondaryNav() {
                                 className={cn(
                                     'flex items-center py-3 text-sm font-semibold transition-colors',
                                     isActive
-                                        ? 'text-[#634C9F]'
-                                        : 'text-gray-700 hover:text-[#634C9F]'
+                                        ? 'text-[#4C3B8A]'
+                                        : 'text-gray-700 hover:text-[#4C3B8A]'
                                 )}
                             >
                                 <Icon className="w-4 h-4 mr-2" />

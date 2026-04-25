@@ -142,6 +142,39 @@ class MallCategory(BaseModel):
 
 
 # =============================================================================
+# MODEL 1B: BRAND
+# =============================================================================
+
+class Brand(BaseModel):
+    """
+    Product brand, optionally linked to products for filtering.
+    """
+
+    name = models.CharField(max_length=200, unique=True)
+    slug = models.SlugField(max_length=220, unique=True, db_index=True)
+    logo_url = models.CharField(max_length=500, blank=True, null=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+
+    class Meta(BaseModel.Meta):
+        db_table = 'mall_brands'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base_slug = slugify(self.name)
+            slug = base_slug
+            counter = 1
+            while Brand.all_objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f'{base_slug}-{counter}'
+                counter += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
+
+
+# =============================================================================
 # MODEL 2: STORE PRODUCT
 # =============================================================================
 
@@ -165,6 +198,14 @@ class StoreProduct(BaseModel):
         null=True,
         blank=True,
         related_name='products',
+    )
+    brand = models.ForeignKey(
+        Brand,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='products',
+        db_index=True,
     )
     name = models.CharField(max_length=300)
     slug = models.SlugField(max_length=320, unique=True, db_index=True)
@@ -198,6 +239,7 @@ class StoreProduct(BaseModel):
     )
     review_count = models.IntegerField(default=0)
     sold_count = models.IntegerField(default=0)
+    view_count = models.IntegerField(default=0)
 
     class Meta(BaseModel.Meta):
         db_table = 'mall_store_products'
@@ -444,3 +486,53 @@ class CartItem(UUIDMixin, TimestampMixin):
     def line_total(self):
         """Calculate line total for this cart item."""
         return self.unit_price_snapshot * self.quantity
+
+
+# =============================================================================
+# MODEL 8: WISHLIST
+# =============================================================================
+
+class Banner(UUIDMixin, TimestampMixin):
+    """Hero carousel banner for the mall homepage."""
+
+    title = models.CharField(max_length=200)
+    subtitle = models.CharField(max_length=300, blank=True)
+    image = models.ImageField(upload_to='banners/', blank=True, null=True)
+    image_url = models.URLField(blank=True)
+    link_url = models.CharField(max_length=500, blank=True)
+    badge_text = models.CharField(max_length=100, blank=True)
+    cta_text = models.CharField(max_length=100, default='Shop Now')
+    is_active = models.BooleanField(default=True)
+    ordering = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        db_table = 'mall_banners'
+        ordering = ['ordering', '-created_at']
+
+    def __str__(self):
+        return self.title
+
+
+class Wishlist(UUIDMixin, TimestampMixin):
+    """User's saved products for later purchase."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='wishlist_items',
+        db_index=True,
+    )
+    product = models.ForeignKey(
+        StoreProduct,
+        on_delete=models.CASCADE,
+        related_name='wishlisted_by',
+        db_index=True,
+    )
+
+    class Meta:
+        db_table = 'mall_wishlists'
+        unique_together = ('user', 'product')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.user.email} - {self.product.name}'

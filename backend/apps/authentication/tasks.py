@@ -75,6 +75,93 @@ def send_verification_email(self, user_id):
         raise self.retry(exc=exc)
 
 
+@shared_task(
+    bind=True,
+    max_retries=3,
+    default_retry_delay=30,
+    name='authentication.send_otp_email',
+)
+def send_otp_email(self, email, otp_code, user_name):
+    """
+    Send a one-time login code to the user's email.
+
+    The plaintext code only lives in the task payload briefly — it is never
+    stored in the database in plaintext. The DB only has the SHA-256 hash.
+
+    Args:
+        email: Recipient email address.
+        otp_code: Plaintext 6-digit OTP (transient; for delivery only).
+        user_name: Full name to greet the user with.
+    """
+    from core.utils import send_notification_email
+    from apps.authentication.models import OTPCode
+
+    context = {
+        'user_name': user_name,
+        'otp_code': otp_code,
+        'expiry_minutes': OTPCode.EXPIRY_MINUTES,
+    }
+
+    try:
+        success = send_notification_email(
+            to=email,
+            subject='Your CampusHat login code',
+            template='emails/otp_email.html',
+            context=context,
+        )
+        if success:
+            logger.info(f'OTP email sent to {email}.')
+        else:
+            logger.warning(f'Failed to send OTP email to {email}.')
+    except Exception as exc:
+        logger.error(f'send_otp_email error: {exc}')
+        raise self.retry(exc=exc)
+
+
+# =============================================================================
+# PASSWORD RESET
+# =============================================================================
+
+@shared_task(
+    bind=True,
+    max_retries=3,
+    default_retry_delay=30,
+    name='authentication.send_password_reset_email',
+)
+def send_password_reset_email(self, email, otp_code, user_name):
+    """
+    Send a password reset OTP to the user's email.
+
+    Args:
+        email: Recipient email address.
+        otp_code: Plaintext 6-digit OTP (transient; for delivery only).
+        user_name: Full name to greet the user with.
+    """
+    from core.utils import send_notification_email
+    from apps.authentication.models import OTPCode
+
+    context = {
+        'user_name': user_name,
+        'otp_code': otp_code,
+        'expiry_minutes': OTPCode.EXPIRY_MINUTES,
+    }
+
+    try:
+        success = send_notification_email(
+            to=email,
+            subject='Reset your CampusHat password',
+            template='emails/password_reset_email.html',
+            context=context,
+        )
+        if success:
+            logger.info(f'Password reset email sent to {email}.')
+        else:
+            logger.warning(f'Failed to send password reset email to {email}.')
+    except Exception as exc:
+        logger.error(f'send_password_reset_email error: {exc}')
+        raise self.retry(exc=exc)
+
+
 # =============================================================================
 # PHASE 03: VERIFICATION TASKS
 # =============================================================================

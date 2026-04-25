@@ -3,6 +3,7 @@
 from django.urls import path
 
 from .admin_views import (
+    AdminSellerReviewView,
     AdminSellerPendingView, AdminSellerDetailView,
     AdminSellerApproveView, AdminSellerRejectView, AdminSellerSuspendView,
     AdminStorePendingView, AdminStoreDetailView,
@@ -16,6 +17,7 @@ seller_admin_urlpatterns = [
     path('pending/', AdminSellerPendingView.as_view(), name='seller-pending'),
     path('<uuid:pk>/', AdminSellerDetailView.as_view(), name='seller-detail'),
     path('<uuid:pk>/approve/', AdminSellerApproveView.as_view(), name='seller-approve'),
+    path('<uuid:pk>/review/', AdminSellerReviewView.as_view(), name='seller-review'),
     path('<uuid:pk>/reject/', AdminSellerRejectView.as_view(), name='seller-reject'),
     path('<uuid:pk>/suspend/', AdminSellerSuspendView.as_view(), name='seller-suspend'),
 ]

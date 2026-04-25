@@ -9,6 +9,8 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from .views import (
+    BannerListView,
+    BrandListView,
     CartAddItemView,
     CartApplyCouponView,
     CartClearView,
@@ -22,8 +24,11 @@ from .views import (
     ProductReviewListView,
     ProductVariantDetailView,
     ProductVariantListCreateView,
+    SellerProductListView,
     SellerReviewResponseView,
     StoreProductViewSet,
+    WishlistToggleView,
+    WishlistView,
 )
 
 app_name = 'mall'
@@ -39,6 +44,16 @@ product_router.register(r'products', StoreProductViewSet, basename='product')
 urlpatterns = []
 urlpatterns += category_router.urls
 urlpatterns += product_router.urls
+
+# Brands
+urlpatterns += [
+    path('products/brands/', BrandListView.as_view(), name='brand-list'),
+]
+
+# Banners (hero carousel)
+urlpatterns += [
+    path('banners/', BannerListView.as_view(), name='banner-list'),
+]
 
 # Product reviews (nested under product)
 urlpatterns += [
@@ -68,4 +83,15 @@ cart_urlpatterns = [
     path('apply-coupon/', CartApplyCouponView.as_view(), name='cart-apply-coupon'),
     path('remove-coupon/', CartRemoveCouponView.as_view(), name='cart-remove-coupon'),
     path('summary/', CartSummaryView.as_view(), name='cart-summary'),
+]
+
+# Wishlist URLs (mounted under /api/v1/wishlist/)
+wishlist_urlpatterns = [
+    path('', WishlistView.as_view(), name='wishlist'),
+    path('toggle/', WishlistToggleView.as_view(), name='wishlist-toggle'),
+]
+
+# Seller product URLs (mounted under /api/v1/seller/products/)
+seller_product_urlpatterns = [
+    path('', SellerProductListView.as_view(), name='seller-products'),
 ]

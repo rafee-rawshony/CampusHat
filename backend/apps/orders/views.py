@@ -226,6 +226,38 @@ class OrderTrackingView(GenericAPIView):
 # SELLER VIEWS
 # =============================================================================
 
+class SellerOrderCountsView(APIView):
+    """GET /api/v1/seller/orders/counts/ — order status counts for tab badges."""
+
+    permission_classes = [IsAuthenticated, IsApprovedSeller]
+
+    def get(self, request):
+        try:
+            store = request.user.seller_profile.store
+        except Exception:
+            return Response(
+                {'success': False, 'message': 'Store not found.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        from django.db.models import Count, Q
+        qs = Order.objects.filter(store=store)
+        counts = qs.aggregate(
+            all=Count('id'),
+            placed=Count('id', filter=Q(status='placed')),
+            confirmed=Count('id', filter=Q(status='confirmed')),
+            packed=Count('id', filter=Q(status='packed')),
+            shipped=Count('id', filter=Q(status='shipped')),
+            delivered=Count('id', filter=Q(status='delivered')),
+            cancelled=Count('id', filter=Q(status='cancelled')),
+        )
+        return Response({
+            'success': True,
+            'message': 'Data retrieved successfully.',
+            'data': counts,
+        })
+
+
 class SellerOrderListView(GenericAPIView):
     """GET /api/v1/seller/orders/ — seller's store orders."""
 

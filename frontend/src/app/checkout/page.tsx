@@ -34,11 +34,14 @@ const addressSchema = z.object({
 
 type AddressFormValues = z.infer<typeof addressSchema>
 
-// Payment Options
+// Payment Options — all supported BD methods
 const PAYMENT_METHODS = [
     { id: 'wallet', title: 'Wallet Balance', icon: Wallet, description: 'Pay instantly using your CampusHat wallet' },
     { id: 'cod', title: 'Cash on Delivery', icon: Truck, description: 'Pay when you receive the order' },
-    { id: 'bkash', title: 'bKash', icon: CreditCard, description: 'Mobile banking payment' },
+    { id: 'bkash', title: 'bKash', icon: CreditCard, description: 'Mobile banking — bKash' },
+    { id: 'nagad', title: 'Nagad', icon: CreditCard, description: 'Mobile banking — Nagad' },
+    { id: 'rocket', title: 'Rocket', icon: CreditCard, description: 'Mobile banking — Rocket' },
+    { id: 'bank_transfer', title: 'Bank Transfer', icon: CreditCard, description: 'NPSB / internet banking' },
 ]
 
 export default function CheckoutPage() {
@@ -51,7 +54,7 @@ export default function CheckoutPage() {
     const [couponCode, setCouponCode] = useState('')
     const [discount, setDiscount] = useState(0)
     const [deliveryFee] = useState(60) // Static 60 BDT for now
-    const [walletBalance, setWalletBalance] = useState(2500) // Mock base balance for demo
+    const [walletBalance, setWalletBalance] = useState(0)
 
     // Form Hooks
     const { register, handleSubmit, formState: { errors } } = useRHForm<AddressFormValues>({
@@ -71,16 +74,17 @@ export default function CheckoutPage() {
         }
         if (items.length === 0) {
             toast.error('Your cart is empty.')
-            router.replace('/marketplace')
+            router.replace('/shop')
         }
 
-        // Fetch actual wallet balance 
         const fetchWallet = async () => {
             try {
-                const { data } = await api.get('/wallet/')
-                if (data?.balance) setWalletBalance(parseFloat(data.balance))
+                const { data } = await api.get('/wallet/balance/')
+                const bal = data?.data || data
+                const balance = bal?.available_balance ?? bal?.balance ?? 0
+                setWalletBalance(parseFloat(balance))
             } catch {
-                // Fallback to mock value if unmapped
+                setWalletBalance(0)
             }
         }
         fetchWallet()
@@ -91,18 +95,8 @@ export default function CheckoutPage() {
 
     const applyCoupon = async () => {
         if (!couponCode) return
-
-        // Demo Code
-        if (couponCode.toUpperCase() === 'TESTCODE20') {
-            const disc = subtotal * 0.2
-            setDiscount(disc)
-            toast.success('Coupon applied successfully!')
-            return
-        }
-
         try {
             const { data } = await api.get(`/coupons/validate/?code=${couponCode}`)
-            // Parse actual logic
             setDiscount(data.discount_amount)
             toast.success('Coupon applied.')
         } catch {
@@ -119,27 +113,21 @@ export default function CheckoutPage() {
 
         setIsLoading(true)
         try {
-            // Mocking API call payload
             const payload = {
                 items: items.map(i => ({ product_id: i.product_id, quantity: i.quantity, variant_id: i.variant_id })),
                 shipping_address: data,
                 payment_method: paymentMethod,
                 coupon_code: discount > 0 ? couponCode : null,
-                total_amount: finalTotal
             }
 
-            await api.post('/orders/checkout/', payload)
-
-            // Success Pipeline
+            const res = await api.post('/orders/checkout/', payload)
             clearCart()
-            router.push(`/orders/success-${Date.now()}?success=1`) // Assuming a routing structure for confirmation
+            const orderId = res.data?.order_id || res.data?.id
+            router.push(orderId ? `/orders/${orderId}?success=1` : '/orders?success=1')
             toast.success('Order placed successfully!')
-
-        } catch (error) {
-            // Because backend order endpoints are stubs in Phase 1/2, simulating a synthetic success if it fails for demo UX flow completion
-            clearCart()
-            router.push('/orders?success=1')
-            toast.success('Order placed! (Demo Fallback API)')
+        } catch (error: any) {
+            const msg = error?.response?.data?.detail || error?.response?.data?.message || 'Failed to place order. Please try again.'
+            toast.error(msg)
         } finally {
             setIsLoading(false)
         }

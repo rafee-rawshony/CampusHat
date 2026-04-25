@@ -1,6 +1,11 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { api } from '@/lib/api'
+import {
+    addCartItem,
+    fetchCart,
+    removeCartItem,
+    updateCartItem,
+} from '@/services/cart.service'
 
 export interface CartItem {
     id: string
@@ -44,50 +49,48 @@ export const useCartStore = create<CartState>()(
             setIsOpen: (isOpen: boolean) => set({ isOpen }),
 
             addItem: async (item: CartItem) => {
-                const { items } = get()
-                const existingItem = items.find(
+                const previousItems = get().items
+                const existingItem = previousItems.find(
                     (i) => i.product_id === item.product_id && i.variant_id === item.variant_id
                 )
 
-                // Optimistic Local State Update
                 if (existingItem) {
                     set({
-                        items: items.map((i) =>
+                        items: previousItems.map((i) =>
                             i.id === existingItem.id
                                 ? { ...i, quantity: i.quantity + item.quantity }
                                 : i
                         ),
-                        isOpen: true // open drawer on add
+                        isOpen: true,
                     })
                 } else {
-                    set({ items: [...items, item], isOpen: true })
+                    set({ items: [...previousItems, item], isOpen: true })
                 }
 
-                // API Sync (fail softly if guest or error for now)
                 try {
                     set({ isLoading: true })
-                    await api.post('/cart/add/', {
+                    await addCartItem({
                         product_id: item.product_id,
                         quantity: item.quantity,
-                        variant_id: item.variant_id
+                        variant_id: item.variant_id,
                     })
                 } catch (error) {
+                    set({ items: previousItems })
                     console.error('Failed to sync cart add', error)
-                    // Could revert optimistic update here in robust prod
                 } finally {
                     set({ isLoading: false })
                 }
             },
 
             removeItem: async (id: string) => {
-                // Optimistic Local State Update
-                set({ items: get().items.filter((i) => i.id !== id) })
+                const previousItems = get().items
+                set({ items: previousItems.filter((i) => i.id !== id) })
 
-                // API Sync
                 try {
                     set({ isLoading: true })
-                    await api.delete(`/cart/items/${id}/`)
+                    await removeCartItem(id)
                 } catch (error) {
+                    set({ items: previousItems })
                     console.error('Failed to sync cart remove', error)
                 } finally {
                     set({ isLoading: false })
@@ -100,18 +103,18 @@ export const useCartStore = create<CartState>()(
                     return
                 }
 
-                // Optimistic Local Update
+                const previousItems = get().items
                 set({
-                    items: get().items.map((i) =>
+                    items: previousItems.map((i) =>
                         i.id === id ? { ...i, quantity } : i
                     ),
                 })
 
-                // API Sync
                 try {
                     set({ isLoading: true })
-                    await api.patch(`/cart/items/${id}/`, { quantity })
+                    await updateCartItem(id, quantity)
                 } catch (error) {
+                    set({ items: previousItems })
                     console.error('Failed to sync cart update', error)
                 } finally {
                     set({ isLoading: false })
@@ -134,11 +137,12 @@ export const useCartStore = create<CartState>()(
             syncCart: async () => {
                 try {
                     set({ isLoading: true })
-                    const { data } = await api.get('/cart/')
+                    const data = await fetchCart()
                     // Map API response to our local state shape
-                    // This assumes API returns { items: [...] }
-                    if (data && data.items) {
-                        set({ items: data.items })
+                    // Backend returns { items: [...] } or sometimes { data: { items: [...] } }
+                    const items = data?.items || data?.data?.items
+                    if (items) {
+                        set({ items })
                     }
                 } catch (error) {
                     console.error('Failed to fetch cart', error)

@@ -25,7 +25,7 @@ export function AlertsPanel() {
 
     const { data: activities, isLoading } = useQuery({
         queryKey: ['seller-activity-feed'],
-        queryFn: () => api.get('/seller/activity/?limit=8').then(r => r.data?.results || r.data || []),
+        queryFn: () => api.get('/notifications/?page_size=8').then(r => r.data?.data?.results || r.data?.results || r.data || []),
         staleTime: 60_000
     })
 

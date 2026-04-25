@@ -11,12 +11,16 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     ChangePasswordView,
+    ForgotPasswordView,
     LoginView,
     LogoutView,
     MeUpdateView,
     MeView,
+    OTPSendView,
+    OTPVerifyView,
     RegisterView,
     ResendVerificationView,
+    ResetPasswordView,
     CookieTokenRefreshView,
     VerifyEmailView,
 )
@@ -48,12 +52,18 @@ urlpatterns = [
     path('token/refresh/', CookieTokenRefreshView.as_view(), name='token-refresh'),
     path('logout/', LogoutView.as_view(), name='logout'),
 
+    # Passwordless OTP Login
+    path('otp/send/', OTPSendView.as_view(), name='otp-send'),
+    path('otp/verify/', OTPVerifyView.as_view(), name='otp-verify'),
+
     # Profile (Phase 02)
     path('me/', MeView.as_view(), name='me'),
     path('me/update/', MeUpdateView.as_view(), name='me-update'),
 
     # Password (Phase 02)
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),
+    path('forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
+    path('reset-password/', ResetPasswordView.as_view(), name='reset-password'),
 
     # Verification (Phase 03)
     path('verification/submit/', SubmitVerificationView.as_view(), name='verification-submit'),

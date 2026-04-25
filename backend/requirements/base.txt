@@ -20,6 +20,11 @@ redis==5.0.8
 # Filtering & Search
 django-filter==24.3
 
+# WebSocket (Django Channels)
+channels==4.0.0
+channels-redis==4.2.0
+daphne==4.1.0
+
 # CORS
 django-cors-headers==4.4.0
 

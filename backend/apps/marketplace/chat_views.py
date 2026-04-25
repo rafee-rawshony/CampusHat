@@ -98,6 +98,38 @@ class MyChatListView(APIView):
         })
 
 
+class ChatDetailView(APIView):
+    """
+    GET /api/v1/marketplace/chats/{id}/
+
+    Retrieve a single chat thread with other_user and listing info.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        try:
+            chat = MarketplaceChat.objects.select_related(
+                'product', 'buyer', 'seller',
+            ).get(pk=pk, deleted_at__isnull=True)
+        except MarketplaceChat.DoesNotExist:
+            return Response({
+                'success': False, 'message': 'Chat not found.', 'code': 'NOT_FOUND',
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        if request.user not in (chat.buyer, chat.seller):
+            return Response({
+                'success': False, 'message': 'Forbidden.', 'code': 'FORBIDDEN',
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = MarketplaceChatSerializer(chat, context={'request': request})
+        return Response({
+            'success': True,
+            'message': 'Data retrieved successfully.',
+            'data': serializer.data,
+        })
+
+
 class ChatMessagesView(APIView):
     """
     GET /api/v1/marketplace/chats/{id}/messages/

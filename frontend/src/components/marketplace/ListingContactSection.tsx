@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { Phone, MessageCircle, MapPin, ShieldCheck, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { api } from '@/lib/api'
+import { useAuthStore } from '@/stores/auth.store'
 
 interface ListingContactSectionProps {
     listing: {
@@ -25,16 +26,46 @@ interface ListingContactSectionProps {
 
 export function ListingContactSection({ listing, isAuthenticated, onOpenOfferModal }: ListingContactSectionProps) {
     const router = useRouter()
+    const { user } = useAuthStore()
     const isContactVisible = listing.contact_visible
 
     const handleSendMessage = async () => {
         try {
-            const res = await api.post('/marketplace/chats/start/', { listing_id: listing.id })
-            router.push(`/marketplace/chat/${res.data?.chat_id || res.data?.id}`)
+            const res = await api.post('/marketplace/chats/start/', { product_id: listing.id })
+            const chatData = res.data?.data || res.data
+            router.push(`/marketplace/chat/${chatData?.id || chatData?.chat_id}`)
         } catch {
             router.push(`/marketplace/chat?user=${listing.user_info.id}&listing=${listing.id}`)
         }
     }
+
+    // Role-aware messages and CTA for the locked contact section
+    const getLockContent = () => {
+        if (!isAuthenticated) {
+            return {
+                message: 'Sign in to view contact information and send messages.',
+                cta: 'Sign In to Continue',
+                action: () => router.push(`/auth/login?redirect=/marketplace/listings/${listing.id}`),
+            }
+        }
+        const role = user?.role
+        if (role === 'student' || role === 'faculty') {
+            // Student/faculty but not yet verified
+            return {
+                message: 'Verify your university student ID to unlock contact info, chat, and posting.',
+                cta: 'Verify Student ID',
+                action: () => router.push('/account/verify'),
+            }
+        }
+        // normal_user, seller, or unknown — marketplace is student-only
+        return {
+            message: 'Marketplace is for verified university students and faculty only.',
+            cta: 'Learn More',
+            action: () => router.push('/help'),
+        }
+    }
+
+    const lockContent = getLockContent()
 
     return (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden relative">
@@ -42,19 +73,16 @@ export function ListingContactSection({ listing, isAuthenticated, onOpenOfferMod
             {!isContactVisible && (
                 <div className="absolute inset-0 z-10 bg-white/60 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center border-2 border-dashed border-gray-300 rounded-2xl">
                     <ShieldCheck className="w-12 h-12 text-brand-primary mb-3" />
-                    <h3 className="text-lg font-bold text-gray-900 mb-2">Verification Required</h3>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">Access Restricted</h3>
                     <p className="text-sm text-gray-600 mb-5 font-medium max-w-[250px]">
-                        To maintain a safe campus environment, contact info and chat are restricted.
+                        {lockContent.message}
                     </p>
-                    {isAuthenticated ? (
-                        <Button onClick={() => router.push('/account/verify')} className="bg-brand-primary hover:bg-brand-dark text-white rounded-xl font-bold shadow-md w-full">
-                            Get Verified
-                        </Button>
-                    ) : (
-                        <Button onClick={() => router.push(`/auth/login?redirect=/marketplace/listings/${listing.id}`)} className="bg-brand-primary hover:bg-brand-dark text-white rounded-xl font-bold shadow-md w-full">
-                            Sign In to Continue
-                        </Button>
-                    )}
+                    <Button
+                        onClick={lockContent.action}
+                        className="bg-brand-primary hover:bg-brand-dark text-white rounded-xl font-bold shadow-md w-full"
+                    >
+                        {lockContent.cta}
+                    </Button>
                 </div>
             )}
 
@@ -104,7 +132,7 @@ export function ListingContactSection({ listing, isAuthenticated, onOpenOfferMod
                 <div className="flex flex-col gap-3">
                     <Button
                         onClick={handleSendMessage}
-                        className="w-full bg-[#634C9F] hover:bg-[#523f8a] text-white rounded-xl h-12 font-bold shadow-md gap-2"
+                        className="w-full bg-[#4C3B8A] hover:bg-[#2D1B69] text-white rounded-xl h-12 font-bold shadow-md gap-2"
                     >
                         <MessageCircle className="w-5 h-5" />
                         Send Message

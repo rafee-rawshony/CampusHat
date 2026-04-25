@@ -16,6 +16,7 @@ from .views import (
     CheckoutView,
     OrderTrackingView,
     SellerConfirmOrderView,
+    SellerOrderCountsView,
     SellerOrderDetailView,
     SellerOrderListView,
     SellerPackOrderView,
@@ -35,6 +36,7 @@ urlpatterns = [
 
 # Seller order URLs (mounted under /api/v1/seller/orders/)
 seller_order_urlpatterns = [
+    path('counts/', SellerOrderCountsView.as_view(), name='seller-order-counts'),
     path('', SellerOrderListView.as_view(), name='seller-orders'),
     path('<uuid:order_id>/', SellerOrderDetailView.as_view(), name='seller-order-detail'),
     path('<uuid:order_id>/confirm/', SellerConfirmOrderView.as_view(), name='seller-confirm'),

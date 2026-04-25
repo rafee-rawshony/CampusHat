@@ -5,6 +5,7 @@ from django.contrib import admin
 from .models import (
     SellerProfile, Store, SellerBadge,
     SellerPayoutRequest, StudentBenefit,
+    StoreFollower,
 )
 
 
@@ -61,3 +62,10 @@ class StudentBenefitAdmin(admin.ModelAdmin):
     list_display = ('seller', 'benefit_type', 'discount_percentage', 'valid_from', 'valid_until', 'is_active')
     list_filter = ('benefit_type', 'is_active')
     raw_id_fields = ('seller', 'granted_by')
+
+
+@admin.register(StoreFollower)
+class StoreFollowerAdmin(admin.ModelAdmin):
+    list_display = ('store', 'user', 'created_at')
+    raw_id_fields = ('store', 'user')
+    ordering = ('-created_at',)

@@ -53,7 +53,7 @@ export const useWishlistStore = create<WishlistState>()(
 
                 try {
                     set({ isLoading: true })
-                    const { data } = await api.get('/mall/wishlist/')
+                    const { data } = await api.get('/wishlist/')
                     const ids = (data?.data?.results || data?.results || data || [])
                         .map((item: any) => item.product_id || item.product?.id || item.id)
                         .filter(Boolean)

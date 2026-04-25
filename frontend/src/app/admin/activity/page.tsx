@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Download, RefreshCw, Activity, Shield } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -95,7 +95,7 @@ export default function AdminActivityPage() {
             link.click()
             link.parentNode?.removeChild(link)
         } catch {
-            toast.info('Export feature is coming soon.')
+            toast('Export feature is coming soon.')
         } finally {
             setIsExporting(false)
         }
@@ -111,7 +111,7 @@ export default function AdminActivityPage() {
     if (!_hasHydrated) return null
 
     return (
-        <div className="p-6 lg:p-8 space-y-6 max-w-[1400px] mx-auto h-full overflow-y-auto custom-scrollbar">
+        <div className="space-y-6 max-w-[1400px] mx-auto pb-20">
             
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">

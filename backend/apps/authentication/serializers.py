@@ -8,8 +8,6 @@ All password handling uses Django's built-in hashing.
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
-from rest_framework_simplejwt.tokens import RefreshToken
-
 from apps.universities.models import University
 from core.validators import validate_document_file
 
@@ -139,26 +137,7 @@ class UserLoginSerializer(serializers.Serializer):
                 code='EMAIL_NOT_VERIFIED'
             )
 
-        # Generate JWT tokens
-        refresh = RefreshToken.for_user(user)
-
-        return {
-            'access_token': str(refresh.access_token),
-            'refresh_token': str(refresh),
-            'user': {
-                'id': str(user.id),
-                'email': user.email,
-                'full_name': user.full_name,
-                'role': user.role,
-                'university': {
-                    'id': str(user.university.id),
-                    'name': user.university.name,
-                    'short_name': user.university.short_name,
-                } if user.university else None,
-                'is_email_verified': user.is_email_verified,
-                'profile_picture': user.profile_picture,
-            },
-        }
+        return {'user': user}
 
 
 # =============================================================================
@@ -193,26 +172,60 @@ class UserDetailSerializer(serializers.ModelSerializer):
     Full profile serializer for the authenticated user viewing their own profile.
     """
 
-    university = serializers.SerializerMethodField()
+    university_id = serializers.SerializerMethodField()
+    university_name = serializers.CharField(
+        source='university.name', read_only=True, default=None,
+    )
+    verification_status = serializers.SerializerMethodField()
+    verification_rejection_reason = serializers.SerializerMethodField()
+    seller_application_status = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
             'id', 'email', 'full_name', 'phone', 'profile_picture',
-            'role', 'university', 'is_email_verified', 'is_phone_verified',
-            'reputation_score', 'last_login', 'created_at', 'updated_at',
+            'role', 'university_id', 'university_name',
+            'is_email_verified', 'is_phone_verified',
+            'reputation_score', 'verification_status',
+            'verification_rejection_reason', 'seller_application_status',
+            'last_login', 'created_at', 'updated_at',
         ]
         read_only_fields = fields
 
-    def get_university(self, obj):
-        if obj.university:
-            return {
-                'id': str(obj.university.id),
-                'name': obj.university.name,
-                'short_name': obj.university.short_name,
-                'slug': obj.university.slug,
-            }
-        return None
+    def get_university_id(self, obj):
+        return str(obj.university_id) if obj.university_id else None
+
+    def get_verification_status(self, obj):
+        from .models import UserVerification
+        v = (
+            UserVerification.objects
+            .filter(user=obj, deleted_at__isnull=True)
+            .order_by('-created_at')
+            .values_list('status', flat=True)
+            .first()
+        )
+        return v
+
+    def get_verification_rejection_reason(self, obj):
+        from .models import UserVerification
+        v = (
+            UserVerification.objects
+            .filter(user=obj, deleted_at__isnull=True, status='rejected')
+            .order_by('-created_at')
+            .values_list('rejection_reason', flat=True)
+            .first()
+        )
+        return v
+
+    def get_seller_application_status(self, obj):
+        from apps.sellers.models import SellerProfile
+        return (
+            SellerProfile.objects
+            .filter(user=obj, deleted_at__isnull=True)
+            .order_by('-created_at')
+            .values_list('status', flat=True)
+            .first()
+        )
 
 
 class UserUpdateSerializer(serializers.ModelSerializer):
@@ -269,3 +282,28 @@ class ChangePasswordSerializer(serializers.Serializer):
         user.set_password(self.validated_data['new_password'])
         user.save(update_fields=['password'])
         return user
+
+
+# =============================================================================
+# FORGOT / RESET PASSWORD
+# =============================================================================
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField(help_text='Registered email address.')
+
+
+class ResetPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField(help_text='Registered email address.')
+    otp = serializers.RegexField(
+        regex=r'^\d{6}$',
+        error_messages={'invalid': 'OTP must be 6 digits.'},
+    )
+    new_password = serializers.CharField(
+        write_only=True,
+        min_length=8,
+        help_text='New password (min 8 characters).',
+    )
+
+    def validate_new_password(self, value):
+        validate_password(value)
+        return value

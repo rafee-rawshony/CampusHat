@@ -385,3 +385,45 @@ class AdminPayoutRejectView(APIView):
         payout.processed_at = timezone.now()
         payout.save(update_fields=['status', 'note', 'processed_by', 'processed_at'])
         return Response({'success': True, 'message': 'Payout rejected.'})
+
+
+class AdminSellerReviewView(APIView):
+    """POST /api/v1/admin/sellers/{id}/review/ — combined approve/reject action."""
+
+    permission_classes = [IsAuthenticated, IsSellerModerator]
+
+    def post(self, request, pk):
+        try:
+            seller = SellerProfile.objects.get(pk=pk, deleted_at__isnull=True)
+        except SellerProfile.DoesNotExist:
+            return Response({
+                'success': False, 'message': 'Seller not found.',
+                'code': 'NOT_FOUND',
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        action = request.data.get('action', '').strip()
+        if action not in ('approve', 'reject'):
+            return Response({
+                'success': False, 'message': "Action must be 'approve' or 'reject'.",
+                'code': 'INVALID_ACTION',
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if action == 'approve':
+            seller.status = 'approved'
+            seller.approved_by = request.user
+            badge_label = request.data.get('badge_label', '').strip()
+            if badge_label:
+                seller.badge_label = badge_label
+            seller.save(update_fields=['status', 'approved_by'])
+            return Response({'success': True, 'message': 'Seller approved.'})
+
+        reason = request.data.get('reason', '').strip()
+        if not reason:
+            return Response({
+                'success': False, 'message': 'Rejection reason is required.',
+                'code': 'MISSING_FIELD',
+            }, status=status.HTTP_400_BAD_REQUEST)
+        seller.status = 'rejected'
+        seller.rejection_reason = reason
+        seller.save(update_fields=['status', 'rejection_reason'])
+        return Response({'success': True, 'message': 'Seller rejected.'})

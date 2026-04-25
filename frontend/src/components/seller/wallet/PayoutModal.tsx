@@ -38,7 +38,7 @@ export function PayoutModal({ open, onClose, availableBalance }: PayoutModalProp
 
     const payoutMutation = useMutation({
         mutationFn: (data: FormValues) =>
-            api.post('/seller/payouts/request/', {
+            api.post('/sellers/payouts/request/', {
                 amount: data.amount,
                 method: data.method,
                 account_number: data.account_number,

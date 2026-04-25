@@ -66,14 +66,14 @@ function CheckboxItem({
     onChange: () => void
 }) {
     return (
-        <label className="flex items-center text-sm text-gray-600 hover:text-[#634C9F] cursor-pointer">
+        <label className="flex items-center text-sm text-gray-600 hover:text-[#4C3B8A] cursor-pointer">
             <input
                 type="checkbox"
-                className="h-4 w-4 rounded border-gray-300 text-[#634C9F] focus:ring-[#634C9F]"
+                className="h-4 w-4 rounded border-gray-300 text-[#4C3B8A] focus:ring-[#4C3B8A]"
                 checked={checked}
                 onChange={onChange}
             />
-            <span className={`ml-3 ${checked ? 'font-bold text-[#634C9F]' : ''}`}>{label}</span>
+            <span className={`ml-3 ${checked ? 'font-bold text-[#4C3B8A]' : ''}`}>{label}</span>
         </label>
     )
 }
@@ -118,7 +118,7 @@ function FilterSidebarContent({
                             type="number"
                             value={localMin}
                             onChange={(e) => setLocalMin(Number(e.target.value))}
-                            className="w-full border border-gray-300 rounded-md text-sm p-2 focus:ring-[#634C9F] focus:border-[#634C9F] outline-none"
+                            className="w-full border border-gray-300 rounded-md text-sm p-2 focus:ring-[#4C3B8A] focus:border-[#4C3B8A] outline-none"
                         />
                     </div>
                     <span className="text-gray-400 pb-2">-</span>
@@ -128,7 +128,7 @@ function FilterSidebarContent({
                             type="number"
                             value={localMax}
                             onChange={(e) => setLocalMax(Number(e.target.value))}
-                            className="w-full border border-gray-300 rounded-md text-sm p-2 focus:ring-[#634C9F] focus:border-[#634C9F] outline-none"
+                            className="w-full border border-gray-300 rounded-md text-sm p-2 focus:ring-[#4C3B8A] focus:border-[#4C3B8A] outline-none"
                         />
                     </div>
                 </div>
@@ -337,7 +337,7 @@ export function MarketplaceListingPage({ postType, title, defaultMaxPrice }: Mar
                                 <label htmlFor="sort-select" className="mr-2 text-gray-600">Sort by:</label>
                                 <select
                                     id="sort-select"
-                                    className="border border-gray-200 rounded-lg text-sm px-3 py-1.5 focus:ring-[#634C9F] focus:border-[#634C9F] outline-none bg-white"
+                                    className="border border-gray-200 rounded-lg text-sm px-3 py-1.5 focus:ring-[#4C3B8A] focus:border-[#4C3B8A] outline-none bg-white"
                                     value={sort}
                                     onChange={(e) => setSort(e.target.value as SortOption)}
                                 >
@@ -354,7 +354,7 @@ export function MarketplaceListingPage({ postType, title, defaultMaxPrice }: Mar
                                 {selectedCategories.map((slug) => {
                                     const cat = categories.find((c) => c.slug === slug)
                                     return (
-                                        <span key={slug} className="inline-flex items-center gap-1 bg-purple-50 text-[#634C9F] text-xs font-semibold px-3 py-1 rounded-full">
+                                        <span key={slug} className="inline-flex items-center gap-1 bg-purple-50 text-[#4C3B8A] text-xs font-semibold px-3 py-1 rounded-full">
                                             {cat?.name || slug}
                                             <button onClick={() => toggleCategory(slug)}><X className="w-3 h-3" /></button>
                                         </span>

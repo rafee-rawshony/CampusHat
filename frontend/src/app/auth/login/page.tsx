@@ -16,8 +16,16 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
-import { api } from '@/lib/api'
+import {
+    login as loginApi,
+    resendVerification,
+    sendOtp,
+    verifyOtp,
+} from '@/services/auth.service'
 import { useAuthStore } from '@/stores/auth.store'
+
+// OTP login is backed by /auth/otp/send/ and /auth/otp/verify/ on the backend.
+const OTP_LOGIN_ENABLED = true
 
 const loginSchema = z.object({
     email: z.string().email('Please enter a valid email'),
@@ -31,9 +39,22 @@ const otpRequestSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>
 type OTPRequestForm = z.infer<typeof otpRequestSchema>
 
+// Shared redirect logic — used after both password and OTP login.
+// seller_application_status is checked because the backend never changes
+// user.role to 'seller' on approval — it only sets SellerProfile.status.
+function getRoleRedirect(
+    user: { role: string; seller_application_status?: string | null },
+    redirectParam: string | null
+): string {
+    if (redirectParam) return redirectParam
+    if (['admin', 'moderator', 'seller_mod', 'marketplace_mod'].includes(user.role)) return '/admin'
+    if (user.seller_application_status === 'approved') return '/seller'
+    return '/'
+}
+
 export default function LoginPage() {
     const router = useRouter()
-    const { setUser, setAccessToken } = useAuthStore()
+    const { user, isAuthenticated, _hasHydrated, setUser, setAccessToken } = useAuthStore()
     const [showPassword, setShowPassword] = useState(false)
     const [authTab, setAuthTab] = useState<'login' | 'register'>('login')
     const [methodTab, setMethodTab] = useState<'password' | 'otp'>('password')
@@ -42,6 +63,14 @@ export default function LoginPage() {
     const [isLoading, setIsLoading] = useState(false)
     const [emailNotVerified, setEmailNotVerified] = useState(false)
     const [unverifiedEmail, setUnverifiedEmail] = useState('')
+
+    // If store has hydrated and user is already signed in, redirect them away
+    useEffect(() => {
+        if (_hasHydrated && isAuthenticated && user) {
+            const searchParams = new URLSearchParams(window.location.search)
+            window.location.href = getRoleRedirect(user, searchParams.get('redirect'))
+        }
+    }, [_hasHydrated, isAuthenticated, user])
 
     useEffect(() => {
         if (sessionStorage.getItem('session_expired')) {
@@ -65,24 +94,13 @@ export default function LoginPage() {
         setIsLoading(true)
         setEmailNotVerified(false)
         try {
-            const response = await api.post('/auth/login/', data)
-            const { user, access_token } = response.data.data || response.data
+            const { user, access_token } = await loginApi(data)
             setAccessToken(access_token)
             setUser(user)
             toast.success('Welcome back!')
 
-            // Respect ?redirect=... query param if present
             const searchParams = new URLSearchParams(window.location.search)
-            const redirectTo = searchParams.get('redirect')
-            if (redirectTo) {
-                router.push(redirectTo)
-            } else if (user.role === 'admin' || user.role === 'moderator' || user.role === 'marketplace_mod') {
-                router.push('/admin')
-            } else if (user.role === 'seller') {
-                router.push('/marketplace')
-            } else {
-                router.push('/')
-            }
+            window.location.href = getRoleRedirect(user, searchParams.get('redirect'))
         } catch (error: any) {
             const message = error.response?.data?.message || error.response?.data?.detail || 'Login failed'
             if (message.includes('not verified') || error.response?.data?.code === 'EMAIL_NOT_VERIFIED') {
@@ -98,7 +116,7 @@ export default function LoginPage() {
     const handleSendOtp = async (data: OTPRequestForm) => {
         setIsLoading(true)
         try {
-            await api.post('/auth/otp/send/', { identifier: data.identifier })
+            await sendOtp({ identifier: data.identifier })
             setOtpSent(true)
             toast.success('OTP sent! Check your inbox.')
         } catch (error: any) {
@@ -111,15 +129,16 @@ export default function LoginPage() {
     const handleVerifyOtp = async () => {
         setIsLoading(true)
         try {
-            const response = await api.post('/auth/otp/verify/', {
+            const { user, access_token } = await verifyOtp({
                 identifier: otpForm.getValues('identifier'),
                 otp,
             })
-            const { user, access_token } = response.data.data || response.data
             setAccessToken(access_token)
             setUser(user)
             toast.success('Welcome!')
-            router.push('/')
+
+            const searchParams = new URLSearchParams(window.location.search)
+            window.location.href = getRoleRedirect(user, searchParams.get('redirect'))
         } catch (error: any) {
             toast.error(error.response?.data?.message || 'Invalid OTP')
         } finally {
@@ -129,12 +148,15 @@ export default function LoginPage() {
 
     const handleResendVerification = async () => {
         try {
-            await api.post('/auth/resend-verification/', { email: unverifiedEmail })
+            await resendVerification(unverifiedEmail)
             toast.success('Verification email sent!')
         } catch {
             toast.error('Failed to resend verification')
         }
     }
+
+    // Show blank while store hydrates or while redirecting an already-logged-in user
+    if (!_hasHydrated || (_hasHydrated && isAuthenticated)) return null
 
     return (
         <div className="min-h-screen flex bg-surface-base">
@@ -182,16 +204,18 @@ export default function LoginPage() {
                             </TabsList>
 
                             <TabsContent value="login" className="mt-6">
-                                {/* Password / OTP sub-tabs */}
+                                {/* Password / OTP sub-tabs — OTP tab hidden until backend is ready */}
                                 <Tabs value={methodTab} onValueChange={(v) => setMethodTab(v as 'password' | 'otp')}>
-                                    <TabsList className="w-full mb-4">
-                                        <TabsTrigger value="password" className="flex-1 gap-1.5">
-                                            <Eye className="h-3.5 w-3.5" /> Password
-                                        </TabsTrigger>
-                                        <TabsTrigger value="otp" className="flex-1 gap-1.5">
-                                            <Smartphone className="h-3.5 w-3.5" /> OTP
-                                        </TabsTrigger>
-                                    </TabsList>
+                                    {OTP_LOGIN_ENABLED && (
+                                        <TabsList className="w-full mb-4">
+                                            <TabsTrigger value="password" className="flex-1 gap-1.5">
+                                                <Eye className="h-3.5 w-3.5" /> Password
+                                            </TabsTrigger>
+                                            <TabsTrigger value="otp" className="flex-1 gap-1.5">
+                                                <Smartphone className="h-3.5 w-3.5" /> OTP
+                                            </TabsTrigger>
+                                        </TabsList>
+                                    )}
 
                                     {/* Password Login */}
                                     <TabsContent value="password">
@@ -229,13 +253,19 @@ export default function LoginPage() {
                                                     <p className="text-xs text-destructive">{loginForm.formState.errors.password.message}</p>
                                                 )}
                                             </div>
+                                            <div className="flex justify-end">
+                                                <Link href="/auth/forgot-password" className="text-xs text-brand-primary hover:underline font-medium">
+                                                    Forgot password?
+                                                </Link>
+                                            </div>
                                             <Button type="submit" className="w-full" disabled={isLoading}>
                                                 {isLoading ? 'Signing in...' : 'Sign In'}
                                             </Button>
                                         </form>
                                     </TabsContent>
 
-                                    {/* OTP Login */}
+                                    {/* OTP Login — kept as dead code until backend is ready */}
+                                    {OTP_LOGIN_ENABLED && (
                                     <TabsContent value="otp">
                                         {!otpSent ? (
                                             <form onSubmit={otpForm.handleSubmit(handleSendOtp)} className="space-y-4">
@@ -278,6 +308,7 @@ export default function LoginPage() {
                                             </div>
                                         )}
                                     </TabsContent>
+                                    )}
                                 </Tabs>
 
                                 {/* Join as Seller */}
@@ -311,7 +342,7 @@ export default function LoginPage() {
                 </div>
             </div>
 
-            <div className="hidden lg:flex flex-1 relative bg-gradient-to-br from-[#634C9F] to-[#45357A] items-center justify-center p-12 overflow-hidden">
+            <div className="hidden lg:flex flex-1 relative bg-gradient-to-br from-[#4C3B8A] to-[#45357A] items-center justify-center p-12 overflow-hidden">
                 {/* Decorative background elements */}
                 <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
                     <div className="absolute -top-[20%] -right-[10%] w-[70%] h-[70%] rounded-full bg-white/5 blur-[120px]"></div>
