@@ -21,8 +21,8 @@ urlpatterns = [
     # --- Health Check ---
     path('api/health/', health_check, name='health-check'),
 
-    # --- Admin ---
-    path('admin/', admin.site.urls),
+    # --- Django built-in admin (moved to avoid conflict with Next.js /admin route) ---
+    path('django-admin/', admin.site.urls),
 
     # --- API Documentation ---
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

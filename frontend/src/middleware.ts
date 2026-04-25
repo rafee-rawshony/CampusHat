@@ -31,7 +31,10 @@ export function middleware(request: NextRequest) {
         pathname.startsWith(route)
     )
     if (isProtected && !hasSession) {
-        const loginUrl = new URL('/auth/login', request.url)
+        // Clone the current URL so the redirect preserves the correct host + port
+        const loginUrl = request.nextUrl.clone()
+        loginUrl.pathname = '/auth/login'
+        loginUrl.search = ''
         loginUrl.searchParams.set('redirect', pathname)
         return NextResponse.redirect(loginUrl)
     }
