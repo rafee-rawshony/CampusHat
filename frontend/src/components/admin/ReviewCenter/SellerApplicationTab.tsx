@@ -40,7 +40,7 @@ export function SellerApplicationTab() {
     const { data: sellers = [], isLoading } = useQuery({
         queryKey: ['admin-sellers-pending'],
         queryFn: () => api.get('/admin/sellers/pending/').then(r => r.data?.data || r.data?.results || r.data),
-        staleTime: 0,
+        staleTime: 30_000,
         refetchOnWindowFocus: true
     })
 

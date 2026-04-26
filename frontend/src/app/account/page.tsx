@@ -74,7 +74,7 @@ export default function AccountPage() {
         if (!user) return
         setIsLoading(true)
         try {
-            const { data: response } = await api.patch('/auth/profile/', data)
+            const { data: response } = await api.patch('/auth/me/update/', data)
             // Update local store with returned user object
             setUser({ ...user, ...response.user })
             toast.success('Profile updated successfully')

@@ -32,7 +32,7 @@ export default function SellerOrdersPage() {
             if (activeTab !== 'all') params.set('status', activeTab)
             return api.get(`/seller/orders/?${params}`).then(r => r.data?.results || r.data || [])
         },
-        staleTime: 0,
+        staleTime: 30_000,
     })
 
     const orders: any[] = data || []

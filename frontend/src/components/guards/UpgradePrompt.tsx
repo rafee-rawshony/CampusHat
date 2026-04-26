@@ -19,7 +19,7 @@ export function UpgradePrompt({
                 <h3 className="font-semibold text-lg">Verification Required</h3>
                 <p className="text-sm text-muted-foreground">{message}</p>
                 <Button asChild>
-                    <Link href="/auth/verify">Verify Your Account</Link>
+                    <Link href="/account/verify">Verify Your Account</Link>
                 </Button>
             </CardContent>
         </Card>

@@ -32,7 +32,7 @@ export function MarketplaceAdReviewTab() {
     const { data: pendingAds = [], isLoading: pLoading } = useQuery({
         queryKey: ['admin-marketplace-pending'],
         queryFn: () => api.get('/admin/marketplace/pending/').then(r => r.data?.data || r.data?.results || r.data),
-        staleTime: 0,
+        staleTime: 30_000,
         refetchOnWindowFocus: true
     })
 
@@ -41,7 +41,7 @@ export function MarketplaceAdReviewTab() {
         queryKey: ['admin-marketplace-reported'],
         queryFn: () => api.get('/admin/marketplace/reported/').then(r => r.data?.data || r.data?.results || r.data),
         enabled: showReported,
-        staleTime: 0
+        staleTime: 30_000
     })
 
     // Mutations

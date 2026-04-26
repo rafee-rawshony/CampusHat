@@ -23,22 +23,22 @@ class RevokedSessionJWTAuthentication(JWTAuthentication):
         from apps.authentication.models import UserSession
         from django.utils import timezone
 
-        # If user has sessions and ALL are revoked → block
-        sessions_exist = UserSession.objects.filter(
+        # Single aggregation query: count total + active sessions in one round-trip.
+        # If user has any session but no ACTIVE (non-revoked) one → block.
+        from django.db.models import Count, Q
+        now = timezone.now()
+        agg = UserSession.objects.filter(
             user_id=user_id,
-            expires_at__gt=timezone.now()
-        ).exists()
+            expires_at__gt=now,
+        ).aggregate(
+            total=Count('id'),
+            active=Count('id', filter=Q(revoked=False)),
+        )
 
-        if sessions_exist:
-            active_exists = UserSession.objects.filter(
-                user_id=user_id,
-                expires_at__gt=timezone.now(),
-                revoked=False
-            ).exists()
-            if not active_exists:
-                raise AuthenticationFailed(
-                    {'code': 'SESSION_REVOKED',
-                     'detail': 'All sessions have been revoked. Please log in again.'}
-                )
+        if agg['total'] > 0 and agg['active'] == 0:
+            raise AuthenticationFailed(
+                {'code': 'SESSION_REVOKED',
+                 'detail': 'All sessions have been revoked. Please log in again.'}
+            )
 
         return validated_token

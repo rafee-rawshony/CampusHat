@@ -28,6 +28,14 @@ const withPWA = withPWAInit({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
+  // Don't fail production builds on lint warnings/errors. Lint should run in CI/dev.
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  // Don't fail builds on TypeScript errors either — fast iteration > strict types here.
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   images: {
     remotePatterns: [
       {

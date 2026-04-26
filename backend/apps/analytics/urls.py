@@ -3,6 +3,7 @@
 from django.urls import path
 from .views import (
     AdminPlatformAnalyticsView,
+    AdminRevenueChartView,
     SellerOverviewView,
     SellerRevenueView,
     SellerTopProductsView,
@@ -20,4 +21,5 @@ seller_analytics_urlpatterns = [
 # Admin analytics
 admin_analytics_urlpatterns = [
     path('platform/', AdminPlatformAnalyticsView.as_view(), name='platform'),
+    path('revenue/', AdminRevenueChartView.as_view(), name='admin-revenue-chart'),
 ]

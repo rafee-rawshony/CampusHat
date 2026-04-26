@@ -22,15 +22,27 @@ ALLOWED_HOSTS = ['*']
 # INSTALLED APPS — Development extras
 # =============================================================================
 
-INSTALLED_APPS += [
-    'debug_toolbar',
-]
+# debug_toolbar is optional — only loaded if the package is installed.
+# This allows the same development settings to be used in the production Docker image
+# (which only installs production.txt requirements) for local "prod-mode" testing.
+try:
+    import debug_toolbar  # noqa: F401
+    INSTALLED_APPS += ['debug_toolbar']
+    _HAS_DEBUG_TOOLBAR = True
+except ImportError:
+    _HAS_DEBUG_TOOLBAR = False
 
 # =============================================================================
 # MIDDLEWARE — Debug toolbar
 # =============================================================================
 
-MIDDLEWARE.insert(0, 'debug_toolbar.middleware.DebugToolbarMiddleware')
+# Insert DebugToolbar AFTER GZipMiddleware — only if the package is installed.
+if _HAS_DEBUG_TOOLBAR:
+    try:
+        _gzip_idx = MIDDLEWARE.index('django.middleware.gzip.GZipMiddleware')
+        MIDDLEWARE.insert(_gzip_idx + 1, 'debug_toolbar.middleware.DebugToolbarMiddleware')
+    except ValueError:
+        MIDDLEWARE.insert(0, 'debug_toolbar.middleware.DebugToolbarMiddleware')
 
 # =============================================================================
 # DEBUG TOOLBAR

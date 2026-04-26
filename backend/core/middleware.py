@@ -9,10 +9,17 @@ import re
 
 logger = logging.getLogger(__name__)
 
-# Paths to SKIP logging (high-frequency, low-value)
+# Paths to SKIP logging (high-frequency, low-value).
+# Each skip saves a synchronous DB write on every mutating request to that path.
 SKIP_PATHS = [
     '/api/v1/auth/token/refresh/',
+    '/api/v1/auth/me/',
     '/api/v1/cart/',
+    '/api/v1/wishlist/',
+    '/api/v1/notifications/',
+    '/api/v1/marketplace/chats/',
+    '/api/v1/orders/',  # specific actions like checkout still logged via ALWAYS_LOG_PATHS
+    '/api/v1/wallet/',
     '/api/schema/',
     '/api/docs/',
     '/api/redoc/',

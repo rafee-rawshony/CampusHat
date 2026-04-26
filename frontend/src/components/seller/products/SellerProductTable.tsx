@@ -33,7 +33,7 @@ export function SellerProductTable({ onEdit }: SellerProductTableProps) {
         queryKey: ['seller-products'],
         queryFn: () =>
             api.get('/seller/products/').then(r => r.data?.results || r.data || []),
-        staleTime: 0,
+        staleTime: 60_000,
     })
 
     const toggleActiveMutation = useMutation({

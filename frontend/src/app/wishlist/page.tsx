@@ -33,7 +33,7 @@ export default function WishlistPage() {
             return items.map((item: any) => item.product || item).filter(Boolean)
         },
         enabled: !!isAuthenticated,
-        staleTime: 0,
+        staleTime: 60_000,
     })
 
     const handleRemove = async (productId: string) => {

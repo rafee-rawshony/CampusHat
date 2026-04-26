@@ -36,7 +36,7 @@ export const useWishlistStore = create<WishlistState>()(
                 }
 
                 try {
-                    await api.post(`/mall/products/${productId}/wishlist/`)
+                    await api.post('/wishlist/toggle/', { product_id: productId })
                 } catch {
                     // Revert on error
                     if (isCurrentlyWishlisted) {

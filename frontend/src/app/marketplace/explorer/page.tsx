@@ -44,7 +44,7 @@ function ExplorerContent() {
             const res = await api.get('/marketplace/listings/', { params })
             return res.data
         },
-        staleTime: 0,
+        staleTime: 60_000,
     })
 
     const listings = response?.results || response?.data?.results || response?.data || []

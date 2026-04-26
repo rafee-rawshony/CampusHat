@@ -53,52 +53,50 @@ class AdminDashboardView(APIView):
 
         today = timezone.now().date()
 
-        # User stats
+        # Single aggregation per model — combines what was 11 separate queries.
+        # Each Count(filter=Q(...)) is a single SQL aggregate, so all counts
+        # for a given model run as ONE query instead of one-per-count.
+        seller_stats = SellerProfile.objects.aggregate(
+            total=Count('id'),
+            pending=Count('id', filter=Q(status='pending')),
+        )
+        store_stats = Store.objects.aggregate(
+            active=Count('id', filter=Q(is_active=True)),
+            pending=Count('id', filter=Q(is_active=False)),
+        )
+        marketplace_stats = MarketplaceProduct.objects.aggregate(
+            total=Count('id'),
+            pending=Count('id', filter=Q(status='pending')),
+        )
+        verification_stats = UserVerification.objects.aggregate(
+            verified_students=Count(
+                'user',
+                filter=Q(
+                    status='approved',
+                    verification_type__in=['student_id', 'faculty_id'],
+                ),
+                distinct=True,
+            ),
+            pending=Count('id', filter=Q(status='pending')),
+        )
+        order_stats = Order.objects.filter(created_at__date=today).aggregate(
+            total_today=Count('id'),
+            revenue_today=Sum('total_amount', filter=Q(payment_status='paid')),
+        )
+
         total_users = User.objects.count()
-        verified_students = UserVerification.objects.filter(
-            status='approved',
-            verification_type__in=['student_id', 'faculty_id'],
-        ).values('user').distinct().count()
-
-        # Seller stats
-        total_sellers = SellerProfile.objects.count()
-        active_stores = Store.objects.filter(is_active=True).count()
-
-        # Marketplace stats
-        total_marketplace_ads = MarketplaceProduct.objects.count()
-
-        # Pending approvals
-        pending_seller_approvals = SellerProfile.objects.filter(
-            status='pending',
-        ).count()
-        pending_store_approvals = Store.objects.filter(
-            is_active=False,
-        ).count()
-        pending_ad_approvals = MarketplaceProduct.objects.filter(
-            status='pending',
-        ).count()
-        pending_verifications = UserVerification.objects.filter(
-            status='pending',
+        pending_refunds = Refund.objects.filter(
+            status__in=['pending', 'under_review', 'approved'],
         ).count()
 
+        pending_seller_approvals = seller_stats['pending']
+        pending_store_approvals = store_stats['pending']
+        pending_ad_approvals = marketplace_stats['pending']
+        pending_verifications = verification_stats['pending']
         pending_approvals_count = (
             pending_seller_approvals + pending_store_approvals
             + pending_ad_approvals + pending_verifications
         )
-
-        # Order stats
-        total_orders_today = Order.objects.filter(
-            created_at__date=today,
-        ).count()
-        total_revenue_today = Order.objects.filter(
-            created_at__date=today,
-            payment_status='paid',
-        ).aggregate(total=Sum('total_amount'))['total'] or 0
-
-        # Refund stats
-        pending_refunds = Refund.objects.filter(
-            status__in=['pending', 'under_review', 'approved'],
-        ).count()
 
         # Platform wallet
         try:
@@ -106,6 +104,13 @@ class AdminDashboardView(APIView):
             platform_wallet_balance = platform_wallet.balance
         except Exception:
             platform_wallet_balance = 0
+
+        verified_students = verification_stats['verified_students']
+        total_sellers = seller_stats['total']
+        active_stores = store_stats['active']
+        total_marketplace_ads = marketplace_stats['total']
+        total_orders_today = order_stats['total_today']
+        total_revenue_today = order_stats['revenue_today'] or 0
 
         return Response({
             'success': True,
@@ -163,15 +168,13 @@ class AdminMyPermissionsView(APIView):
     permission_classes = [IsAuthenticated, IsAdminOrModerator]
 
     def get(self, request):
+        # Single query with prefetch — avoids N+1 across roles → role_permissions → permission.
         user_roles = UserRole.objects.filter(
             user=request.user, is_active=True,
-        ).select_related('role')
+        ).prefetch_related('role__role_permissions__permission')
         all_perms = set()
         for ur in user_roles:
-            role_perms = RolePermission.objects.filter(
-                role=ur.role,
-            ).select_related('permission')
-            for rp in role_perms:
+            for rp in ur.role.role_permissions.all():
                 all_perms.add(rp.permission.codename)
 
         return Response({

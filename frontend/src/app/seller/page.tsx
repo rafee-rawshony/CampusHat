@@ -11,7 +11,7 @@ export default function SellerDashboardPage() {
     const { data: stats, isLoading: statsLoading } = useQuery({
         queryKey: ['seller-stats'],
         queryFn: () => api.get('/sellers/my-dashboard/').then(r => r.data?.data || r.data),
-        staleTime: 0,
+        staleTime: 30_000,
         refetchInterval: 30_000,
     })
 

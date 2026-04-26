@@ -253,3 +253,51 @@ class AdminPlatformAnalyticsView(APIView):
                 'platform_commission_today': commission_today,
             },
         })
+
+
+class AdminRevenueChartView(APIView):
+    """GET /api/v1/admin/analytics/revenue/?period=10d|1m"""
+
+    permission_classes = [IsAuthenticated, IsAdminOrModerator]
+
+    def get(self, request):
+        from apps.orders.models import Order
+        from datetime import date as date_type
+
+        period = request.query_params.get('period', '10d')
+        days = {'10d': 10, '1m': 30}.get(period, 10)
+        since = timezone.now() - timedelta(days=days)
+
+        daily = (
+            Order.objects.filter(payment_status='paid', created_at__gte=since)
+            .extra(select={'day': "DATE(created_at)"})
+            .values('day')
+            .annotate(revenue=Sum('total_amount'))
+            .order_by('day')
+        )
+
+        # Build a full date range with 0 as default so chart has no gaps
+        date_map = {}
+        for i in range(days):
+            d = (timezone.now() - timedelta(days=days - 1 - i)).date()
+            date_map[str(d)] = 0
+
+        for row in daily:
+            key = str(row['day'])
+            if key in date_map:
+                date_map[key] = float(row['revenue'] or 0)
+
+        labels = []
+        data = []
+        for date_str, amount in date_map.items():
+            d = date_type.fromisoformat(date_str)
+            labels.append(d.strftime('%b %d'))
+            data.append(amount)
+
+        return Response({
+            'success': True,
+            'data': {
+                'labels': labels,
+                'data': data,
+            },
+        })

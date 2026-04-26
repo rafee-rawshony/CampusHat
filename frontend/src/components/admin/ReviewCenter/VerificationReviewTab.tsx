@@ -28,7 +28,7 @@ export function VerificationReviewTab() {
     const { data: verifications = [], isLoading } = useQuery({
         queryKey: ['admin-verifications-pending'],
         queryFn: () => api.get('/admin/verifications/').then(r => r.data?.data || r.data?.results || r.data),
-        staleTime: 0,
+        staleTime: 30_000,
         refetchOnWindowFocus: true
     })
 

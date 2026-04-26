@@ -50,7 +50,7 @@ export default function MyAdsPage() {
             return res.data?.data || res.data?.results || res.data || []
         },
         enabled: isAuthenticated && canAccessMarketplace(),
-        staleTime: 0,
+        staleTime: 60_000,
     })
 
     // Filter logic

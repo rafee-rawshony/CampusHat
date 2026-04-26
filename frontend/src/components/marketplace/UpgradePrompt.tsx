@@ -52,7 +52,7 @@ export function UpgradePrompt({
                     <Button
                         onClick={() => {
                             onClose()
-                            router.push('/auth/verify')
+                            router.push('/account/verify')
                         }}
                         className="w-full h-12 rounded-xl bg-brand-primary hover:bg-brand-primary-hover text-white font-bold text-md shadow-md gap-2"
                     >

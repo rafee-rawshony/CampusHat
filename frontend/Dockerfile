@@ -7,9 +7,11 @@ FROM node:18-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Install dependencies based on the preferred package manager
+# Install dependencies. Using `npm install --legacy-peer-deps` (not `npm ci`)
+# because the project has minor peer-dep mismatches the dev workflow tolerates.
+# This matches the dev container's install command.
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN npm install --legacy-peer-deps --no-audit --no-fund
 
 # Stage 2: Builder
 FROM node:18-alpine AS builder
@@ -18,14 +20,12 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Next.js collects completely anonymous telemetry data about general usage.
-# Learn more here: https://nextjs.org/telemetry
 ENV NEXT_TELEMETRY_DISABLED 1
 
-# If you use actual environment variables during the build
-# you need to pass them via --build-arg and set them here.
-# For example:
-# ARG NEXT_PUBLIC_API_URL
-# ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+# NEXT_PUBLIC_API_URL gets baked into the JS bundle at build time,
+# so it MUST be set before `next build` runs. Pass via docker-compose build args.
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 RUN npm run build
 

@@ -309,9 +309,11 @@ class FeaturedStoresView(APIView):
 
     def get(self, request):
         limit = int(request.query_params.get('limit', 8))
+        # select_related('seller') avoids N+1 query on the seller FK
+        # for each store in the loop below.
         stores = Store.objects.filter(
             status='active', deleted_at__isnull=True,
-        ).order_by('-rating', '-follower_count')[:limit]
+        ).select_related('seller').order_by('-rating', '-follower_count')[:limit]
 
         data = []
         for store in stores:

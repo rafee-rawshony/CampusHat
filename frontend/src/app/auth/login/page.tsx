@@ -68,9 +68,9 @@ export default function LoginPage() {
     useEffect(() => {
         if (_hasHydrated && isAuthenticated && user) {
             const searchParams = new URLSearchParams(window.location.search)
-            window.location.href = getRoleRedirect(user, searchParams.get('redirect'))
+            router.replace(getRoleRedirect(user, searchParams.get('redirect')))
         }
-    }, [_hasHydrated, isAuthenticated, user])
+    }, [_hasHydrated, isAuthenticated, user, router])
 
     useEffect(() => {
         if (sessionStorage.getItem('session_expired')) {
@@ -100,7 +100,7 @@ export default function LoginPage() {
             toast.success('Welcome back!')
 
             const searchParams = new URLSearchParams(window.location.search)
-            window.location.href = getRoleRedirect(user, searchParams.get('redirect'))
+            router.push(getRoleRedirect(user, searchParams.get('redirect')))
         } catch (error: any) {
             const message = error.response?.data?.message || error.response?.data?.detail || 'Login failed'
             if (message.includes('not verified') || error.response?.data?.code === 'EMAIL_NOT_VERIFIED') {
@@ -138,7 +138,7 @@ export default function LoginPage() {
             toast.success('Welcome!')
 
             const searchParams = new URLSearchParams(window.location.search)
-            window.location.href = getRoleRedirect(user, searchParams.get('redirect'))
+            router.push(getRoleRedirect(user, searchParams.get('redirect')))
         } catch (error: any) {
             toast.error(error.response?.data?.message || 'Invalid OTP')
         } finally {

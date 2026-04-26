@@ -3,14 +3,16 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/s
 import { Menu } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth.store'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 
 export function MobileDrawer() {
   const { user, isAuthenticated, _hasHydrated, logout } = useAuthStore()
+  const router = useRouter()
 
   const handleLogout = async () => {
     await logout()
-    window.location.href = '/'
+    router.push('/')
   }
 
   return (

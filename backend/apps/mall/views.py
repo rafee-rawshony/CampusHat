@@ -8,6 +8,8 @@ from decimal import Decimal
 
 from django.db import transaction
 from django.db.models import F
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -342,8 +344,9 @@ class StoreProductViewSet(ViewSet):
 # BRAND LIST
 # =============================================================================
 
+@method_decorator(cache_page(300), name='dispatch')
 class BrandListView(APIView):
-    """GET /api/v1/mall/products/brands/ — list all active brands."""
+    """GET /api/v1/mall/products/brands/ — list all active brands. Cached 5 min."""
 
     permission_classes = [AllowAny]
 
@@ -360,8 +363,9 @@ class BrandListView(APIView):
         })
 
 
+@method_decorator(cache_page(300), name='dispatch')
 class BannerListView(APIView):
-    """GET /api/v1/mall/banners/ — active hero carousel banners."""
+    """GET /api/v1/mall/banners/ — active hero carousel banners. Cached 5 min."""
 
     permission_classes = [AllowAny]
 

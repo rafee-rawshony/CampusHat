@@ -8,7 +8,8 @@ import {
     ChevronRight,
     Store as StoreIcon,
     PackageX,
-    ArrowLeft
+    ArrowLeft,
+    Star,
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { useQuery } from '@tanstack/react-query'

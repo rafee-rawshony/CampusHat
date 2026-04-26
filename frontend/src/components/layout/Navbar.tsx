@@ -48,7 +48,7 @@ export function Navbar() {
 
     const handleLogout = async () => {
         await logout()
-        window.location.href = '/'
+        router.push('/')
     }
 
     // Mobile Search State
