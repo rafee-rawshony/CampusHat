@@ -97,6 +97,7 @@ export default function LoginPage() {
             const { user, access_token } = await loginApi(data)
             setAccessToken(access_token)
             setUser(user)
+            loginForm.reset()
             toast.success('Welcome back!')
 
             const searchParams = new URLSearchParams(window.location.search)
@@ -135,6 +136,8 @@ export default function LoginPage() {
             })
             setAccessToken(access_token)
             setUser(user)
+            otpForm.reset()
+            setOtp('')
             toast.success('Welcome!')
 
             const searchParams = new URLSearchParams(window.location.search)
@@ -219,13 +222,14 @@ export default function LoginPage() {
 
                                     {/* Password Login */}
                                     <TabsContent value="password">
-                                        <form onSubmit={loginForm.handleSubmit(handlePasswordLogin)} className="space-y-4">
+                                        <form onSubmit={loginForm.handleSubmit(handlePasswordLogin)} className="space-y-4" autoComplete="off">
                                             <div className="space-y-2">
                                                 <Label htmlFor="email">Email</Label>
                                                 <Input
                                                     id="email"
                                                     type="email"
-                                                    placeholder="your@university.edu"
+                                                    placeholder="Enter your Email or Student Email"
+                                                    autoComplete="off"
                                                     {...loginForm.register('email')}
                                                 />
                                                 {loginForm.formState.errors.email && (
@@ -239,6 +243,7 @@ export default function LoginPage() {
                                                         id="password"
                                                         type={showPassword ? 'text' : 'password'}
                                                         placeholder="••••••••"
+                                                        autoComplete="new-password"
                                                         {...loginForm.register('password')}
                                                     />
                                                     <button
@@ -311,15 +316,6 @@ export default function LoginPage() {
                                     )}
                                 </Tabs>
 
-                                {/* Join as Seller */}
-                                <div className="mt-4">
-                                    <Button variant="outline" className="w-full gap-2" asChild>
-                                        <Link href="/auth/register?seller=true">
-                                            <Store className="h-4 w-4" /> Join as Seller
-                                        </Link>
-                                    </Button>
-                                </div>
-
                                 {/* Social Login */}
                                 <div className="mt-6">
                                     <div className="relative">
@@ -329,11 +325,9 @@ export default function LoginPage() {
                                         </span>
                                     </div>
                                     <div className="flex justify-center gap-4 mt-4">
-                                        {['Google', 'Apple', 'Facebook'].map((provider) => (
-                                            <Button key={provider} variant="outline" size="icon" className="rounded-full">
-                                                <span className="text-xs font-semibold">{provider[0]}</span>
-                                            </Button>
-                                        ))}
+                                        <Button variant="outline" size="icon" className="rounded-full">
+                                            <span className="text-xs font-semibold">G</span>
+                                        </Button>
                                     </div>
                                 </div>
                             </TabsContent>

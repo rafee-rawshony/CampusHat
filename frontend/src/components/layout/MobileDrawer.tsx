@@ -1,13 +1,13 @@
 'use client'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
-import { Menu } from 'lucide-react'
+import { Menu, Store, LayoutDashboard } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth.store'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 
 export function MobileDrawer() {
-  const { user, isAuthenticated, _hasHydrated, logout } = useAuthStore()
+  const { user, isAuthenticated, _hasHydrated, logout, isSeller } = useAuthStore()
   const router = useRouter()
 
   const handleLogout = async () => {
@@ -68,6 +68,21 @@ export function MobileDrawer() {
               {['Home','Categories','Shop','Top Sellers'][i]}
             </Link>
           ))}
+          {isAuthenticated && (
+            isSeller() ? (
+              <Link href='/seller'
+                className='flex items-center gap-2 mx-3 mt-2 px-3 py-2.5 rounded-xl font-bold
+                           bg-[#4C3B8A] text-white text-sm transition-colors hover:bg-[#2D1B69]'>
+                <LayoutDashboard className='w-4 h-4' /> Seller Dashboard
+              </Link>
+            ) : (
+              <Link href='/seller/apply'
+                className='flex items-center gap-2 mx-3 mt-2 px-3 py-2.5 rounded-xl font-bold
+                           bg-[#4C3B8A] text-white text-sm transition-colors hover:bg-[#2D1B69]'>
+                <Store className='w-4 h-4' /> Become a Seller
+              </Link>
+            )
+          )}
           <p className='text-[10px] font-black text-gray-400 uppercase tracking-widest pl-3 mt-6 mb-2'>
             Marketplace
           </p>

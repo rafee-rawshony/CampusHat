@@ -1,14 +1,14 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, Suspense } from 'react'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import {
-    Eye, EyeOff, GraduationCap, ShoppingBag, User,
-    Check, AlertCircle, Loader2, ChevronDown, Search
+    Eye, EyeOff,
+    Check, AlertCircle, Loader2
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
@@ -21,19 +21,13 @@ const baseSchema = z.object({
     phone: z.string().min(10, 'Enter a valid phone number').max(15),
     password: z.string().min(8, 'Password must be at least 8 characters'),
     confirm_password: z.string(),
-    terms: z.literal(true, { errorMap: () => ({ message: 'You must accept the terms' }) }),
+    terms: z.literal(true, { message: 'You must accept the terms' }),
 }).refine(d => d.password === d.confirm_password, {
     message: "Passwords don't match",
     path: ['confirm_password'],
 })
 
-const studentSchema = baseSchema.extend({
-    university_id: z.string().min(1, 'Please select your university'),
-})
-
 type BaseForm = z.infer<typeof baseSchema>
-type StudentForm = z.infer<typeof studentSchema>
-type RegType = 'customer' | 'student'
 
 // ─── Password Strength ────────────────────────────────────────────────────────
 
@@ -52,127 +46,34 @@ function getPasswordStrength(pw: string): { score: number; label: string; color:
     return { score, label: 'Very Strong', color: 'bg-emerald-500' }
 }
 
-// ─── University Dropdown ──────────────────────────────────────────────────────
-
-function UniversitySelect({
-    value, onChange, error
-}: { value: string; onChange: (v: string) => void; error?: string }) {
-    const [open, setOpen] = useState(false)
-    const [search, setSearch] = useState('')
-    const [universities, setUniversities] = useState<any[]>([])
-
-    useEffect(() => {
-        api.get('/universities/?page_size=1000').then(res => {
-            const raw = res.data?.data || res.data
-            const results = raw?.results || (Array.isArray(raw) ? raw : [])
-            if (Array.isArray(results)) setUniversities(results)
-        }).catch(() => {})
-    }, [])
-
-    const filtered = universities.filter(u =>
-        u.name.toLowerCase().includes(search.toLowerCase()) ||
-        u.short_name?.toLowerCase().includes(search.toLowerCase())
-    )
-
-    const selected = universities.find(u => String(u.id) === value)
-
-    return (
-        <div className="relative">
-            <button
-                type="button"
-                onClick={() => setOpen(!open)}
-                className={`w-full flex items-center justify-between h-11 px-3 rounded-xl border text-sm font-medium transition-all
-                    ${error ? 'border-red-300 bg-red-50' : open ? 'border-[#4C3B8A] ring-2 ring-[#4C3B8A]/20 bg-white' : 'border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-white'}
-                `}
-            >
-                <span className={selected ? 'text-gray-900' : 'text-gray-400'}>
-                    {selected ? `${selected.name} (${selected.short_name})` : 'Select your university'}
-                </span>
-                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
-            </button>
-
-            {open && (
-                <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-100 rounded-2xl shadow-2xl overflow-hidden">
-                    <div className="p-2 border-b border-gray-50">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                            <input
-                                autoFocus
-                                value={search}
-                                onChange={e => setSearch(e.target.value)}
-                                placeholder="Search university..."
-                                className="w-full pl-8 pr-3 py-2 text-sm bg-gray-50 border border-gray-100 rounded-lg outline-none focus:border-[#4C3B8A] focus:bg-white"
-                            />
-                        </div>
-                    </div>
-                    <div className="max-h-52 overflow-y-auto custom-scrollbar">
-                        {filtered.length === 0 ? (
-                            <p className="text-center py-4 text-sm text-gray-400">No universities found</p>
-                        ) : filtered.map(u => (
-                            <button
-                                type="button"
-                                key={u.id}
-                                onClick={() => { onChange(String(u.id)); setOpen(false); setSearch('') }}
-                                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-purple-50 transition-colors flex items-center justify-between
-                                    ${String(u.id) === value ? 'bg-purple-50 text-[#4C3B8A] font-semibold' : 'text-gray-700'}
-                                `}
-                            >
-                                <div>
-                                    <span className="font-medium">{u.name}</span>
-                                </div>
-                                <span className="text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">{u.short_name}</span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            )}
-            {error && <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{error}</p>}
-        </div>
-    )
-}
-
 // ─── Main Register Content ─────────────────────────────────────────────────────
 
 function RegisterContent() {
     const router = useRouter()
-    const searchParams = useSearchParams()
-    const [regType, setRegType] = useState<RegType>(
-        searchParams.get('type') === 'student' ? 'student' : 'customer'
-    )
     const [showPw, setShowPw] = useState(false)
     const [showConfirmPw, setShowConfirmPw] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [successEmail, setSuccessEmail] = useState('')
 
-    // Customer form
     const customerForm = useForm<BaseForm>({
         resolver: zodResolver(baseSchema),
         defaultValues: { full_name: '', email: '', phone: '', password: '', confirm_password: '', terms: undefined as any },
     })
 
-    // Student form
-    const studentForm = useForm<StudentForm>({
-        resolver: zodResolver(studentSchema),
-        defaultValues: { full_name: '', email: '', phone: '', password: '', confirm_password: '', terms: undefined as any, university_id: '' },
-    })
-
-    const activeForm = regType === 'student' ? studentForm : customerForm
-    const pw = activeForm.watch('password')
+    const pw = customerForm.watch('password')
     const strength = getPasswordStrength(pw || '')
 
     const onSubmit = async (data: any) => {
         setIsLoading(true)
         try {
-            const payload: Record<string, any> = {
+            const payload = {
                 full_name: data.full_name,
                 email: data.email,
                 phone: data.phone,
                 password: data.password,
             }
-            if (regType === 'student' && data.university_id) {
-                payload.university_id = data.university_id
-            }
             await api.post('/auth/register/', payload)
+            customerForm.reset()
             setSuccessEmail(data.email)
         } catch (error: any) {
             const msg = error.response?.data?.message
@@ -211,7 +112,7 @@ function RegisterContent() {
                             Continue to Login
                         </button>
                         <button
-                            onClick={() => { setSuccessEmail(''); customerForm.reset(); studentForm.reset() }}
+                            onClick={() => { setSuccessEmail(''); customerForm.reset() }}
                             className="w-full text-sm text-gray-400 hover:text-gray-600 py-2 transition-colors"
                         >
                             Use a different email
@@ -230,7 +131,8 @@ function RegisterContent() {
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full Name</label>
                 <input
                     {...form.register('full_name')}
-                    placeholder="e.g. Rafee Rawshony"
+                    placeholder="Enter Your Full Name"
+                    autoComplete="off"
                     className={`w-full h-11 px-3 rounded-xl border text-sm font-medium outline-none transition-all
                         ${form.formState.errors.full_name ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 bg-gray-50 focus:border-[#4C3B8A] focus:ring-2 focus:ring-[#4C3B8A]/20 focus:bg-white'}
                     `}
@@ -249,7 +151,8 @@ function RegisterContent() {
                 <input
                     {...form.register('email')}
                     type="email"
-                    placeholder="you@university.edu.bd"
+                    placeholder="Enter your Email or Student Email"
+                    autoComplete="off"
                     className={`w-full h-11 px-3 rounded-xl border text-sm font-medium outline-none transition-all
                         ${form.formState.errors.email ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 bg-gray-50 focus:border-[#4C3B8A] focus:ring-2 focus:ring-[#4C3B8A]/20 focus:bg-white'}
                     `}
@@ -269,6 +172,7 @@ function RegisterContent() {
                     {...form.register('phone')}
                     type="tel"
                     placeholder="+8801XXXXXXXXX"
+                    autoComplete="off"
                     className={`w-full h-11 px-3 rounded-xl border text-sm font-medium outline-none transition-all
                         ${form.formState.errors.phone ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 bg-gray-50 focus:border-[#4C3B8A] focus:ring-2 focus:ring-[#4C3B8A]/20 focus:bg-white'}
                     `}
@@ -281,18 +185,6 @@ function RegisterContent() {
                 )}
             </div>
 
-            {/* University (students only) */}
-            {regType === 'student' && (
-                <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Your University</label>
-                    <UniversitySelect
-                        value={form.watch('university_id') || ''}
-                        onChange={(v) => form.setValue('university_id', v, { shouldValidate: true })}
-                        error={form.formState.errors.university_id?.message}
-                    />
-                </div>
-            )}
-
             {/* Password */}
             <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">Password</label>
@@ -301,6 +193,7 @@ function RegisterContent() {
                         {...form.register('password')}
                         type={showPw ? 'text' : 'password'}
                         placeholder="Min. 8 characters"
+                        autoComplete="new-password"
                         className={`w-full h-11 px-3 pr-10 rounded-xl border text-sm font-medium outline-none transition-all
                             ${form.formState.errors.password ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 bg-gray-50 focus:border-[#4C3B8A] focus:ring-2 focus:ring-[#4C3B8A]/20 focus:bg-white'}
                         `}
@@ -343,6 +236,7 @@ function RegisterContent() {
                         {...form.register('confirm_password')}
                         type={showConfirmPw ? 'text' : 'password'}
                         placeholder="Re-enter password"
+                        autoComplete="new-password"
                         className={`w-full h-11 px-3 pr-10 rounded-xl border text-sm font-medium outline-none transition-all
                             ${form.formState.errors.confirm_password ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 bg-gray-50 focus:border-[#4C3B8A] focus:ring-2 focus:ring-[#4C3B8A]/20 focus:bg-white'}
                         `}
@@ -390,7 +284,7 @@ function RegisterContent() {
                 {isLoading ? (
                     <><Loader2 className="w-4 h-4 animate-spin" /> Creating account...</>
                 ) : (
-                    regType === 'student' ? 'Create Student Account' : 'Create Account'
+                    'Create Account'
                 )}
             </button>
         </div>
@@ -428,69 +322,11 @@ function RegisterContent() {
                         </div>
                     </div>
 
-                    {/* Type Selector */}
-                    <div className="grid grid-cols-2 gap-3 mb-6">
-                        {[
-                            { type: 'customer' as RegType, icon: User, label: 'General User', sub: 'Shop & browse' },
-                            { type: 'student' as RegType, icon: GraduationCap, label: 'Student / Faculty', sub: 'Campus marketplace' },
-                        ].map(({ type, icon: Icon, label, sub }) => (
-                            <button
-                                key={type}
-                                type="button"
-                                onClick={() => setRegType(type)}
-                                className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all duration-200 text-center
-                                    ${regType === type
-                                        ? 'border-[#4C3B8A] bg-[#4C3B8A]/5 shadow-md'
-                                        : 'border-gray-100 bg-white hover:border-gray-200 hover:bg-gray-50'
-                                    }
-                                `}
-                            >
-                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors
-                                    ${regType === type ? 'bg-[#4C3B8A] text-white' : 'bg-gray-100 text-gray-500'}
-                                `}>
-                                    <Icon className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <p className={`text-sm font-bold leading-tight ${regType === type ? 'text-[#4C3B8A]' : 'text-gray-700'}`}>{label}</p>
-                                    <p className="text-[10px] text-gray-400 mt-0.5">{sub}</p>
-                                </div>
-                                {regType === type && (
-                                    <div className="w-5 h-5 rounded-full bg-[#4C3B8A] flex items-center justify-center">
-                                        <Check className="w-3 h-3 text-white stroke-[3]" />
-                                    </div>
-                                )}
-                            </button>
-                        ))}
-                    </div>
-
                     {/* Form Card */}
                     <div className="bg-white rounded-3xl border border-gray-100 shadow-xl p-6">
-                        {regType === 'customer' ? (
-                            <form onSubmit={customerForm.handleSubmit(onSubmit)} noValidate>
-                                {renderFields(customerForm)}
-                            </form>
-                        ) : (
-                            <form onSubmit={studentForm.handleSubmit(onSubmit)} noValidate>
-                                {renderFields(studentForm)}
-                            </form>
-                        )}
-                    </div>
-
-                    {/* Seller CTA */}
-                    <div className="mt-5 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-100 rounded-2xl p-4 flex items-center gap-4">
-                        <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center shrink-0">
-                            <ShoppingBag className="w-5 h-5 text-orange-600" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-gray-800">Want to sell on CampusHat?</p>
-                            <p className="text-xs text-gray-500 mt-0.5">Apply separately after registration</p>
-                        </div>
-                        <Link
-                            href="/seller/apply"
-                            className="text-xs font-bold text-orange-600 hover:text-orange-700 border border-orange-200 bg-white rounded-lg px-3 py-1.5 transition-colors shrink-0"
-                        >
-                            Apply →
-                        </Link>
+                        <form onSubmit={customerForm.handleSubmit(onSubmit)} autoComplete="off" noValidate>
+                            {renderFields(customerForm)}
+                        </form>
                     </div>
                 </div>
             </div>

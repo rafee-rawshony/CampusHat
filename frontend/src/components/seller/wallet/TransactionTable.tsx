@@ -24,7 +24,7 @@ export function TransactionTable() {
     const { data, isLoading } = useQuery({
         queryKey: ['seller-transactions', filter, page],
         queryFn: () =>
-            api.get(`/wallet/transactions/?page=${page}&page_size=15&ordering=-created_at`).then(r => r.data),
+            api.get(`/wallet/transactions/?page=${page}&page_size=15&ordering=-created_at`).then(r => r.data.data ?? r.data),
         staleTime: 60_000,
     })
 
