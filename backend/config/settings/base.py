@@ -411,3 +411,11 @@ SPECTACULAR_SETTINGS = {
 
 SITE_URL = config('SITE_URL', default='http://localhost:8000')
 FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
+
+# =============================================================================
+# GOOGLE OAUTH (Sign in with Google)
+# =============================================================================
+
+# OAuth 2.0 Client ID from Google Cloud Console.
+# Used to verify ID tokens received from the frontend.
+GOOGLE_OAUTH_CLIENT_ID = config('GOOGLE_OAUTH_CLIENT_ID', default='')

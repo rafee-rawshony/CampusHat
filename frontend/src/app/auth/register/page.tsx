@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton'
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -327,6 +328,16 @@ function RegisterContent() {
                         <form onSubmit={customerForm.handleSubmit(onSubmit)} autoComplete="off" noValidate>
                             {renderFields(customerForm)}
                         </form>
+
+                        {/* Divider */}
+                        <div className="flex items-center gap-3 my-5">
+                            <div className="flex-1 h-px bg-gray-200" />
+                            <span className="text-xs text-gray-400 font-medium uppercase tracking-wider">or</span>
+                            <div className="flex-1 h-px bg-gray-200" />
+                        </div>
+
+                        {/* Google Sign-Up — after manual form */}
+                        <GoogleSignInButton mode="signup" />
                     </div>
                 </div>
             </div>

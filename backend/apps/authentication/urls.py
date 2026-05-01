@@ -28,6 +28,7 @@ from .verification_views import (
     MyVerificationStatusView,
     SubmitVerificationView,
 )
+from .google_oauth import GoogleAuthView
 from .address_views import UserAddressViewSet
 from .session_views import (
     SessionListView,
@@ -55,6 +56,9 @@ urlpatterns = [
     # Passwordless OTP Login
     path('otp/send/', OTPSendView.as_view(), name='otp-send'),
     path('otp/verify/', OTPVerifyView.as_view(), name='otp-verify'),
+
+    # Social Login — Google OAuth
+    path('google/', GoogleAuthView.as_view(), name='google-auth'),
 
     # Profile (Phase 02)
     path('me/', MeView.as_view(), name='me'),

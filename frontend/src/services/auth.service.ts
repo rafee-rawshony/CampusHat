@@ -83,6 +83,17 @@ export async function verifyOtp(payload: OTPVerifyPayload): Promise<AuthSuccessD
     return unwrap<AuthSuccessData>(data)
 }
 
+// Google OAuth — frontend posts the ID token credential to backend, which
+// verifies it with Google and returns the same shape as password login.
+export interface GoogleAuthSuccessData extends AuthSuccessData {
+    is_new_user?: boolean
+}
+
+export async function googleAuth(credential: string): Promise<GoogleAuthSuccessData> {
+    const { data } = await api.post('/auth/google/', { credential })
+    return unwrap<GoogleAuthSuccessData>(data)
+}
+
 export async function getMe(): Promise<User> {
     const { data } = await api.get('/auth/me/')
     return unwrap<User>(data)

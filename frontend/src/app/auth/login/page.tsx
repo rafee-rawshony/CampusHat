@@ -23,6 +23,7 @@ import {
     verifyOtp,
 } from '@/services/auth.service'
 import { useAuthStore } from '@/stores/auth.store'
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton'
 
 // OTP login is backed by /auth/otp/send/ and /auth/otp/verify/ on the backend.
 const OTP_LOGIN_ENABLED = true
@@ -275,10 +276,10 @@ export default function LoginPage() {
                                         {!otpSent ? (
                                             <form onSubmit={otpForm.handleSubmit(handleSendOtp)} className="space-y-4">
                                                 <div className="space-y-2">
-                                                    <Label htmlFor="identifier">Email or Phone</Label>
+                                                    <Label htmlFor="identifier">Email</Label>
                                                     <Input
                                                         id="identifier"
-                                                        placeholder="Email or phone number"
+                                                        placeholder="Enter your email"
                                                         {...otpForm.register('identifier')}
                                                     />
                                                     {otpForm.formState.errors.identifier && (
@@ -316,19 +317,16 @@ export default function LoginPage() {
                                     )}
                                 </Tabs>
 
-                                {/* Social Login */}
+                                {/* Social Login — Google */}
                                 <div className="mt-6">
-                                    <div className="relative">
-                                        <Separator />
-                                        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-surface-card px-2 text-xs text-muted-foreground">
-                                            or continue with
+                                    <div className="relative flex items-center my-4">
+                                        <Separator className="flex-1" />
+                                        <span className="px-3 text-xs text-muted-foreground bg-white">
+                                            or
                                         </span>
+                                        <Separator className="flex-1" />
                                     </div>
-                                    <div className="flex justify-center gap-4 mt-4">
-                                        <Button variant="outline" size="icon" className="rounded-full">
-                                            <span className="text-xs font-semibold">G</span>
-                                        </Button>
-                                    </div>
+                                    <GoogleSignInButton mode="signin" />
                                 </div>
                             </TabsContent>
                         </Tabs>
