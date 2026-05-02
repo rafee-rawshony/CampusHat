@@ -102,7 +102,25 @@ class BuyerOrderListView(GenericAPIView):
     def get(self, request):
         orders = Order.objects.filter(
             buyer=request.user,
-        ).select_related('store').order_by('-created_at')
+        ).select_related('store').prefetch_related('items').order_by('-created_at')
+
+        # Optional status filter — Daraz-style tabs send ?status=to_pay,to_ship,etc.
+        # We map UI tab names to actual order_status / payment_status combinations.
+        status_filter = request.query_params.get('status', '').lower().strip()
+        if status_filter == 'to_pay':
+            orders = orders.filter(payment_status='pending').exclude(order_status='cancelled')
+        elif status_filter == 'to_ship':
+            orders = orders.filter(
+                payment_status='paid', order_status__in=['placed', 'confirmed', 'packed'],
+            )
+        elif status_filter == 'to_receive':
+            orders = orders.filter(order_status='shipped')
+        elif status_filter == 'completed':
+            orders = orders.filter(order_status='delivered')
+        elif status_filter == 'cancelled':
+            orders = orders.filter(order_status='cancelled')
+        elif status_filter == 'refunded':
+            orders = orders.filter(payment_status__in=['refunded', 'partially_refunded'])
 
         paginator = CampusHatPagination()
         page = paginator.paginate_queryset(orders, request)

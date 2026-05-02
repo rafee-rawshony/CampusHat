@@ -264,3 +264,96 @@ class Payment(BaseModel):
 
     def __str__(self):
         return f'Payment {self.method} — {self.amount} BDT ({self.status})'
+
+
+# =============================================================================
+# MODEL 5: USER PAYMENT METHOD (Saved bKash/Nagad/Card etc.)
+# =============================================================================
+
+from django.db import transaction
+
+
+class UserPaymentMethod(UUIDMixin, TimestampMixin):
+    """
+    A saved payment account for a user (Daraz-style "Payment Options").
+
+    Stores only NON-SENSITIVE references — phone number for mobile wallets,
+    last 4 digits for cards. Never store full card numbers, CVV, or PINs.
+    Real charging happens through the gateway at checkout.
+    """
+
+    METHOD_CHOICES = [
+        ('bkash', 'bKash'),
+        ('nagad', 'Nagad'),
+        ('rocket', 'Rocket'),
+        ('upay', 'Upay'),
+        ('tap', 'Tap'),
+        ('card', 'Credit / Debit Card'),
+        ('bank', 'Bank Account'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='payment_methods',
+        db_index=True,
+        help_text='Owner of this saved payment method.',
+    )
+    method = models.CharField(
+        max_length=10,
+        choices=METHOD_CHOICES,
+        help_text='Type of payment method.',
+    )
+    label = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Optional nickname like 'My personal bKash'.",
+    )
+    account_holder_name = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text='Name on the account / card.',
+    )
+    # For mobile wallets — phone number is the account ID.
+    account_number = models.CharField(
+        max_length=50,
+        help_text='Phone number for mobile wallets, account number for bank, last 4 for card.',
+    )
+    # Card-specific (only for type=card). Never store full PAN.
+    card_last4 = models.CharField(max_length=4, blank=True)
+    card_brand = models.CharField(max_length=20, blank=True)
+    card_expiry = models.CharField(
+        max_length=7, blank=True,
+        help_text='MM/YYYY — used for display only, gateway is the source of truth.',
+    )
+    is_default = models.BooleanField(
+        default=False,
+        help_text='Whether this is the default payment method.',
+    )
+    deleted_at = models.DateTimeField(
+        blank=True, null=True, db_index=True,
+        help_text='Soft deletion timestamp.',
+    )
+
+    class Meta:
+        db_table = 'user_payment_methods'
+        verbose_name = 'User Payment Method'
+        verbose_name_plural = 'User Payment Methods'
+        ordering = ['-is_default', '-created_at']
+
+    def __str__(self):
+        return f'{self.get_method_display()} — {self.account_number} ({self.user.email})'
+
+    def save(self, *args, **kwargs):
+        """Ensure only one default payment method per user (atomic toggle)."""
+        if self.is_default:
+            with transaction.atomic():
+                UserPaymentMethod.objects.filter(
+                    user=self.user, is_default=True,
+                ).exclude(pk=self.pk).update(is_default=False)
+        super().save(*args, **kwargs)
+
+    def soft_delete(self):
+        from django.utils import timezone
+        self.deleted_at = timezone.now()
+        self.save(update_fields=['deleted_at'])

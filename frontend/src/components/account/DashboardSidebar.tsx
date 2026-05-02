@@ -9,7 +9,7 @@
  */
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
     User as UserIcon,
     MapPin,
@@ -23,23 +23,24 @@ import {
     Grid,
     ShieldCheck,
     LogOut,
+    ShoppingCart,
+    ChevronRight,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { getInitials } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth.store'
-import { useRouter } from 'next/navigation'
+import { useCartStore } from '@/stores/cart.store'
 
 // One entry in the sidebar — "My Profile", "Address Book", etc.
 type Item = { label: string; href: string; icon: React.ElementType }
 
 // Section group with a heading and a list of items.
-type Section = { title: string; icon: React.ElementType; items: Item[] }
+type Section = { title: string; items: Item[] }
 
 const SECTIONS: Section[] = [
     {
         title: 'Manage My Account',
-        icon: UserIcon,
         items: [
             { label: 'My Profile', href: '/account', icon: UserIcon },
             { label: 'Address Book', href: '/account/addresses', icon: MapPin },
@@ -48,7 +49,6 @@ const SECTIONS: Section[] = [
     },
     {
         title: 'My Orders',
-        icon: Package,
         items: [
             { label: 'My Orders', href: '/account/orders', icon: Package },
             { label: 'My Returns', href: '/account/returns', icon: RotateCcw },
@@ -57,14 +57,12 @@ const SECTIONS: Section[] = [
     },
     {
         title: 'My Reviews',
-        icon: Star,
         items: [
             { label: 'My Reviews', href: '/account/reviews', icon: Star },
         ],
     },
     {
         title: 'Wishlist & Followed Stores',
-        icon: Heart,
         items: [
             { label: 'My Wishlist', href: '/wishlist', icon: Heart },
             { label: 'Followed Stores', href: '/account/followed-stores', icon: Store },
@@ -72,10 +70,9 @@ const SECTIONS: Section[] = [
     },
 ]
 
-// Marketplace-related extras shown only when relevant
+// Marketplace block — only relevant for users who can post / want to verify.
 const MARKETPLACE_SECTION: Section = {
     title: 'Marketplace',
-    icon: Grid,
     items: [
         { label: 'My Listings', href: '/account/listings', icon: Grid },
         { label: 'Verification', href: '/account/verify', icon: ShieldCheck },
@@ -86,6 +83,8 @@ export function DashboardSidebar() {
     const pathname = usePathname() || ''
     const router = useRouter()
     const { user, logout } = useAuthStore()
+    const { setIsOpen: setCartOpen, getItemCount } = useCartStore()
+    const cartCount = getItemCount()
 
     if (!user) return null
 
@@ -102,7 +101,7 @@ export function DashboardSidebar() {
     }
 
     const renderItem = (item: Item) => {
-        // Highlight a sidebar item when the user is on its route or a child route.
+        // Highlight an item when the user is on its route or a child route.
         const Icon = item.icon
         const isActive = pathname === item.href ||
             (item.href !== '/account' && pathname.startsWith(item.href + '/'))
@@ -111,48 +110,60 @@ export function DashboardSidebar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                    'flex items-center gap-3 px-4 py-2.5 text-sm rounded-lg transition-colors',
+                    'flex items-center gap-3 px-4 py-2.5 text-sm transition-colors group',
                     isActive
-                        ? 'bg-brand-light text-brand-primary font-semibold'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+                        ? 'text-brand-primary font-bold bg-brand-light/40 border-l-2 border-brand-primary -ml-px'
+                        : 'text-gray-600 hover:text-brand-primary border-l-2 border-transparent -ml-px',
                 )}
             >
-                <Icon className="h-4 w-4" />
-                {item.label}
+                <Icon className={cn(
+                    'h-4 w-4',
+                    isActive ? 'text-brand-primary' : 'text-gray-400 group-hover:text-brand-primary',
+                )} />
+                <span className="flex-1">{item.label}</span>
+                {isActive && <ChevronRight className="h-3.5 w-3.5 text-brand-primary" />}
             </Link>
         )
     }
 
     return (
-        <aside className="w-full md:w-[260px] shrink-0 space-y-4">
+        <aside className="w-full md:w-[280px] shrink-0 space-y-4">
             {/* User card with avatar + completion */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-                <div className="flex items-center gap-3">
-                    <Avatar className="h-14 w-14 border border-gray-100 shadow-sm">
+                <Link href="/account" className="flex items-center gap-3 group">
+                    <Avatar className="h-14 w-14 border-2 border-white ring-2 ring-brand-light shadow-sm group-hover:ring-brand-primary/30 transition-all">
                         {user.profile_picture ? (
                             <AvatarImage src={user.profile_picture} alt={displayName} className="object-cover" />
                         ) : (
-                            <AvatarFallback className="bg-brand-light text-brand-primary text-base font-bold">
+                            <AvatarFallback className="bg-gradient-to-br from-brand-primary to-brand-dark text-white text-base font-bold">
                                 {getInitials(displayName)}
                             </AvatarFallback>
                         )}
                     </Avatar>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                         <p className="text-xs text-gray-500">Hello,</p>
-                        <p className="font-semibold text-gray-900 truncate">{displayName}</p>
+                        <p className="font-semibold text-gray-900 truncate group-hover:text-brand-primary transition-colors">
+                            {displayName}
+                        </p>
+                        <Link
+                            href="/account"
+                            className="text-[11px] text-brand-primary hover:underline font-medium"
+                        >
+                            Edit Profile
+                        </Link>
                     </div>
-                </div>
+                </Link>
 
-                {/* Profile completion bar — only when below 100% */}
+                {/* Profile completion bar */}
                 {completion < 100 && (
                     <div className="mt-4">
-                        <div className="flex justify-between text-xs mb-1">
+                        <div className="flex justify-between text-xs mb-1.5">
                             <span className="text-gray-500">Profile completion</span>
-                            <span className="font-semibold text-brand-primary">{completion}%</span>
+                            <span className="font-bold text-brand-primary">{completion}%</span>
                         </div>
-                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                             <div
-                                className="h-full bg-brand-primary transition-all"
+                                className="h-full bg-gradient-to-r from-brand-primary to-brand-dark transition-all"
                                 style={{ width: `${completion}%` }}
                             />
                         </div>
@@ -160,32 +171,44 @@ export function DashboardSidebar() {
                 )}
             </div>
 
+            {/* Quick action: cart — opens the existing cart drawer */}
+            <button
+                onClick={() => setCartOpen(true)}
+                className="w-full flex items-center gap-3 bg-white rounded-2xl shadow-sm border border-gray-100 px-5 py-3.5 hover:border-brand-primary/30 hover:shadow-md transition-all group"
+            >
+                <div className="h-9 w-9 rounded-lg bg-brand-light flex items-center justify-center">
+                    <ShoppingCart className="h-4 w-4 text-brand-primary" />
+                </div>
+                <span className="text-sm font-semibold text-gray-700 flex-1 text-left">My Cart</span>
+                {cartCount > 0 && (
+                    <span className="bg-brand-primary text-white text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center">
+                        {cartCount}
+                    </span>
+                )}
+                <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-brand-primary transition-colors" />
+            </button>
+
             {/* Sections */}
-            {SECTIONS.map((section) => {
-                const SectionIcon = section.icon
-                return (
-                    <div
-                        key={section.title}
-                        className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
-                    >
-                        <div className="flex items-center gap-2 px-5 py-3 border-b border-gray-100">
-                            <SectionIcon className="h-4 w-4 text-gray-500" />
-                            <h3 className="text-sm font-bold text-gray-800">{section.title}</h3>
-                        </div>
-                        <nav className="p-2">
-                            {section.items.map(renderItem)}
-                        </nav>
-                    </div>
-                )
-            })}
+            {SECTIONS.map((section) => (
+                <div
+                    key={section.title}
+                    className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+                >
+                    <h3 className="px-5 pt-4 pb-2 text-xs font-bold uppercase tracking-wider text-gray-400">
+                        {section.title}
+                    </h3>
+                    <nav className="pb-2">
+                        {section.items.map(renderItem)}
+                    </nav>
+                </div>
+            ))}
 
             {/* Marketplace block */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="flex items-center gap-2 px-5 py-3 border-b border-gray-100">
-                    <MARKETPLACE_SECTION.icon className="h-4 w-4 text-gray-500" />
-                    <h3 className="text-sm font-bold text-gray-800">{MARKETPLACE_SECTION.title}</h3>
-                </div>
-                <nav className="p-2">
+                <h3 className="px-5 pt-4 pb-2 text-xs font-bold uppercase tracking-wider text-gray-400">
+                    {MARKETPLACE_SECTION.title}
+                </h3>
+                <nav className="pb-2">
                     {MARKETPLACE_SECTION.items.map(renderItem)}
                 </nav>
             </div>
@@ -193,9 +216,11 @@ export function DashboardSidebar() {
             {/* Logout */}
             <button
                 onClick={handleLogout}
-                className="w-full bg-white rounded-2xl shadow-sm border border-gray-100 px-5 py-3 flex items-center gap-3 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors"
+                className="w-full bg-white rounded-2xl shadow-sm border border-gray-100 px-5 py-3.5 flex items-center gap-3 text-sm font-semibold text-red-600 hover:bg-red-50 hover:border-red-200 transition-all"
             >
-                <LogOut className="h-4 w-4" />
+                <div className="h-9 w-9 rounded-lg bg-red-50 flex items-center justify-center">
+                    <LogOut className="h-4 w-4 text-red-500" />
+                </div>
                 Logout
             </button>
         </aside>
