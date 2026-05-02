@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { X, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { ImageUpload } from '@/components/common/ImageUpload'
 
 const productSchema = z.object({
     name: z.string().min(3).max(300),
@@ -264,19 +265,29 @@ export function ProductFormPanel({ editProduct, onClose }: ProductFormPanelProps
                     </div>
                 </div>
 
-                {/* Row 5: Images */}
+                {/* Row 5: Product Images — first one is the main, rest are gallery. */}
                 <div className="space-y-2">
-                    <label className="block text-xs font-semibold text-gray-700">Product Images (URL)</label>
-                    {(['image_url_1', 'image_url_2', 'image_url_3'] as const).map((field, i) => (
-                        <input
-                            key={field}
-                            {...register(field)}
-                            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#4C3B8A] bg-gray-50"
-                            placeholder={i === 0 ? 'Main image URL (https://...)' : `Additional image ${i + 1} URL`}
-                        />
-                    ))}
+                    <label className="block text-xs font-semibold text-gray-700">Product Images</label>
+                    <p className="text-[11px] text-gray-500 -mt-1 mb-2">
+                        Upload up to 3 photos. The first one is shown as the main image.
+                    </p>
+                    <div className="grid grid-cols-3 gap-3">
+                        {(['image_url_1', 'image_url_2', 'image_url_3'] as const).map((field, i) => (
+                            <div key={field}>
+                                <ImageUpload
+                                    value={watch(field)}
+                                    onChange={(url) => setValue(field, url || '', { shouldDirty: true })}
+                                    category="product"
+                                    variant="rectangle"
+                                    label={i === 0 ? 'Main image' : `Image ${i + 1}`}
+                                />
+                                {/* Hidden input still registered so the form submit picks it up */}
+                                <input type="hidden" {...register(field)} />
+                            </div>
+                        ))}
+                    </div>
                     {(errors.image_url_1 || errors.image_url_2 || errors.image_url_3) && (
-                        <p className="text-red-500 text-xs">Please enter valid image URLs</p>
+                        <p className="text-red-500 text-xs">One of the images is invalid.</p>
                     )}
                 </div>
 

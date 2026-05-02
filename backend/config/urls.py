@@ -16,10 +16,14 @@ from drf_spectacular.views import (
 )
 
 from apps.core.views import health_check
+from core.upload_views import FileUploadView
 
 urlpatterns = [
     # --- Health Check ---
     path('api/health/', health_check, name='health-check'),
+
+    # --- Universal file upload (images) ---
+    path('api/v1/uploads/', FileUploadView.as_view(), name='file-upload'),
 
     # --- Django built-in admin (moved to avoid conflict with Next.js /admin route) ---
     path('django-admin/', admin.site.urls),

@@ -13,16 +13,16 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
-import { Camera, Mail, Phone as PhoneIcon, ShieldCheck, AlertCircle } from 'lucide-react'
+import { Mail, Phone as PhoneIcon, ShieldCheck, AlertCircle } from 'lucide-react'
 
 import { useAuthStore } from '@/stores/auth.store'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getInitials } from '@/lib/utils'
 import { updateMe, fetchMe } from '@/services/profile.service'
+import { ImageUpload } from '@/components/common/ImageUpload'
 
 // Validation — first/last required (it's a "complete profile" feature),
 // other fields optional individually but together gate Mall checkout.
@@ -64,7 +64,6 @@ function joinBirthday(day: string, month: string, year: string): string {
 export default function MyProfilePage() {
     const { user, setUser } = useAuthStore()
     const [isLoading, setIsLoading] = useState(false)
-    const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
 
     const initialBirthday = useMemo(() => splitBirthday(user?.birthday), [user?.birthday])
 
@@ -112,18 +111,16 @@ export default function MyProfilePage() {
         return () => { cancelled = true }
     }, [setUser])
 
-    // Handle avatar file selection — preview only (backend endpoint pending).
-    const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0]
-        if (!file) return
-        if (file.size > 2 * 1024 * 1024) {
-            toast.error('Image must be under 2MB.')
-            return
+    // Avatar upload — runs through the universal /uploads/ endpoint and
+    // immediately persists the returned URL on the user via /auth/me/update/.
+    const handleAvatarChange = async (url: string | null) => {
+        if (!user) return
+        try {
+            const updated = await updateMe({ profile_picture: url })
+            setUser({ ...user, ...updated })
+        } catch {
+            toast.error('Avatar saved on storage but failed to update profile.')
         }
-        const reader = new FileReader()
-        reader.onload = () => setAvatarPreview(reader.result as string)
-        reader.readAsDataURL(file)
-        toast('Avatar upload endpoint coming soon — preview only.', { icon: 'ℹ️' })
     }
 
     const onSubmit = async (data: ProfileForm) => {
@@ -328,37 +325,18 @@ export default function MyProfilePage() {
                         </div>
                     </form>
 
-                    {/* Avatar column */}
-                    <div className="lg:border-l lg:pl-10 lg:border-gray-100 flex flex-col items-center text-center">
-                        <Avatar className="h-32 w-32 border-2 border-gray-100 shadow-sm">
-                            {(avatarPreview || user.profile_picture) ? (
-                                <AvatarImage
-                                    src={avatarPreview || user.profile_picture}
-                                    alt={displayName}
-                                    className="object-cover"
-                                />
-                            ) : (
-                                <AvatarFallback className="bg-gradient-to-br from-brand-primary to-brand-dark text-white text-3xl font-bold">
-                                    {getInitials(displayName)}
-                                </AvatarFallback>
-                            )}
-                        </Avatar>
-
-                        <label className="mt-4 cursor-pointer">
-                            <input
-                                type="file"
-                                accept="image/png,image/jpeg,image/webp"
-                                onChange={handleAvatarChange}
-                                className="hidden"
-                            />
-                            <span className="inline-flex items-center gap-2 px-5 py-2 border border-gray-200 rounded-md text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-brand-primary transition-colors">
-                                <Camera className="h-4 w-4" />
-                                Select Image
-                            </span>
-                        </label>
-                        <p className="text-xs text-gray-400 mt-3 max-w-[160px]">
-                            File size: max 2MB.<br />File extension: .JPEG, .PNG
-                        </p>
+                    {/* Avatar column — uploads via the universal /uploads/ endpoint
+                        and persists the returned URL onto the user. */}
+                    <div className="lg:border-l lg:pl-10 lg:border-gray-100">
+                        <ImageUpload
+                            value={user.profile_picture}
+                            onChange={handleAvatarChange}
+                            category="avatar"
+                            variant="avatar"
+                            size={128}
+                            fallbackText={getInitials(displayName)}
+                            label="JPG, PNG or WebP — max 5MB."
+                        />
                     </div>
                 </div>
             </div>

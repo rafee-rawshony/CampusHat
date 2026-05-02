@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { ProfileGate } from '@/components/account/ProfileGate'
+import { ImageUpload } from '@/components/common/ImageUpload'
 import { api } from '@/lib/api'
 
 const sellerSchema = z.object({
@@ -169,22 +170,28 @@ export default function SellerRegisterPage() {
                                         {form.formState.errors.store_description && <p className="text-xs text-destructive">{form.formState.errors.store_description.message}</p>}
                                     </div>
 
+                                    {/* Store Logo upload */}
                                     <div className="space-y-2">
-                                        <Label htmlFor="store_logo">Store Logo URL (Optional)</Label>
-                                        <Input
-                                            id="store_logo"
-                                            placeholder="https://example.com/logo.png"
-                                            {...form.register('store_logo')}
+                                        <Label>Store Logo (Optional)</Label>
+                                        <ImageUpload
+                                            value={form.watch('store_logo')}
+                                            onChange={(url) => form.setValue('store_logo', url || '', { shouldDirty: true })}
+                                            category="store_logo"
+                                            variant="rectangle"
+                                            label="Square logo image — PNG with transparent background works best."
                                         />
                                         {form.formState.errors.store_logo && <p className="text-xs text-destructive">{form.formState.errors.store_logo.message}</p>}
                                     </div>
 
+                                    {/* Store Banner upload */}
                                     <div className="space-y-2">
-                                        <Label htmlFor="store_banner">Store Banner URL (Optional)</Label>
-                                        <Input
-                                            id="store_banner"
-                                            placeholder="https://example.com/banner.png"
-                                            {...form.register('store_banner')}
+                                        <Label>Store Banner (Optional)</Label>
+                                        <ImageUpload
+                                            value={form.watch('store_banner')}
+                                            onChange={(url) => form.setValue('store_banner', url || '', { shouldDirty: true })}
+                                            category="store_banner"
+                                            variant="rectangle"
+                                            label="Wide banner shown on top of your store page."
                                         />
                                         {form.formState.errors.store_banner && <p className="text-xs text-destructive">{form.formState.errors.store_banner.message}</p>}
                                     </div>

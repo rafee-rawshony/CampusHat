@@ -20,6 +20,8 @@ from .views import (
     CartUpdateItemView,
     CartView,
     MallCategoryViewSet,
+    MyReviewDetailView,
+    MyReviewsListView,
     ProductReviewCreateView,
     ProductReviewListView,
     ProductVariantDetailView,
@@ -63,6 +65,12 @@ urlpatterns += [
          ProductReviewCreateView.as_view(), name='product-review-create'),
     path('products/<slug:product_slug>/reviews/<uuid:review_id>/seller-response/',
          SellerReviewResponseView.as_view(), name='review-seller-response'),
+]
+
+# My Reviews — dashboard "My Reviews" section
+urlpatterns += [
+    path('reviews/my/', MyReviewsListView.as_view(), name='my-reviews-list'),
+    path('reviews/my/<uuid:review_id>/', MyReviewDetailView.as_view(), name='my-review-detail'),
 ]
 
 # Product variants (nested under product)

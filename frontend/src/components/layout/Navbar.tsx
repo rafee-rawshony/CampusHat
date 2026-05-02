@@ -41,6 +41,7 @@ import { useAuthStore } from '@/stores/auth.store'
 import { useCartStore } from '@/stores/cart.store'
 import { getInitials } from '@/lib/utils'
 import { cn } from '@/lib/utils'
+import { absoluteMediaUrl } from '@/services/upload.service'
 
 export function Navbar() {
     const pathname = usePathname()
@@ -166,7 +167,7 @@ export function Navbar() {
                                         <Avatar className="h-8 w-8 md:h-9 md:w-9 border border-gray-200 group-hover:border-[#4C3B8A] transition-colors">
                                             {user?.profile_picture ? (
                                                 <AvatarImage
-                                                    src={user.profile_picture}
+                                                    src={absoluteMediaUrl(user.profile_picture)}
                                                     alt={user.full_name}
                                                     className="object-cover"
                                                 />
@@ -190,7 +191,7 @@ export function Navbar() {
                                         <div className="flex items-center gap-3">
                                             <Avatar className="h-10 w-10">
                                                 {user?.profile_picture ? (
-                                                    <AvatarImage src={user.profile_picture} alt={user.full_name} className="object-cover" />
+                                                    <AvatarImage src={absoluteMediaUrl(user.profile_picture)} alt={user.full_name} className="object-cover" />
                                                 ) : (
                                                     <AvatarFallback className="bg-brand-light text-[#4C3B8A] text-sm font-bold">
                                                         {getInitials(user?.full_name || 'U')}

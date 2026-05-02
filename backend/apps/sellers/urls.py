@@ -8,6 +8,7 @@ from .views import (
     PublicStoreDetailView, PublicStoreListView, FeaturedStoresView,
     PayoutRequestView, PayoutListView,
     StoreFollowToggleView, StoreFollowStatusView,
+    MyFollowedStoresView,
 )
 
 app_name = 'sellers'
@@ -18,6 +19,9 @@ urlpatterns = [
     path('my-profile/', SellerMyProfileView.as_view(), name='my-profile'),
     path('my-dashboard/', SellerDashboardView.as_view(), name='dashboard'),
     path('featured/', FeaturedStoresView.as_view(), name='featured'),
+
+    # Buyer-side: stores I follow
+    path('my/followed-stores/', MyFollowedStoresView.as_view(), name='my-followed-stores'),
 
     # Payouts
     path('payouts/request/', PayoutRequestView.as_view(), name='payout-request'),

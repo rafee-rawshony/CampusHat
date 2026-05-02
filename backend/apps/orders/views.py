@@ -49,8 +49,31 @@ class CheckoutView(GenericAPIView):
     serializer_class = CheckoutSerializer
 
     def post(self, request):
+        # Profile completion gate — Mall purchases require name, phone, birthday,
+        # gender, AND a saved address. Defined in User.is_profile_complete.
+        if not request.user.is_profile_complete:
+            return Response(
+                {
+                    'success': False,
+                    'message': 'Please complete your profile (name, phone, birthday, gender) and add a delivery address before checking out.',
+                    'code': 'PROFILE_INCOMPLETE',
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        # Address is required for Mall delivery — we don't accept "no address" checkouts.
+        if not serializer.validated_data.get('delivery_address_id'):
+            return Response(
+                {
+                    'success': False,
+                    'message': 'A delivery address is required to checkout.',
+                    'code': 'ADDRESS_REQUIRED',
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         try:
             cart = Cart.objects.get(user=request.user)

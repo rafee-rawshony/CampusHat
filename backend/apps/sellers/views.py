@@ -440,3 +440,47 @@ class StoreFollowStatusView(APIView):
             'success': True,
             'data': {'is_following': is_following},
         })
+
+
+class MyFollowedStoresView(APIView):
+    """
+    GET /api/v1/sellers/my/followed-stores/
+
+    Lists the stores the authenticated user follows.
+    Used by the dashboard "Followed Stores" section.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # StoreFollower is the join table; pull stores via select_related so
+        # we can read store name/logo without an N+1 query.
+        followers = (
+            StoreFollower.objects
+            .filter(user=request.user)
+            .select_related('store')
+            .order_by('-created_at')
+        )
+
+        data = []
+        for f in followers:
+            store = f.store
+            if not store or store.deleted_at:
+                continue  # Hide deleted stores even if the row still exists.
+            data.append({
+                'id': str(store.id),
+                'slug': store.slug,
+                'store_name': store.store_name,
+                'logo_url': getattr(store, 'logo_url', None) or getattr(store, 'logo', None),
+                'banner_url': getattr(store, 'banner_url', None) or getattr(store, 'banner', None),
+                'description': getattr(store, 'description', '') or '',
+                'follower_count': getattr(store, 'follower_count', 0),
+                'product_count': getattr(store, 'product_count', 0),
+                'rating_avg': float(getattr(store, 'rating_avg', 0) or 0),
+                'followed_at': f.created_at,
+            })
+        return Response({
+            'success': True,
+            'message': 'Data retrieved successfully.',
+            'data': data,
+        })

@@ -31,6 +31,7 @@ import { getInitials } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth.store'
 import { useCartStore } from '@/stores/cart.store'
+import { absoluteMediaUrl } from '@/services/upload.service'
 
 // One entry in the sidebar — "My Profile", "Address Book", etc.
 type Item = { label: string; href: string; icon: React.ElementType }
@@ -133,7 +134,7 @@ export function DashboardSidebar() {
                 <Link href="/account" className="flex items-center gap-3 group">
                     <Avatar className="h-14 w-14 border-2 border-white ring-2 ring-brand-light shadow-sm group-hover:ring-brand-primary/30 transition-all">
                         {user.profile_picture ? (
-                            <AvatarImage src={user.profile_picture} alt={displayName} className="object-cover" />
+                            <AvatarImage src={absoluteMediaUrl(user.profile_picture)} alt={displayName} className="object-cover" />
                         ) : (
                             <AvatarFallback className="bg-gradient-to-br from-brand-primary to-brand-dark text-white text-base font-bold">
                                 {getInitials(displayName)}

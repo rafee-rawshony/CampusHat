@@ -531,6 +531,110 @@ class SellerReviewResponseView(APIView):
         })
 
 
+class MyReviewsListView(APIView):
+    """
+    GET /api/v1/mall/reviews/my/
+
+    Lists every review the authenticated user has written.
+    Used by the dashboard "My Reviews" section.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        reviews = ProductReview.objects.filter(
+            reviewer=request.user, deleted_at__isnull=True,
+        ).select_related('product', 'product__store').order_by('-created_at')
+
+        # Build a richer payload than ProductReviewSerializer — we want
+        # product image and store name on each row for the dashboard card.
+        data = []
+        for r in reviews:
+            product = r.product
+            image_url = getattr(product, 'main_image_url', None)
+            data.append({
+                'id': str(r.id),
+                'product_id': str(product.id),
+                'product_slug': product.slug,
+                'product_name': getattr(product, 'name', '') or product.slug,
+                'product_image_url': image_url,
+                'store_name': getattr(product.store, 'store_name', ''),
+                'rating': r.rating,
+                'comment': r.comment,
+                'seller_response': r.seller_response,
+                'is_visible': r.is_visible,
+                'created_at': r.created_at,
+                'updated_at': r.updated_at,
+            })
+        return Response({
+            'success': True,
+            'message': 'Data retrieved successfully.',
+            'data': data,
+        })
+
+
+class MyReviewDetailView(APIView):
+    """
+    PATCH  /api/v1/mall/reviews/my/{id}/  — edit own review
+    DELETE /api/v1/mall/reviews/my/{id}/  — soft-delete own review
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def _get_review(self, request, review_id):
+        # Fetched scoped to the requester so a stranger can't touch it.
+        try:
+            return ProductReview.objects.get(
+                id=review_id, reviewer=request.user, deleted_at__isnull=True,
+            )
+        except ProductReview.DoesNotExist:
+            return None
+
+    def patch(self, request, review_id):
+        review = self._get_review(request, review_id)
+        if not review:
+            return Response({
+                'success': False, 'message': 'Review not found.',
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # Only rating + comment are editable by the buyer.
+        rating = request.data.get('rating')
+        comment = request.data.get('comment')
+        if rating is not None:
+            try:
+                rating_int = int(rating)
+                if rating_int < 1 or rating_int > 5:
+                    raise ValueError
+                review.rating = rating_int
+            except (TypeError, ValueError):
+                return Response({
+                    'success': False, 'message': 'Rating must be an integer 1–5.',
+                }, status=status.HTTP_400_BAD_REQUEST)
+        if comment is not None:
+            review.comment = comment
+        review.save(update_fields=['rating', 'comment', 'updated_at'])
+        return Response({
+            'success': True,
+            'message': 'Review updated.',
+            'data': ProductReviewSerializer(review).data,
+        })
+
+    def delete(self, request, review_id):
+        review = self._get_review(request, review_id)
+        if not review:
+            return Response({
+                'success': False, 'message': 'Review not found.',
+            }, status=status.HTTP_404_NOT_FOUND)
+        review.soft_delete() if hasattr(review, 'soft_delete') else None
+        if not hasattr(review, 'soft_delete'):
+            from django.utils import timezone
+            review.deleted_at = timezone.now()
+            review.save(update_fields=['deleted_at'])
+        return Response({
+            'success': True, 'message': 'Review deleted.',
+        })
+
+
 # =============================================================================
 # PRODUCT VARIANT VIEWS
 # =============================================================================

@@ -20,6 +20,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Separator } from '@/components/ui/separator'
+import { ProfileGate } from '@/components/account/ProfileGate'
 
 import { cn } from '@/lib/utils'
 
@@ -136,6 +137,7 @@ export default function CheckoutPage() {
     if (!user || items.length === 0) return null
 
     return (
+        <ProfileGate featureName="Mall Checkout">
         <div className="min-h-screen bg-surface-base pb-20 pt-6">
             <div className="container mx-auto px-4 max-w-6xl">
 
@@ -338,5 +340,6 @@ export default function CheckoutPage() {
                 </div>
             </div>
         </div>
+        </ProfileGate>
     )
 }
