@@ -61,10 +61,23 @@ DEBUG_TOOLBAR_CONFIG = {
 # PostgreSQL is default from base.py; override here only if needed.
 
 # =============================================================================
-# EMAIL — Console backend for development
+# EMAIL — Use SMTP if credentials are set in .env, else fall back to console.
+# Console backend prints emails to the celery worker logs (useful for OTP testing
+# without real SMTP). To send real emails, set EMAIL_HOST_USER and
+# EMAIL_HOST_PASSWORD in .env (Gmail App Password recommended).
 # =============================================================================
 
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+from decouple import config as _env_config  # local import to avoid global side effects
+
+_email_user = _env_config('EMAIL_HOST_USER', default='')
+_email_password = _env_config('EMAIL_HOST_PASSWORD', default='')
+
+if _email_user and _email_password and _email_password != 'your-email-password':
+    # SMTP backend — emails actually go to user inbox
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+else:
+    # Console backend — emails are printed to celery worker logs (dev fallback)
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # =============================================================================
 # FILE STORAGE — Local filesystem (no S3 in development)

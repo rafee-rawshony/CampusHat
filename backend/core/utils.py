@@ -5,6 +5,7 @@ Helper functions used across multiple apps for generating IDs,
 file paths, and sending emails.
 """
 
+import logging
 import os
 import random
 import string
@@ -15,6 +16,8 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
+
+logger = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -177,6 +180,6 @@ def send_notification_email(
             fail_silently=False,
         )
         return True
-    except Exception:
-        # Log the error in production; for now just return False
+    except Exception as exc:
+        logger.error('send_notification_email failed | to=%s subject=%s error=%s', to, subject, exc)
         return False
