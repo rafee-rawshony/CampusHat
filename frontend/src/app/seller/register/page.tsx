@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { ProfileGate } from '@/components/account/ProfileGate'
 import { api } from '@/lib/api'
 
 const sellerSchema = z.object({
@@ -83,6 +84,7 @@ export default function SellerRegisterPage() {
     }
 
     return (
+        <ProfileGate featureName="Seller Registration">
         <div className="min-h-screen bg-surface-base py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-xl mx-auto">
                 <div className="text-center mb-10">
@@ -201,5 +203,6 @@ export default function SellerRegisterPage() {
                 </div>
             </div>
         </div>
+        </ProfileGate>
     )
 }

@@ -14,6 +14,11 @@ import {
     Shield,
     Store,
     Plus,
+    UserCircle,
+    MapPin,
+    CreditCard,
+    Star,
+    ShieldCheck,
 } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -158,22 +163,76 @@ export function Navbar() {
                         ) : isAuthenticated ? (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <button className="flex items-center text-gray-600 hover:text-[#4C3B8A] py-2">
-                                        <User className="w-6 h-6 md:w-7 md:h-7" />
-                                        <span className="text-sm ml-2 hidden lg:inline font-semibold">
-                                            Hi, {user?.full_name?.split(' ')[0] || 'User'}
+                                    <button className="flex items-center gap-2 text-gray-600 hover:text-[#4C3B8A] py-2 group">
+                                        <Avatar className="h-8 w-8 md:h-9 md:w-9 border border-gray-200 group-hover:border-[#4C3B8A] transition-colors">
+                                            {user?.profile_picture ? (
+                                                <AvatarImage
+                                                    src={user.profile_picture}
+                                                    alt={user.full_name}
+                                                    className="object-cover"
+                                                />
+                                            ) : (
+                                                <AvatarFallback className="bg-brand-light text-[#4C3B8A] text-xs font-bold">
+                                                    {getInitials(
+                                                        (user?.first_name && user?.last_name)
+                                                            ? `${user.first_name} ${user.last_name}`
+                                                            : user?.full_name || 'U'
+                                                    )}
+                                                </AvatarFallback>
+                                            )}
+                                        </Avatar>
+                                        <span className="text-sm hidden lg:inline font-semibold">
+                                            {user?.first_name || user?.full_name?.split(' ')[0] || 'User'}
                                         </span>
                                     </button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-56">
-                                    <DropdownMenuLabel>
-                                        <p className="font-medium">{user?.full_name}</p>
-                                        <p className="text-xs text-muted-foreground">{user?.email}</p>
+                                <DropdownMenuContent align="end" className="w-64">
+                                    <DropdownMenuLabel className="pb-2">
+                                        <div className="flex items-center gap-3">
+                                            <Avatar className="h-10 w-10">
+                                                {user?.profile_picture ? (
+                                                    <AvatarImage src={user.profile_picture} alt={user.full_name} className="object-cover" />
+                                                ) : (
+                                                    <AvatarFallback className="bg-brand-light text-[#4C3B8A] text-sm font-bold">
+                                                        {getInitials(user?.full_name || 'U')}
+                                                    </AvatarFallback>
+                                                )}
+                                            </Avatar>
+                                            <div className="min-w-0">
+                                                <p className="font-medium truncate">{user?.full_name}</p>
+                                                <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                                            </div>
+                                        </div>
                                     </DropdownMenuLabel>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem asChild>
-                                        <Link href="/orders" className="gap-2">
+                                        <Link href="/account" className="gap-2">
+                                            <UserCircle className="h-4 w-4" /> My Profile
+                                        </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
+                                        <Link href="/account/orders" className="gap-2">
                                             <Package className="h-4 w-4" /> My Orders
+                                        </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
+                                        <Link href="/account/addresses" className="gap-2">
+                                            <MapPin className="h-4 w-4" /> Address Book
+                                        </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
+                                        <Link href="/account/payments" className="gap-2">
+                                            <CreditCard className="h-4 w-4" /> Payment Options
+                                        </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
+                                        <Link href="/wishlist" className="gap-2">
+                                            <Heart className="h-4 w-4" /> Wishlist
+                                        </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
+                                        <Link href="/account/reviews" className="gap-2">
+                                            <Star className="h-4 w-4" /> My Reviews
                                         </Link>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem asChild>
@@ -181,6 +240,14 @@ export function Navbar() {
                                             <Wallet className="h-4 w-4" /> Wallet
                                         </Link>
                                     </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    {user?.role === 'normal_user' && (
+                                        <DropdownMenuItem asChild>
+                                            <Link href="/account/verify" className="gap-2 text-amber-700">
+                                                <ShieldCheck className="h-4 w-4" /> Verify Student ID
+                                            </Link>
+                                        </DropdownMenuItem>
+                                    )}
                                     {isSeller() && (
                                         <DropdownMenuItem asChild>
                                             <Link href="/seller" className="gap-2">

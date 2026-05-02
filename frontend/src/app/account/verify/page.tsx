@@ -12,6 +12,7 @@ import { VerificationStep2 } from '@/components/account/VerificationStep2'
 import { VerificationStep3 } from '@/components/account/VerificationStep3'
 import { VerificationPendingCard } from '@/components/account/VerificationPendingCard'
 import { VerificationRejectedBanner } from '@/components/account/VerificationRejectedBanner'
+import { ProfileGate } from '@/components/account/ProfileGate'
 
 export default function VerifyAccountPage() {
     const { user, isAuthenticated } = useAuthStore()
@@ -58,6 +59,7 @@ export default function VerifyAccountPage() {
     }
 
     return (
+        <ProfileGate featureName="Student / Faculty Verification">
         <div className="w-full max-w-3xl mx-auto space-y-6 animate-fade-in pl-0 sm:pl-4">
             {/* Header */}
             <div className="text-center mb-10">
@@ -101,5 +103,6 @@ export default function VerifyAccountPage() {
                 />
             )}
         </div>
+        </ProfileGate>
     )
 }

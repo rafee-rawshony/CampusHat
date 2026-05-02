@@ -179,15 +179,19 @@ class UserDetailSerializer(serializers.ModelSerializer):
     verification_status = serializers.SerializerMethodField()
     verification_rejection_reason = serializers.SerializerMethodField()
     seller_application_status = serializers.SerializerMethodField()
+    is_profile_complete = serializers.BooleanField(read_only=True)
+    profile_completion_percent = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = User
         fields = [
-            'id', 'email', 'full_name', 'phone', 'profile_picture',
+            'id', 'email', 'full_name', 'first_name', 'last_name',
+            'phone', 'birthday', 'gender', 'profile_picture',
             'role', 'university_id', 'university_name',
             'is_email_verified', 'is_phone_verified',
             'reputation_score', 'verification_status',
             'verification_rejection_reason', 'seller_application_status',
+            'is_profile_complete', 'profile_completion_percent',
             'last_login', 'created_at', 'updated_at',
         ]
         read_only_fields = fields
@@ -230,12 +234,16 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
 class UserUpdateSerializer(serializers.ModelSerializer):
     """
-    Serializer for updating own profile: name, phone, profile picture.
+    Serializer for updating own profile: name, phone, birthday, gender, picture.
+    Auto-syncs full_name when first_name + last_name are provided.
     """
 
     class Meta:
         model = User
-        fields = ['full_name', 'phone', 'profile_picture']
+        fields = [
+            'full_name', 'first_name', 'last_name',
+            'phone', 'birthday', 'gender', 'profile_picture',
+        ]
 
     def validate_phone(self, value):
         """Ensure phone number is unique if provided."""
@@ -246,6 +254,14 @@ class UserUpdateSerializer(serializers.ModelSerializer):
                     'This phone number is already in use.'
                 )
         return value
+
+    def update(self, instance, validated_data):
+        # Keep full_name in sync with first_name + last_name when both are set.
+        first = validated_data.get('first_name', instance.first_name)
+        last = validated_data.get('last_name', instance.last_name)
+        if first and last and 'full_name' not in validated_data:
+            validated_data['full_name'] = f'{first.strip()} {last.strip()}'
+        return super().update(instance, validated_data)
 
 
 # =============================================================================

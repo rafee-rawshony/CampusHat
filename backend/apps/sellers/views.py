@@ -35,6 +35,14 @@ class SellerRegisterView(GenericAPIView):
     serializer_class = SellerRegistrationSerializer
 
     def post(self, request):
+        # Require complete profile before registering as seller.
+        if not request.user.is_profile_complete:
+            return Response({
+                'success': False,
+                'message': 'Please complete your profile (name, phone, birthday, gender, and address) before applying to become a seller.',
+                'code': 'PROFILE_INCOMPLETE',
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         if SellerProfile.objects.filter(
             user=request.user, deleted_at__isnull=True,
             status__in=['pending', 'approved'],

@@ -19,9 +19,12 @@ class UserAddressSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserAddress
         fields = [
-            'id', 'label', 'address_line1', 'address_line2',
+            'id', 'label',
+            'recipient_name', 'recipient_phone',
+            'address_line1', 'address_line2', 'landmark',
             'campus_building', 'room_number',
-            'district', 'city', 'postal_code',
+            'division', 'district', 'city', 'area', 'postal_code',
+            'additional_notes',
             'is_default', 'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
@@ -29,6 +32,13 @@ class UserAddressSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """Set user from request context on create."""
         validated_data['user'] = self.context['request'].user
+        # If this is the user's first address, mark it as default
+        user = validated_data['user']
+        has_existing = UserAddress.objects.filter(
+            user=user, deleted_at__isnull=True,
+        ).exists()
+        if not has_existing:
+            validated_data['is_default'] = True
         return super().create(validated_data)
 
 
@@ -38,7 +48,10 @@ class UserAddressListSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserAddress
         fields = [
-            'id', 'label', 'district', 'city',
+            'id', 'label',
+            'recipient_name', 'recipient_phone',
+            'address_line1', 'landmark',
+            'division', 'district', 'city', 'area',
             'postal_code', 'is_default',
         ]
         read_only_fields = fields

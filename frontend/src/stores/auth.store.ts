@@ -16,15 +16,23 @@ export interface User {
     id: string
     email: string
     full_name: string
+    first_name?: string | null
+    last_name?: string | null
+    phone?: string | null
+    birthday?: string | null
+    gender?: 'male' | 'female' | 'other' | null
     role: UserRole
     university_id: string
     university_name?: string
     profile_picture?: string
     is_email_verified: boolean
+    is_phone_verified?: boolean
     reputation_score?: number
     verification_status: 'not_submitted' | 'pending' | 'approved' | 'rejected' | null
     verification_rejection_reason?: string
     seller_application_status?: 'pending' | 'approved' | 'rejected' | null
+    is_profile_complete?: boolean
+    profile_completion_percent?: number
 }
 
 interface AuthState {
@@ -123,14 +131,22 @@ export const useAuthStore = create<AuthState>()(
                     id: state.user.id,
                     email: state.user.email,
                     full_name: state.user.full_name,
+                    first_name: state.user.first_name,
+                    last_name: state.user.last_name,
+                    phone: state.user.phone,
+                    birthday: state.user.birthday,
+                    gender: state.user.gender,
                     role: state.user.role,
                     university_id: state.user.university_id,
                     university_name: state.user.university_name,
                     profile_picture: state.user.profile_picture,
                     is_email_verified: state.user.is_email_verified,
+                    is_phone_verified: state.user.is_phone_verified,
                     verification_status: state.user.verification_status,
                     verification_rejection_reason: state.user.verification_rejection_reason,
                     seller_application_status: state.user.seller_application_status,
+                    is_profile_complete: state.user.is_profile_complete,
+                    profile_completion_percent: state.user.profile_completion_percent,
                 } : null,
             }),
             onRehydrateStorage: () => (state) => {
