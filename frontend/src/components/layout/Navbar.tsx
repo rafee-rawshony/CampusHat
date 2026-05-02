@@ -277,31 +277,41 @@ export function Navbar() {
                             </DropdownMenu>
                         ) : (
                             <div className="flex items-center gap-2">
+                                {/* Sign In — outlined ghost button */}
                                 <Link
                                     href="/auth/login"
-                                    className="text-sm font-semibold text-gray-700 hover:text-[#4C3B8A] transition-colors px-3 py-2"
+                                    className="inline-flex items-center justify-center h-9 md:h-10 px-4 md:px-5 text-sm font-semibold text-gray-700 border border-gray-200 hover:border-[#4C3B8A] hover:text-[#4C3B8A] hover:bg-[#4C3B8A]/5 rounded-full transition-all duration-200"
                                 >
                                     Sign In
                                 </Link>
+                                {/* Register — gradient solid with brand-color glow on hover */}
                                 <Link
                                     href="/auth/register"
-                                    className="hidden md:inline-flex text-sm font-semibold text-white bg-[#4C3B8A] hover:bg-[#2D1B69] transition-colors px-4 py-2 rounded-md"
+                                    className="hidden md:inline-flex items-center justify-center h-10 px-5 text-sm font-semibold text-white bg-gradient-to-r from-[#4C3B8A] to-[#5d4ba1] hover:shadow-lg hover:shadow-[#4C3B8A]/30 hover:-translate-y-px rounded-full transition-all duration-200"
                                 >
                                     Register
                                 </Link>
                             </div>
                         )}
 
-                        {/* Mall mode: Heart + Cart */}
+                        {/* Mall mode: Heart + Cart — circle ghost buttons matching sign-in */}
                         {!isMarketplace ? (
                             <>
-                                <Link href="/wishlist" className="relative text-gray-600 hover:text-[#4C3B8A]">
-                                    <Heart className="w-6 h-6 md:w-7 md:h-7" />
-                                    <span className="absolute -top-1 -right-2 bg-red-500 text-white text-xs rounded-full h-4 w-4 md:h-5 md:w-5 flex items-center justify-center">0</span>
+                                <Link
+                                    href="/wishlist"
+                                    aria-label="Wishlist"
+                                    className="relative inline-flex items-center justify-center h-10 w-10 rounded-full text-gray-600 hover:text-[#4C3B8A] hover:bg-[#4C3B8A]/5 transition-all"
+                                >
+                                    <Heart className="w-5 h-5" />
+                                    <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center ring-2 ring-white">0</span>
                                 </Link>
-                                <button onClick={() => setIsOpen(true)} className="relative flex items-center text-gray-600 hover:text-[#4C3B8A]">
-                                    <ShoppingCart className="w-6 h-6 md:w-7 md:h-7" />
-                                    <span className="absolute -top-1 -right-2 bg-[#4C3B8A] text-white text-xs rounded-full h-4 w-4 md:h-5 md:w-5 flex items-center justify-center">{getItemCount()}</span>
+                                <button
+                                    onClick={() => setIsOpen(true)}
+                                    aria-label="Cart"
+                                    className="relative inline-flex items-center justify-center h-10 w-10 rounded-full text-gray-600 hover:text-[#4C3B8A] hover:bg-[#4C3B8A]/5 transition-all"
+                                >
+                                    <ShoppingCart className="w-5 h-5" />
+                                    <span className="absolute -top-0.5 -right-0.5 bg-[#4C3B8A] text-white text-[10px] font-bold rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center ring-2 ring-white">{getItemCount()}</span>
                                 </button>
                             </>
                         ) : (
