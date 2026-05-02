@@ -61,23 +61,48 @@ DEBUG_TOOLBAR_CONFIG = {
 # PostgreSQL is default from base.py; override here only if needed.
 
 # =============================================================================
-# EMAIL — Use SMTP if credentials are set in .env, else fall back to console.
-# Console backend prints emails to the celery worker logs (useful for OTP testing
-# without real SMTP). To send real emails, set EMAIL_HOST_USER and
-# EMAIL_HOST_PASSWORD in .env (Gmail App Password recommended).
+# EMAIL — Always use real SMTP, even in development.
+#
+# Default target: the Mailpit container shipped with docker-compose. Emails get
+# captured there and shown in a web inbox at http://localhost:8025/ — the full
+# verification flow then matches production exactly (no console-backend hack).
+#
+# To use a real provider locally (Gmail, SendGrid, Resend, Mailgun, SES, ...)
+# set EMAIL_HOST/PORT/USER/PASSWORD in backend/.env — those values override the
+# Mailpit defaults below.
 # =============================================================================
 
 from decouple import config as _env_config  # local import to avoid global side effects
 
-_email_user = _env_config('EMAIL_HOST_USER', default='')
-_email_password = _env_config('EMAIL_HOST_PASSWORD', default='')
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
-if _email_user and _email_password and _email_password != 'your-email-password':
-    # SMTP backend — emails actually go to user inbox
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-else:
-    # Console backend — emails are printed to celery worker logs (dev fallback)
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# Treat empty/whitespace env values as "not set" so dev defaults kick in. This
+# matters because docker-compose env_file passes blank values as "" rather
+# than unsetting them, which breaks `cast=int` etc.
+def _env_or_default(key, default, cast=str):
+    raw = _env_config(key, default=None)
+    if raw is None or str(raw).strip() == '':
+        return default
+    if cast is bool:
+        return str(raw).strip().lower() in ('1', 'true', 'yes', 'on')
+    return cast(raw)
+
+EMAIL_HOST = _env_or_default('EMAIL_HOST', 'mailpit')
+EMAIL_PORT = _env_or_default('EMAIL_PORT', 1025, cast=int)
+EMAIL_USE_TLS = _env_or_default('EMAIL_USE_TLS', False, cast=bool)
+EMAIL_USE_SSL = _env_or_default('EMAIL_USE_SSL', False, cast=bool)
+EMAIL_HOST_USER = _env_or_default('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = _env_or_default('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = _env_or_default(
+    'DEFAULT_FROM_EMAIL', 'CampusHat <noreply@campushat.local>',
+)
+
+# AUTO_VERIFY_EMAIL_ON_REGISTER — explicit opt-in escape hatch for automated
+# tests / CI seeding. NEVER set this to True in production. Default off so the
+# verification flow runs through real email exactly as in production.
+AUTO_VERIFY_EMAIL_ON_REGISTER = _env_or_default(
+    'AUTO_VERIFY_EMAIL_ON_REGISTER', False, cast=bool,
+)
 
 # =============================================================================
 # FILE STORAGE — Local filesystem (no S3 in development)

@@ -48,6 +48,35 @@ services:
       timeout: 5s
       retries: 5
 
+  # ─────────────────────────────────────────────────────────
+  # MAILPIT — Local SMTP capture for development
+  # ─────────────────────────────────────────────────────────
+  # Catches every email Django would send and shows them in a
+  # web inbox at http://localhost:8025 . The verification flow
+  # in dev runs through real SMTP code (no console-backend hack)
+  # so behaviour matches production exactly.
+  #
+  # Production replaces this with a real provider (Resend, SES,
+  # Mailgun, SendGrid) by setting EMAIL_HOST in the prod .env.
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: campushat_mailpit
+    restart: unless-stopped
+    ports:
+      - "8025:8025"   # Web UI — open this in your browser
+      - "1025:1025"   # SMTP — Django talks to this
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    networks:
+      - campushat_network
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8025/api/v1/info"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
   # =============================================
   # BACKEND — Single image, multiple services
   # =============================================
@@ -82,6 +111,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     networks:
       - campushat_network
 
@@ -106,6 +137,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      mailpit:
+        condition: service_started
       backend:
         condition: service_started
     networks:
@@ -132,6 +165,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      mailpit:
+        condition: service_started
       backend:
         condition: service_started
     networks:
