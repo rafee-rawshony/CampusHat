@@ -48,11 +48,11 @@ services:
       timeout: 5s
       retries: 5
 
-  # ─────────────────────────────────────────────────────────
-  # MAILPIT — Local SMTP capture for development
-  # ─────────────────────────────────────────────────────────
+  # =============================================
+  # MAILPIT - Local SMTP capture for development
+  # =============================================
   # Catches every email Django would send and shows them in a
-  # web inbox at http://localhost:8025 . The verification flow
+  # web inbox at http://localhost:8025. The verification flow
   # in dev runs through real SMTP code (no console-backend hack)
   # so behaviour matches production exactly.
   #
