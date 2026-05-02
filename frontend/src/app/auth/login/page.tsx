@@ -104,8 +104,31 @@ export default function LoginPage() {
             const searchParams = new URLSearchParams(window.location.search)
             router.push(getRoleRedirect(user, searchParams.get('redirect')))
         } catch (error: any) {
-            const message = error.response?.data?.message || error.response?.data?.detail || 'Login failed'
-            if (message.includes('not verified') || error.response?.data?.code === 'EMAIL_NOT_VERIFIED') {
+            // DRF wraps validation errors in `errors.non_field_errors` — read those
+            // first so the user sees the real reason (e.g. "Please verify your email")
+            // instead of the generic "Validation failed" wrapper message.
+            const errorsObj = error.response?.data?.errors || {}
+            const nonField = errorsObj.non_field_errors?.[0]
+            const fieldFirst = (() => {
+                for (const key of Object.keys(errorsObj)) {
+                    const val = errorsObj[key]
+                    if (Array.isArray(val) && val.length) return val[0]
+                }
+                return null
+            })()
+            const message =
+                nonField ||
+                fieldFirst ||
+                error.response?.data?.message ||
+                error.response?.data?.detail ||
+                'Login failed'
+
+            const lc = String(message).toLowerCase()
+            if (
+                lc.includes('verify') ||
+                lc.includes('not verified') ||
+                error.response?.data?.code === 'EMAIL_NOT_VERIFIED'
+            ) {
                 setEmailNotVerified(true)
                 setUnverifiedEmail(data.email)
             }

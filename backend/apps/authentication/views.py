@@ -67,6 +67,23 @@ class RegisterView(APIView):
             user.role = 'normal_user'
             user.save(update_fields=['role'])
 
+        # Dev convenience: when the email backend is the console (no real SMTP
+        # configured) the user can never receive the verification link, so we
+        # auto-verify them here. In prod with a real SMTP backend this branch is
+        # skipped and the user must click the email link.
+        email_backend = getattr(settings, 'EMAIL_BACKEND', '')
+        is_dev_console = 'console' in email_backend.lower()
+        auto_verify = bool(getattr(settings, 'AUTO_VERIFY_EMAIL_ON_REGISTER', is_dev_console))
+
+        if auto_verify:
+            user.is_email_verified = True
+            user.save(update_fields=['is_email_verified'])
+            return Response({
+                'success': True,
+                'message': 'Registration successful. (Dev mode: email auto-verified — you can log in immediately.)',
+                'data': {'email': user.email, 'role': user.role, 'auto_verified': True},
+            }, status=status.HTTP_201_CREATED)
+
         # Generate verification token and queue email
         EmailVerificationToken.objects.create(
             user=user,
