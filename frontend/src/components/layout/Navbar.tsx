@@ -6,7 +6,6 @@ import {
     Search,
     Heart,
     ShoppingCart,
-    User,
     LogOut,
     Package,
     Wallet,
@@ -277,13 +276,20 @@ export function Navbar() {
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         ) : (
-                            <Link
-                                href="/auth/login"
-                                className="flex items-center text-gray-600 hover:text-[#4C3B8A]"
-                            >
-                                <User className="w-6 h-6 md:w-7 md:h-7" />
-                                <span className="text-sm ml-2 hidden lg:inline font-semibold">Sign In</span>
-                            </Link>
+                            <div className="flex items-center gap-2">
+                                <Link
+                                    href="/auth/login"
+                                    className="text-sm font-semibold text-gray-700 hover:text-[#4C3B8A] transition-colors px-3 py-2"
+                                >
+                                    Sign In
+                                </Link>
+                                <Link
+                                    href="/auth/register"
+                                    className="hidden md:inline-flex text-sm font-semibold text-white bg-[#4C3B8A] hover:bg-[#2D1B69] transition-colors px-4 py-2 rounded-md"
+                                >
+                                    Register
+                                </Link>
+                            </div>
                         )}
 
                         {/* Mall mode: Heart + Cart */}
