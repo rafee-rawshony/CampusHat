@@ -119,6 +119,13 @@ class User(AbstractBaseUser, PermissionsMixin, UUIDMixin, TimestampMixin):
         unique=True,
         help_text='Email address used for login.',
     )
+    university_email = models.EmailField(
+        max_length=255,
+        blank=True,
+        null=True,
+        unique=True,
+        help_text='University-issued email (used for student/faculty verification).',
+    )
     phone = models.CharField(
         max_length=20,
         unique=True,
@@ -392,6 +399,90 @@ class EmailVerificationToken(UUIDMixin):
             expires_at=timezone.now() + timezone.timedelta(hours=24),
         )
         return token
+
+
+# =============================================================================
+# EMAIL CHANGE REQUEST
+# =============================================================================
+
+class EmailChangeRequest(UUIDMixin):
+    """
+    A pending request to change a user's login email.
+
+    Flow:
+        1. Authenticated user posts new_email + current_password.
+        2. Backend validates the password and that new_email is free.
+        3. A token is generated and emailed to the NEW address.
+        4. User clicks the link, which calls /confirm-email-change/.
+        5. Backend swaps user.email, marks the request used, and notifies
+           the OLD address (security audit trail).
+
+    Tokens expire after 24 hours and can only be used once.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='email_change_requests',
+        db_index=True,
+        help_text='User who initiated the change.',
+    )
+    old_email = models.EmailField(
+        max_length=255,
+        help_text="Email at the time the request was created (audit only).",
+    )
+    new_email = models.EmailField(
+        max_length=255,
+        help_text='Address the user wants to switch to.',
+    )
+    token = models.CharField(
+        max_length=64,
+        unique=True,
+        help_text='Secure random token sent to the new email.',
+    )
+    expires_at = models.DateTimeField(
+        help_text='Expiration time for this token.',
+    )
+    is_used = models.BooleanField(
+        default=False,
+        help_text='Whether this token has been consumed.',
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text='When this request was created.',
+    )
+
+    class Meta:
+        db_table = 'auth_email_change_requests'
+        verbose_name = 'Email Change Request'
+        verbose_name_plural = 'Email Change Requests'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.old_email} -> {self.new_email} (used={self.is_used})'
+
+    @property
+    def is_expired(self):
+        return timezone.now() >= self.expires_at
+
+    @property
+    def is_valid(self):
+        return not self.is_used and not self.is_expired
+
+    @classmethod
+    def create_for_user(cls, user, new_email):
+        """
+        Build a fresh change request for a user, invalidating any pending
+        ones first so a single user can't have two open at once.
+        """
+        cls.objects.filter(user=user, is_used=False).update(is_used=True)
+        return cls.objects.create(
+            user=user,
+            old_email=user.email,
+            new_email=new_email.lower().strip(),
+            token=secrets.token_urlsafe(48),
+            expires_at=timezone.now() + timezone.timedelta(hours=24),
+        )
 
 
 # =============================================================================

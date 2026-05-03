@@ -163,6 +163,91 @@ def send_password_reset_email(self, email, otp_code, user_name):
 
 
 # =============================================================================
+# EMAIL CHANGE FLOW
+# =============================================================================
+
+@shared_task(
+    bind=True,
+    max_retries=3,
+    default_retry_delay=60,
+    name='authentication.send_email_change_confirmation',
+)
+def send_email_change_confirmation(self, change_request_id):
+    """
+    Send the confirmation link to the NEW email address. Clicking the
+    link applies the change.
+
+    Args:
+        change_request_id: UUID string of the EmailChangeRequest.
+    """
+    from apps.authentication.models import EmailChangeRequest
+    from core.utils import send_notification_email
+
+    try:
+        req = EmailChangeRequest.objects.select_related('user').get(id=change_request_id)
+    except EmailChangeRequest.DoesNotExist:
+        logger.error('send_email_change_confirmation: %s not found.', change_request_id)
+        return
+
+    frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
+    confirm_link = f'{frontend_url}/auth/confirm-email-change?token={req.token}'
+
+    context = {
+        'user_name': req.user.full_name,
+        'old_email': req.old_email,
+        'new_email': req.new_email,
+        'confirm_link': confirm_link,
+        'expiry_hours': 24,
+    }
+
+    try:
+        success = send_notification_email(
+            to=req.new_email,
+            subject='Confirm your new CampusHat email',
+            template='emails/email_change_confirmation.html',
+            context=context,
+        )
+        if success:
+            logger.info('Email-change confirmation sent to %s.', req.new_email)
+        else:
+            logger.warning('Failed to send email-change confirmation to %s.', req.new_email)
+    except Exception as exc:
+        logger.error('send_email_change_confirmation error: %s', exc)
+        raise self.retry(exc=exc)
+
+
+@shared_task(
+    bind=True,
+    max_retries=3,
+    default_retry_delay=60,
+    name='authentication.send_email_changed_notice_to_old_address',
+)
+def send_email_changed_notice_to_old_address(self, old_email, new_email, user_name):
+    """
+    After a successful email change, notify the OLD address so the
+    rightful owner can react if the change wasn't initiated by them.
+    """
+    from core.utils import send_notification_email
+
+    context = {
+        'user_name': user_name,
+        'old_email': old_email,
+        'new_email': new_email,
+    }
+    try:
+        send_notification_email(
+            to=old_email,
+            subject='Your CampusHat email address was changed',
+            template='emails/email_changed_notice.html',
+            context=context,
+        )
+        logger.info('Email-changed notice sent to %s (old address).', old_email)
+    except Exception as exc:
+        logger.error('send_email_changed_notice error: %s', exc)
+        raise self.retry(exc=exc)
+
+
+# =============================================================================
 # PHASE 03: VERIFICATION TASKS
 # =============================================================================
 

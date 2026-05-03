@@ -15,6 +15,7 @@ export type UserRole =
 export interface User {
     id: string
     email: string
+    university_email?: string | null
     full_name: string
     first_name?: string | null
     last_name?: string | null
@@ -130,6 +131,7 @@ export const useAuthStore = create<AuthState>()(
                 user: state.user ? {
                     id: state.user.id,
                     email: state.user.email,
+                    university_email: state.user.university_email,
                     full_name: state.user.full_name,
                     first_name: state.user.first_name,
                     last_name: state.user.last_name,

@@ -91,6 +91,12 @@ class FileUploadView(APIView):
         saved_path = default_storage.save(path, upload)
         url = default_storage.url(saved_path)
 
+        # Make the URL absolute. In dev `default_storage.url()` returns
+        # `/media/...` which is rejected by URLField — wrap with the request
+        # host. S3 storage already returns full https://... so this is a no-op.
+        if url.startswith('/'):
+            url = request.build_absolute_uri(url)
+
         return Response({
             'success': True,
             'message': 'Upload successful.',

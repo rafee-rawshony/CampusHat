@@ -13,15 +13,16 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
-import { Mail, Phone as PhoneIcon, ShieldCheck, AlertCircle } from 'lucide-react'
+import { Mail, Phone as PhoneIcon, ShieldCheck, AlertCircle, GraduationCap, Edit2 } from 'lucide-react'
 
 import { useAuthStore } from '@/stores/auth.store'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { getInitials } from '@/lib/utils'
-import { updateMe, fetchMe } from '@/services/profile.service'
+import { updateMe, fetchMe, requestEmailChange } from '@/services/profile.service'
 import { ImageUpload } from '@/components/common/ImageUpload'
 
 // Validation — first/last required (it's a "complete profile" feature),
@@ -34,7 +35,15 @@ const profileSchema = z.object({
     birth_month: z.string().optional().or(z.literal('')),
     birth_year: z.string().optional().or(z.literal('')),
     gender: z.enum(['male', 'female', 'other', '']).optional(),
+    university_email: z.string().email('Enter a valid email').or(z.literal('')).optional(),
 })
+
+// Email change dialog uses a separate schema — needs current password.
+const emailChangeSchema = z.object({
+    new_email: z.string().email('Enter a valid email'),
+    current_password: z.string().min(1, 'Password is required'),
+})
+type EmailChangeForm = z.infer<typeof emailChangeSchema>
 
 type ProfileForm = z.infer<typeof profileSchema>
 
@@ -77,6 +86,7 @@ export default function MyProfilePage() {
             birth_month: initialBirthday[1],
             birth_year: initialBirthday[2],
             gender: (user?.gender as 'male' | 'female' | 'other') || undefined,
+            university_email: user?.university_email || '',
         },
     })
 
@@ -92,6 +102,7 @@ export default function MyProfilePage() {
                 birth_month: m,
                 birth_year: y,
                 gender: (user.gender as 'male' | 'female' | 'other') || undefined,
+                university_email: user.university_email || '',
             })
         }
     }, [user, form])
@@ -135,14 +146,56 @@ export default function MyProfilePage() {
                 phone: data.phone || null,
                 birthday: birthday || null,
                 gender: (data.gender || null) as 'male' | 'female' | 'other' | null,
+                university_email: data.university_email || null,
             })
             setUser({ ...user, ...updated })
             toast.success('Profile updated successfully.')
         } catch (error: unknown) {
-            const err = error as { response?: { data?: { message?: string } } }
-            toast.error(err.response?.data?.message || 'Failed to update profile.')
+            const err = error as {
+                response?: { data?: {
+                    message?: string
+                    errors?: Record<string, string[]>
+                } }
+            }
+            const errs = err.response?.data?.errors || {}
+            const firstFieldError = Object.values(errs)[0]?.[0]
+            toast.error(firstFieldError || err.response?.data?.message || 'Failed to update profile.')
         } finally {
             setIsLoading(false)
+        }
+    }
+
+    // ── Email change dialog ─────────────────────────────────────────────
+    const [emailDialogOpen, setEmailDialogOpen] = useState(false)
+    const [emailChangeLoading, setEmailChangeLoading] = useState(false)
+
+    const emailForm = useForm<EmailChangeForm>({
+        resolver: zodResolver(emailChangeSchema),
+        defaultValues: { new_email: '', current_password: '' },
+    })
+
+    const handleEmailChange = async (data: EmailChangeForm) => {
+        setEmailChangeLoading(true)
+        try {
+            await requestEmailChange({
+                new_email: data.new_email,
+                current_password: data.current_password,
+            })
+            toast.success(
+                `Confirmation link sent to ${data.new_email}. Click it to finish changing your email.`,
+                { duration: 7000 },
+            )
+            emailForm.reset()
+            setEmailDialogOpen(false)
+        } catch (error: unknown) {
+            const err = error as {
+                response?: { data?: { message?: string; errors?: Record<string, string[]> } }
+            }
+            const errs = err.response?.data?.errors || {}
+            const firstFieldError = Object.values(errs)[0]?.[0]
+            toast.error(firstFieldError || err.response?.data?.message || 'Failed to request email change.')
+        } finally {
+            setEmailChangeLoading(false)
         }
     }
 
@@ -214,11 +267,20 @@ export default function MyProfilePage() {
                             </div>
                         </div>
 
-                        {/* Email — read only with verified badge */}
+                        {/* Login email — change requires verification */}
                         <div className="space-y-1.5">
-                            <Label htmlFor="email" className="text-xs text-gray-500 font-medium">
-                                Email Address
-                            </Label>
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="email" className="text-xs text-gray-500 font-medium">
+                                    Login Email
+                                </Label>
+                                <button
+                                    type="button"
+                                    onClick={() => setEmailDialogOpen(true)}
+                                    className="text-xs font-semibold text-brand-primary hover:underline flex items-center gap-1"
+                                >
+                                    <Edit2 className="h-3 w-3" /> Change
+                                </button>
+                            </div>
                             <div className="relative">
                                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                                 <Input
@@ -234,6 +296,32 @@ export default function MyProfilePage() {
                                     </span>
                                 )}
                             </div>
+                            <p className="text-[11px] text-gray-400">
+                                Changing your email requires confirming the new address.
+                            </p>
+                        </div>
+
+                        {/* University / Student / Faculty email — used for verification */}
+                        <div className="space-y-1.5">
+                            <Label htmlFor="university_email" className="text-xs text-gray-500 font-medium">
+                                Student / Faculty Email <span className="text-gray-400 font-normal">(optional)</span>
+                            </Label>
+                            <div className="relative">
+                                <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                <Input
+                                    id="university_email"
+                                    type="email"
+                                    {...form.register('university_email')}
+                                    placeholder="you@university.edu.bd"
+                                    className="h-11 pl-10"
+                                />
+                            </div>
+                            <p className="text-[11px] text-gray-400">
+                                Add your university-issued email so admins can verify your student / faculty status faster.
+                            </p>
+                            {form.formState.errors.university_email && (
+                                <p className="text-xs text-destructive">{form.formState.errors.university_email.message}</p>
+                            )}
                         </div>
 
                         {/* Phone */}
@@ -340,6 +428,79 @@ export default function MyProfilePage() {
                     </div>
                 </div>
             </div>
+
+            {/* Email Change Dialog — verification-based flow */}
+            <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+                <DialogContent className="sm:max-w-[440px]">
+                    <DialogHeader>
+                        <DialogTitle>Change Login Email</DialogTitle>
+                    </DialogHeader>
+
+                    <form onSubmit={emailForm.handleSubmit(handleEmailChange)} className="space-y-4 mt-2">
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
+                            We&apos;ll send a confirmation link to your new email. Your login email
+                            won&apos;t change until you click the link.
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <Label htmlFor="current_email">Current Email</Label>
+                            <Input
+                                id="current_email"
+                                value={user.email}
+                                disabled
+                                className="bg-gray-50 text-gray-500 cursor-not-allowed"
+                            />
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <Label htmlFor="new_email">New Email</Label>
+                            <Input
+                                id="new_email"
+                                type="email"
+                                {...emailForm.register('new_email')}
+                                placeholder="new@email.com"
+                            />
+                            {emailForm.formState.errors.new_email && (
+                                <p className="text-xs text-destructive">{emailForm.formState.errors.new_email.message}</p>
+                            )}
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <Label htmlFor="current_password">Current Password</Label>
+                            <Input
+                                id="current_password"
+                                type="password"
+                                {...emailForm.register('current_password')}
+                                placeholder="Enter your current password"
+                            />
+                            {emailForm.formState.errors.current_password && (
+                                <p className="text-xs text-destructive">{emailForm.formState.errors.current_password.message}</p>
+                            )}
+                            <p className="text-[11px] text-gray-400">
+                                We ask for your password to make sure it&apos;s really you.
+                            </p>
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setEmailDialogOpen(false)}
+                                disabled={emailChangeLoading}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                className="bg-brand-primary hover:bg-brand-dark"
+                                disabled={emailChangeLoading}
+                            >
+                                {emailChangeLoading ? 'Sending...' : 'Send Confirmation Link'}
+                            </Button>
+                        </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

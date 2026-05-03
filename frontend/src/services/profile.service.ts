@@ -17,6 +17,7 @@ export interface ProfileUpdatePayload {
     birthday?: string | null    // YYYY-MM-DD
     gender?: 'male' | 'female' | 'other' | null
     profile_picture?: string | null
+    university_email?: string | null
 }
 
 interface ApiEnvelope<T> {
@@ -46,4 +47,25 @@ export async function updateMe(
 ): Promise<User> {
     const { data } = await api.patch<ApiEnvelope<User>>('/auth/me/update/', payload)
     return data.data as User
+}
+
+/**
+ * Start an email-change flow. Sends a confirmation link to `new_email`.
+ * The user must click that link before the change takes effect.
+ */
+export async function requestEmailChange(payload: {
+    new_email: string
+    current_password: string
+}): Promise<{ message: string }> {
+    const { data } = await api.post('/auth/me/email/request-change/', payload)
+    return data
+}
+
+/**
+ * Apply the email change after the user clicks the confirmation link.
+ * Used by the /auth/confirm-email-change page.
+ */
+export async function confirmEmailChange(token: string): Promise<{ message: string }> {
+    const { data } = await api.post('/auth/me/email/confirm-change/', { token })
+    return data
 }
