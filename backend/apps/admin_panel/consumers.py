@@ -4,13 +4,13 @@ import json
 import logging
 
 from channels.db import database_sync_to_async
-from channels.generic.websocket import AsyncJsonWebSocketConsumer
+from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from rest_framework_simplejwt.tokens import AccessToken
 
 logger = logging.getLogger(__name__)
 
 
-class NotificationConsumer(AsyncJsonWebSocketConsumer):
+class NotificationConsumer(AsyncJsonWebsocketConsumer):
     """
     WebSocket consumer that sends real-time notifications to authenticated users.
 
