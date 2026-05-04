@@ -33,6 +33,8 @@ from .views import (
     StoreProductViewSet,
     WishlistToggleView,
     WishlistView,
+    ProductQuestionListView,
+    SellerAnswerQuestionView,
 )
 
 app_name = 'mall'
@@ -81,6 +83,14 @@ urlpatterns += [
          ProductVariantListCreateView.as_view(), name='product-variants'),
     path('products/<slug:product_slug>/variants/<uuid:variant_id>/',
          ProductVariantDetailView.as_view(), name='product-variant-detail'),
+]
+
+# Product Q&A (nested under product)
+urlpatterns += [
+    path('products/<slug:slug>/questions/',
+         ProductQuestionListView.as_view(), name='product-questions'),
+    path('products/<slug:slug>/questions/<uuid:question_id>/answer/',
+         SellerAnswerQuestionView.as_view(), name='product-question-answer'),
 ]
 
 # Cart URLs (mounted separately under /api/v1/cart/)

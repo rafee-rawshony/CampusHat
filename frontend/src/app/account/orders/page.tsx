@@ -99,6 +99,7 @@ function getActions(order: Order): Array<{ label: string; href?: string; onClick
     }
     if (order.order_status === 'delivered') {
         actions.push({ label: 'Rate / Review', href: `/orders/${order.id}#review`, primary: true })
+        actions.push({ label: 'Request Return', href: `/account/returns?order=${order.id}` })
         actions.push({ label: 'Buy Again', href: `/products/${order.id}` })
     }
     return actions

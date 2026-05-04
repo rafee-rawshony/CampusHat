@@ -53,6 +53,15 @@ class RefundRequestView(GenericAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # 7-day return window (like Daraz)
+        from datetime import timedelta
+        delivered_at = order.delivered_at or order.updated_at
+        if delivered_at and (timezone.now() - delivered_at) > timedelta(days=7):
+            return Response(
+                {'success': False, 'message': 'Return window expired. Returns must be initiated within 7 days of delivery.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         if Refund.objects.filter(order=order).exclude(
             status__in=['rejected'],
         ).exists():
@@ -65,6 +74,7 @@ class RefundRequestView(GenericAPIView):
             order=order,
             requested_by=request.user,
             reason=serializer.validated_data['reason'],
+            evidence_urls=serializer.validated_data.get('evidence_urls', []),
             refund_amount=order.total_amount,
             commission_reversal_amount=order.platform_commission,
             seller_deduction_amount=order.seller_net_amount,

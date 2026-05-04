@@ -31,6 +31,7 @@ from .models import (
     StoreProduct,
     StoreProductImage,
     Wishlist,
+    ProductQuestion,
 )
 from .serializers import (
     AddToCartSerializer,
@@ -50,6 +51,9 @@ from .serializers import (
     StoreProductDetailSerializer,
     StoreProductListSerializer,
     UpdateCartItemSerializer,
+    ProductQuestionSerializer,
+    ProductQuestionCreateSerializer,
+    SellerAnswerQuestionSerializer,
 )
 
 
@@ -1206,3 +1210,80 @@ class WishlistToggleView(APIView):
             'message': 'Added to wishlist.',
             'data': {'is_wishlisted': True},
         }, status=status.HTTP_201_CREATED)
+
+
+# =============================================================================
+# PRODUCT Q&A VIEWS
+# =============================================================================
+
+class ProductQuestionListView(APIView):
+    """GET: List questions for a product. POST: Ask a question."""
+    permission_classes = [AllowAny]
+
+    def get(self, request, slug):
+        product = StoreProduct.objects.filter(
+            slug=slug, is_active=True, deleted_at__isnull=True,
+        ).first()
+        if not product:
+            return Response({'success': False, 'message': 'Product not found.'}, status=404)
+
+        questions = ProductQuestion.objects.filter(
+            product=product, is_visible=True, deleted_at__isnull=True,
+        ).select_related('asker', 'answered_by')
+
+        serializer = ProductQuestionSerializer(questions, many=True)
+        return Response({'success': True, 'data': serializer.data})
+
+    def post(self, request, slug):
+        if not request.user.is_authenticated:
+            return Response({'success': False, 'message': 'Login required.'}, status=401)
+
+        product = StoreProduct.objects.filter(
+            slug=slug, is_active=True, deleted_at__isnull=True,
+        ).first()
+        if not product:
+            return Response({'success': False, 'message': 'Product not found.'}, status=404)
+
+        serializer = ProductQuestionCreateSerializer(
+            data=request.data,
+            context={'request': request, 'product': product},
+        )
+        serializer.is_valid(raise_exception=True)
+        question = serializer.save()
+        return Response({
+            'success': True,
+            'message': 'Question submitted successfully.',
+            'data': ProductQuestionSerializer(question).data,
+        }, status=201)
+
+
+class SellerAnswerQuestionView(APIView):
+    """PATCH: Seller answers a question on their product."""
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, slug, question_id):
+        question = ProductQuestion.objects.filter(
+            id=question_id,
+            product__slug=slug,
+            deleted_at__isnull=True,
+        ).select_related('product__store__owner').first()
+
+        if not question:
+            return Response({'success': False, 'message': 'Question not found.'}, status=404)
+
+        # Only store owner can answer
+        if question.product.store.owner != request.user:
+            return Response({'success': False, 'message': 'Only the store owner can answer.'}, status=403)
+
+        serializer = SellerAnswerQuestionSerializer(
+            question, data=request.data,
+            context={'request': request},
+        )
+        serializer.is_valid(raise_exception=True)
+        updated_question = serializer.save()
+        return Response({
+            'success': True,
+            'message': 'Answer saved.',
+            'data': ProductQuestionSerializer(updated_question).data,
+        })
+

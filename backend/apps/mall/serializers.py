@@ -570,3 +570,67 @@ class UpdateCartItemSerializer(serializers.Serializer):
                         f'Only {item.product.stock_quantity} in stock.'
                     )
         return value
+
+
+# =============================================================================
+# PRODUCT Q&A SERIALIZERS
+# =============================================================================
+
+from .models import ProductQuestion
+
+
+class ProductQuestionSerializer(serializers.ModelSerializer):
+    """Read-only Q&A list serializer."""
+
+    asker_name = serializers.CharField(
+        source='asker.full_name', read_only=True,
+    )
+    answerer_name = serializers.CharField(
+        source='answered_by.full_name', read_only=True, default=None,
+    )
+
+    class Meta:
+        model = ProductQuestion
+        fields = [
+            'id', 'asker', 'asker_name', 'question', 'answer',
+            'answered_by', 'answerer_name', 'answered_at',
+            'vote_count', 'created_at',
+        ]
+        read_only_fields = fields
+
+
+class ProductQuestionCreateSerializer(serializers.Serializer):
+    """Create a question on a product."""
+
+    question = serializers.CharField(max_length=500)
+
+    def validate_question(self, value):
+        return sanitize_html(value)
+
+    def create(self, validated_data):
+        request = self.context['request']
+        product = self.context['product']
+
+        return ProductQuestion.objects.create(
+            product=product,
+            asker=request.user,
+            question=validated_data['question'],
+        )
+
+
+class SellerAnswerQuestionSerializer(serializers.Serializer):
+    """Seller answers a question."""
+
+    answer = serializers.CharField()
+
+    def validate_answer(self, value):
+        return sanitize_html(value)
+
+    def update(self, instance, validated_data):
+        from django.utils import timezone
+        instance.answer = validated_data['answer']
+        instance.answered_by = self.context['request'].user
+        instance.answered_at = timezone.now()
+        instance.save(update_fields=['answer', 'answered_by', 'answered_at'])
+        return instance
+

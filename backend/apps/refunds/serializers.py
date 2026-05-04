@@ -40,6 +40,9 @@ class RefundDetailSerializer(serializers.ModelSerializer):
 class RefundRequestSerializer(serializers.Serializer):
     order_id = serializers.UUIDField()
     reason = serializers.CharField()
+    evidence_urls = serializers.ListField(
+        child=serializers.URLField(), required=False, max_length=5,
+    )
 
 
 class AdminRefundActionSerializer(serializers.Serializer):

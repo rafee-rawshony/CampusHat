@@ -36,6 +36,7 @@ import { StickyCartBar } from '@/components/mall/StickyCartBar'
 import { ProductReviewsTab } from '@/components/mall/ProductReviewsTab'
 import { ProductStoreInfoTab } from '@/components/mall/ProductStoreInfoTab'
 import { ProductShippingTab } from '@/components/mall/ProductShippingTab'
+import { ProductQATab } from '@/components/mall/ProductQATab'
 import { RelatedProducts } from '@/components/mall/RelatedProducts'
 
 export default function ProductDetailPage() {
@@ -476,6 +477,12 @@ export default function ProductDetailPage() {
                                 >
                                     Shipping
                                 </TabsTrigger>
+                                <TabsTrigger
+                                    value="qa"
+                                    className="snap-start shrink-0 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[#4C3B8A] data-[state=active]:shadow-none rounded-none text-sm sm:text-base font-bold text-gray-500 data-[state=active]:text-[#4C3B8A] px-4 sm:px-8 pb-4 transition-all"
+                                >
+                                    Q&A
+                                </TabsTrigger>
                             </TabsList>
 
                             {/* TAB: DESCRIPTION */}
@@ -520,6 +527,13 @@ export default function ProductDetailPage() {
                             {/* TAB: SHIPPING */}
                             <TabsContent value="shipping" className="focus:outline-none animate-in fade-in duration-500">
                                 <ProductShippingTab />
+                            </TabsContent>
+
+                            {/* TAB: Q&A */}
+                            <TabsContent value="qa" className="focus:outline-none animate-in fade-in duration-500">
+                                <div className="max-w-5xl">
+                                    <ProductQATab productSlug={product.slug} />
+                                </div>
                             </TabsContent>
 
                         </Tabs>

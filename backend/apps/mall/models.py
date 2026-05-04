@@ -536,3 +536,48 @@ class Wishlist(UUIDMixin, TimestampMixin):
 
     def __str__(self):
         return f'{self.user.email} - {self.product.name}'
+
+
+# =============================================================================
+# MODEL 9: PRODUCT QUESTION
+# =============================================================================
+
+class ProductQuestion(BaseModel):
+    """
+    Buyer Q&A on products.
+
+    Buyers can ask questions about a product. The seller (store owner)
+    can respond with an answer. Questions are publicly visible.
+    """
+
+    product = models.ForeignKey(
+        StoreProduct,
+        on_delete=models.CASCADE,
+        related_name='questions',
+        db_index=True,
+    )
+    asker = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='product_questions_asked',
+    )
+    question = models.TextField(max_length=500)
+    answer = models.TextField(blank=True, null=True)
+    answered_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='product_questions_answered',
+    )
+    answered_at = models.DateTimeField(blank=True, null=True)
+    is_visible = models.BooleanField(default=True)
+    vote_count = models.IntegerField(default=0)
+
+    class Meta(BaseModel.Meta):
+        db_table = 'mall_product_questions'
+        ordering = ['-vote_count', '-created_at']
+
+    def __str__(self):
+        return f'Q: {self.question[:50]} ({self.product.name})'
+

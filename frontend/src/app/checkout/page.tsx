@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { CreditCard, Wallet, Truck, Tag, Info } from 'lucide-react'
+import { CreditCard, Wallet, Truck, Tag, Info, MapPin, Plus, Check } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 
 // Actually, using the standard import map:
@@ -14,6 +14,7 @@ import * as z from 'zod'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth.store'
 import { useCartStore } from '@/stores/cart.store'
+import { listAddresses, type UserAddress } from '@/services/address.service'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -57,8 +58,13 @@ export default function CheckoutPage() {
     const [deliveryFee] = useState(60) // Static 60 BDT for now
     const [walletBalance, setWalletBalance] = useState(0)
 
+    // Saved address picker state
+    const [savedAddresses, setSavedAddresses] = useState<UserAddress[]>([])
+    const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
+    const [showNewAddressForm, setShowNewAddressForm] = useState(false)
+
     // Form Hooks
-    const { register, handleSubmit, formState: { errors } } = useRHForm<AddressFormValues>({
+    const { register, handleSubmit, formState: { errors }, setValue, reset } = useRHForm<AddressFormValues>({
         resolver: zodResolver(addressSchema),
         defaultValues: {
             full_name: user?.full_name || '',
@@ -68,7 +74,7 @@ export default function CheckoutPage() {
 
     const [paymentMethod, setPaymentMethod] = useState<string>('cash') // Default to avoid instant wallet block if low funds
 
-    // Guard Checks
+    // Guard Checks + fetch saved addresses
     useEffect(() => {
         if (!isAuthenticated) {
             router.replace('/auth/login?redirect=/checkout')
@@ -89,7 +95,41 @@ export default function CheckoutPage() {
             }
         }
         fetchWallet()
-    }, [isAuthenticated, items.length, router])
+
+        // Fetch saved addresses
+        const fetchAddresses = async () => {
+            try {
+                const addrs = await listAddresses()
+                setSavedAddresses(addrs)
+                // Auto-select default or first address
+                const defaultAddr = addrs.find(a => a.is_default) || addrs[0]
+                if (defaultAddr) {
+                    setSelectedAddressId(defaultAddr.id)
+                    // Pre-fill form with saved address
+                    setValue('full_name', defaultAddr.recipient_name || user?.full_name || '')
+                    setValue('phone', defaultAddr.recipient_phone || '')
+                    setValue('campus_building', defaultAddr.campus_building || defaultAddr.address_line1 || '')
+                    setValue('room_number', defaultAddr.room_number || '')
+                    setValue('notes', defaultAddr.additional_notes || '')
+                } else {
+                    setShowNewAddressForm(true)
+                }
+            } catch {
+                setShowNewAddressForm(true)
+            }
+        }
+        fetchAddresses()
+    }, [isAuthenticated, items.length, router, setValue, user?.full_name])
+
+    const selectSavedAddress = (addr: UserAddress) => {
+        setSelectedAddressId(addr.id)
+        setShowNewAddressForm(false)
+        setValue('full_name', addr.recipient_name || user?.full_name || '')
+        setValue('phone', addr.recipient_phone || '')
+        setValue('campus_building', addr.campus_building || addr.address_line1 || '')
+        setValue('room_number', addr.room_number || '')
+        setValue('notes', addr.additional_notes || '')
+    }
 
     const subtotal = getCartTotal()
     const finalTotal = subtotal + deliveryFee - discount
@@ -123,8 +163,8 @@ export default function CheckoutPage() {
 
             const res = await api.post('/orders/checkout/', payload)
             clearCart()
-            const orderId = res.data?.order_id || res.data?.id
-            router.push(orderId ? `/orders/${orderId}?success=1` : '/orders?success=1')
+            const orderId = res.data?.data?.id || res.data?.order_id || res.data?.id
+            router.push(orderId ? `/orders/${orderId}/success` : '/account/orders')
             toast.success('Order placed successfully!')
         } catch (error: any) {
             const msg = error?.response?.data?.detail || error?.response?.data?.message || 'Failed to place order. Please try again.'
@@ -156,6 +196,65 @@ export default function CheckoutPage() {
                                     Delivery Details
                                 </h2>
 
+                                {/* Saved Address Cards */}
+                                {savedAddresses.length > 0 && (
+                                    <div className="mb-6">
+                                        <p className="text-sm font-semibold text-gray-700 mb-3">Saved Addresses</p>
+                                        <div className="grid sm:grid-cols-2 gap-3">
+                                            {savedAddresses.map((addr) => (
+                                                <button
+                                                    key={addr.id}
+                                                    type="button"
+                                                    onClick={() => selectSavedAddress(addr)}
+                                                    className={cn(
+                                                        'relative text-left p-4 rounded-xl border-2 transition-all',
+                                                        selectedAddressId === addr.id && !showNewAddressForm
+                                                            ? 'border-[#4C3B8A] bg-[#4C3B8A]/5'
+                                                            : 'border-gray-200 hover:border-[#4C3B8A]/40 bg-white'
+                                                    )}
+                                                >
+                                                    {selectedAddressId === addr.id && !showNewAddressForm && (
+                                                        <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#4C3B8A] flex items-center justify-center">
+                                                            <Check className="w-3 h-3 text-white" />
+                                                        </div>
+                                                    )}
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <MapPin className="w-3.5 h-3.5 text-[#4C3B8A]" />
+                                                        <span className="text-xs font-bold text-[#4C3B8A] uppercase">{addr.label}</span>
+                                                        {addr.is_default && (
+                                                            <span className="text-[10px] bg-[#4C3B8A]/10 text-[#4C3B8A] font-bold px-1.5 py-0.5 rounded">Default</span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-sm font-semibold text-gray-900 truncate">{addr.recipient_name || addr.address_line1}</p>
+                                                    <p className="text-xs text-gray-500 truncate">
+                                                        {[addr.campus_building, addr.room_number ? `Room ${addr.room_number}` : '', addr.city].filter(Boolean).join(', ')}
+                                                    </p>
+                                                </button>
+                                            ))}
+                                            {/* Add New Address Card */}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setShowNewAddressForm(true)
+                                                    setSelectedAddressId(null)
+                                                    reset({ full_name: user?.full_name || '', phone: '', campus_building: '', room_number: '', notes: '' })
+                                                }}
+                                                className={cn(
+                                                    'flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed transition-all min-h-[100px]',
+                                                    showNewAddressForm
+                                                        ? 'border-[#4C3B8A] bg-[#4C3B8A]/5'
+                                                        : 'border-gray-300 hover:border-[#4C3B8A]/40 text-gray-400 hover:text-[#4C3B8A]'
+                                                )}
+                                            >
+                                                <Plus className="w-5 h-5" />
+                                                <span className="text-xs font-bold">New Address</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Address Form (shown if no saved addresses or "New Address" selected) */}
+                                {(showNewAddressForm || savedAddresses.length === 0) && (
                                 <div className="space-y-5">
                                     <div className="grid sm:grid-cols-2 gap-5">
                                         <div className="space-y-2">
@@ -188,6 +287,7 @@ export default function CheckoutPage() {
                                         <Textarea {...register('notes')} placeholder="Call upon arrival..." className="bg-gray-50 resize-none" rows={3} />
                                     </div>
                                 </div>
+                                )}
                             </div>
 
                             {/* STEP 2: Payment */}

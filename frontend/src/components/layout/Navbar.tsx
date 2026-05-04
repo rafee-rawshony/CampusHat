@@ -26,7 +26,9 @@ import { UpgradePrompt } from '@/components/marketplace/UpgradePrompt'
 import { CartDrawer } from '@/components/mall/CartDrawer'
 import { MobileDrawer } from '@/components/layout/MobileDrawer'
 import { MobileSearchOverlay } from '@/components/layout/MobileSearchOverlay'
-import { Input } from '@/components/ui/input'
+import { SearchAutocomplete } from '@/components/layout/SearchAutocomplete'
+import { NotificationBell } from '@/components/layout/NotificationBell'
+
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -63,17 +65,6 @@ export function Navbar() {
 
     // Verification Modal State
     const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false)
-
-    const handleSearch = (e: React.KeyboardEvent<HTMLInputElement> | React.MouseEvent<HTMLButtonElement>) => {
-        if ('key' in e && e.key !== 'Enter') return
-        if (!searchQuery.trim()) return
-
-        if (isMarketplace) {
-            router.push(`/marketplace/explorer?q=${encodeURIComponent(searchQuery.trim())}`)
-        } else {
-            router.push(`/shop?q=${encodeURIComponent(searchQuery.trim())}`)
-        }
-    }
 
     const handlePostAdClick = (e: React.MouseEvent) => {
         e.preventDefault()
@@ -134,25 +125,29 @@ export function Navbar() {
                         </div>
                     </div>
 
-                    {/* Center: Search */}
-                    <div className="order-last md:order-none w-full md:flex-1 md:mx-6">
-                        <div className="relative">
-                            <input
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                onKeyDown={handleSearch}
-                                placeholder="Search for products, categories or brands..."
-                                className="w-full border border-gray-300 rounded-md py-2.5 pl-4 pr-12 focus:ring-[#4C3B8A] focus:border-[#4C3B8A] outline-none text-sm"
-                            />
-                            <button onClick={handleSearch} className="absolute inset-y-0 right-0 flex items-center pr-3">
-                                <Search className="w-5 h-5 text-gray-400" />
-                            </button>
-                        </div>
-                        {/* Mobile search icon only */}
-                        <Button variant="ghost" size="icon" className="md:hidden absolute right-16 top-4" onClick={() => setIsSearchOpen(true)}>
-                            <Search className="h-5 w-5" />
-                        </Button>
+                    {/* Center: Search (Desktop) */}
+                    <div className="order-last md:order-none w-full md:flex-1 md:mx-6 hidden md:block">
+                        {isMarketplace ? (
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && searchQuery.trim()) {
+                                            router.push(`/marketplace/explorer?q=${encodeURIComponent(searchQuery.trim())}`)
+                                        }
+                                    }}
+                                    placeholder="Search marketplace listings..."
+                                    className="w-full border border-gray-300 rounded-md py-2.5 pl-4 pr-12 focus:ring-[#4C3B8A] focus:border-[#4C3B8A] outline-none text-sm"
+                                />
+                                <button className="absolute inset-y-0 right-0 flex items-center pr-3">
+                                    <Search className="w-5 h-5 text-gray-400" />
+                                </button>
+                            </div>
+                        ) : (
+                            <SearchAutocomplete />
+                        )}
                     </div>
 
                     {/* Right: Auth + Actions */}
@@ -294,6 +289,9 @@ export function Navbar() {
                                 </Link>
                             </div>
                         )}
+
+                        {/* Notification Bell */}
+                        {isAuthenticated && <NotificationBell />}
 
                         {/* Mall mode: Heart + Cart — circle ghost buttons matching sign-in */}
                         {!isMarketplace ? (
