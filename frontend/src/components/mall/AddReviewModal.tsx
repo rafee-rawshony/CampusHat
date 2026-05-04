@@ -94,7 +94,7 @@ export function AddReviewModal({ isOpen, onOpenChange, productId, productName, p
             await api.post(`/mall/products/${productId}/reviews/`, {
                 rating,
                 comment,
-                images: imageUrls
+                evidence_urls: imageUrls
             })
             
             toast.success("Review submitted successfully!")

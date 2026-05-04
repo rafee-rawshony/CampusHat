@@ -176,9 +176,9 @@ export function ProductReviewsTab({ productId, productSlug, productName }: Produ
                                 </p>
 
                                 {/* Attachments */}
-                                {review.images && review.images.length > 0 && (
+                                {review.evidence_urls && review.evidence_urls.length > 0 && (
                                     <div className="flex flex-wrap gap-2 mt-4">
-                                        {review.images.map((imgUrl: string, idx: number) => (
+                                        {review.evidence_urls.map((imgUrl: string, idx: number) => (
                                             <a 
                                                 key={idx} 
                                                 href={imgUrl} 

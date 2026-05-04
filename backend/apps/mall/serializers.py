@@ -376,7 +376,7 @@ class ProductReviewSerializer(serializers.ModelSerializer):
         model = ProductReview
         fields = [
             'id', 'reviewer', 'reviewer_name', 'rating', 'comment',
-            'seller_response', 'seller_responded_at',
+            'evidence_urls', 'seller_response', 'seller_responded_at',
             'is_visible', 'created_at',
         ]
         read_only_fields = fields
@@ -387,6 +387,9 @@ class ProductReviewCreateSerializer(serializers.Serializer):
 
     rating = serializers.IntegerField(min_value=1, max_value=5)
     comment = serializers.CharField(required=False, allow_blank=True)
+    evidence_urls = serializers.ListField(
+        child=serializers.URLField(), required=False, max_length=5,
+    )
     order_item_id = serializers.UUIDField(required=False)
 
     def validate_comment(self, value):
@@ -401,6 +404,7 @@ class ProductReviewCreateSerializer(serializers.Serializer):
             reviewer=request.user,
             rating=validated_data['rating'],
             comment=validated_data.get('comment', ''),
+            evidence_urls=validated_data.get('evidence_urls', []),
             order_item_id=validated_data.get('order_item_id'),
         )
         return review

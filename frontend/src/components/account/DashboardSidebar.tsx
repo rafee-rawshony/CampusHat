@@ -25,6 +25,8 @@ import {
     LogOut,
     ShoppingCart,
     ChevronRight,
+    Ticket,
+    MessageSquare,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { getInitials } from '@/lib/utils'
@@ -46,6 +48,8 @@ const SECTIONS: Section[] = [
             { label: 'My Profile', href: '/account', icon: UserIcon },
             { label: 'Address Book', href: '/account/addresses', icon: MapPin },
             { label: 'My Payment Options', href: '/account/payments', icon: CreditCard },
+            { label: 'My Vouchers', href: '/account/vouchers', icon: Ticket },
+            { label: 'Messages', href: '/account/messages', icon: MessageSquare },
         ],
     },
     {

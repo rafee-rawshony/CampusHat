@@ -37,6 +37,15 @@ from .views import (
     SellerAnswerQuestionView,
 )
 
+from .chat_views import (
+    BuyerChatListView,
+    SellerChatListView,
+    StartStoreChatView,
+    StoreChatMessagesView,
+    SendStoreMessageView,
+    MarkStoreMessagesReadView
+)
+
 app_name = 'mall'
 
 # Routers for ViewSets
@@ -120,4 +129,18 @@ seller_product_urlpatterns = [
 seller_review_urlpatterns = [
     path('', SellerReviewsListView.as_view(), name='seller-reviews'),
     path('<uuid:review_id>/reply/', SellerReplyToReviewView.as_view(), name='seller-reply'),
+]
+
+# Mall chat URLs (mounted under /api/v1/mall/chats/)
+chat_urlpatterns = [
+    path('buyer/', BuyerChatListView.as_view(), name='buyer-chats'),
+    path('start/', StartStoreChatView.as_view(), name='chat-start'),
+    path('<uuid:pk>/messages/', StoreChatMessagesView.as_view(), name='chat-messages'),
+    path('<uuid:pk>/send/', SendStoreMessageView.as_view(), name='chat-send'),
+    path('<uuid:pk>/mark-read/', MarkStoreMessagesReadView.as_view(), name='chat-mark-read'),
+]
+
+# Seller chat URLs (mounted under /api/v1/seller/chats/)
+seller_chat_urlpatterns = [
+    path('', SellerChatListView.as_view(), name='seller-chats'),
 ]

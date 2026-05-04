@@ -387,6 +387,10 @@ class ProductReview(BaseModel):
         validators=[MinValueValidator(1), MaxValueValidator(5)],
     )
     comment = models.TextField(blank=True, null=True)
+    evidence_urls = models.JSONField(
+        default=list, blank=True,
+        help_text='List of image URLs provided by the buyer for this review.',
+    )
     seller_response = models.TextField(blank=True, null=True)
     seller_responded_at = models.DateTimeField(blank=True, null=True)
     is_visible = models.BooleanField(default=True)
@@ -580,4 +584,73 @@ class ProductQuestion(BaseModel):
 
     def __str__(self):
         return f'Q: {self.question[:50]} ({self.product.name})'
+
+
+# =============================================================================
+# CHAT
+# =============================================================================
+
+class StoreChat(BaseModel):
+    """
+    Chat between a buyer and a mall store.
+    """
+
+    buyer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='mall_buyer_chats',
+    )
+    store = models.ForeignKey(
+        'sellers.Store',
+        on_delete=models.CASCADE,
+        related_name='chats',
+    )
+    is_blocked = models.BooleanField(default=False)
+    last_message_at = models.DateTimeField(null=True, blank=True, db_index=True)
+
+    class Meta(BaseModel.Meta):
+        db_table = 'mall_store_chats'
+        unique_together = ('buyer', 'store')
+
+    def __str__(self):
+        return f'Chat: {self.buyer} ↔ {self.store.store_name}'
+
+
+class StoreMessage(UUIDMixin, TimestampMixin):
+    """Messages inside a StoreChat."""
+
+    MESSAGE_TYPE_CHOICES = [
+        ('text', 'Text'),
+        ('image', 'Image'),
+        ('product_ref', 'Product Reference'),
+    ]
+
+    chat = models.ForeignKey(
+        StoreChat,
+        on_delete=models.CASCADE,
+        related_name='messages',
+        db_index=True,
+    )
+    sender = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='mall_store_messages',
+    )
+    message_type = models.CharField(
+        max_length=15,
+        choices=MESSAGE_TYPE_CHOICES,
+        default='text',
+    )
+    content = models.TextField()
+    is_read = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = 'mall_store_messages'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['chat', 'created_at']),
+        ]
+
+    def __str__(self):
+        return f'Msg by {self.sender} in mall chat {self.chat_id}'
 
