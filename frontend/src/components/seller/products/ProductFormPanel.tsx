@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -9,7 +9,7 @@ import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { X, Loader2 } from 'lucide-react'
+import { X, Loader2, ChevronDown, Pencil, Trash2, Plus, Package } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { ImageUpload } from '@/components/common/ImageUpload'
 
@@ -31,11 +31,294 @@ const productSchema = z.object({
 
 type ProductFormValues = z.infer<typeof productSchema>
 
+// Variant shape from the backend
+interface ProductVariant {
+    id: string
+    name: string
+    sku: string | null
+    price_override: string | null
+    stock_quantity: number
+    attributes: Record<string, string>
+}
+
 interface ProductFormPanelProps {
     editProduct: any | null
     onClose: () => void
 }
 
+// ─── Variants Section (only shown in edit mode) ────────────────────
+function VariantsSection({ productSlug }: { productSlug: string }) {
+    const queryClient = useQueryClient()
+    const [isOpen, setIsOpen] = useState(true)
+    const [addingVariant, setAddingVariant] = useState(false)
+    const [editingId, setEditingId] = useState<string | null>(null)
+
+    // Inline form state
+    const [formName, setFormName] = useState('')
+    const [formSku, setFormSku] = useState('')
+    const [formPrice, setFormPrice] = useState('')
+    const [formStock, setFormStock] = useState('0')
+
+    const { data: variants = [], isLoading } = useQuery<ProductVariant[]>({
+        queryKey: ['product-variants', productSlug],
+        queryFn: () =>
+            api.get(`/mall/products/${productSlug}/variants/`)
+                .then(r => r.data?.data || r.data || []),
+        enabled: !!productSlug,
+    })
+
+    const resetForm = () => {
+        setFormName('')
+        setFormSku('')
+        setFormPrice('')
+        setFormStock('0')
+    }
+
+    const createMutation = useMutation({
+        mutationFn: (payload: any) =>
+            api.post(`/mall/products/${productSlug}/variants/`, payload),
+        onSuccess: () => {
+            toast.success('Variant added!')
+            queryClient.invalidateQueries({ queryKey: ['product-variants', productSlug] })
+            setAddingVariant(false)
+            resetForm()
+        },
+        onError: (err: any) => {
+            toast.error(err?.response?.data?.message || 'Failed to add variant')
+        },
+    })
+
+    const updateMutation = useMutation({
+        mutationFn: ({ vid, payload }: { vid: string; payload: any }) =>
+            api.patch(`/mall/products/${productSlug}/variants/${vid}/`, payload),
+        onSuccess: () => {
+            toast.success('Variant updated!')
+            queryClient.invalidateQueries({ queryKey: ['product-variants', productSlug] })
+            setEditingId(null)
+            resetForm()
+        },
+        onError: (err: any) => {
+            toast.error(err?.response?.data?.message || 'Failed to update variant')
+        },
+    })
+
+    const deleteMutation = useMutation({
+        mutationFn: (vid: string) =>
+            api.delete(`/mall/products/${productSlug}/variants/${vid}/`),
+        onSuccess: () => {
+            toast.success('Variant deleted')
+            queryClient.invalidateQueries({ queryKey: ['product-variants', productSlug] })
+        },
+        onError: (err: any) => {
+            toast.error(err?.response?.data?.message || 'Failed to delete variant')
+        },
+    })
+
+    const handleSaveNew = () => {
+        if (!formName.trim()) { toast.error('Variant name is required'); return }
+        createMutation.mutate({
+            name: formName.trim(),
+            sku: formSku.trim() || null,
+            price_override: formPrice ? parseFloat(formPrice) : null,
+            stock_quantity: parseInt(formStock) || 0,
+        })
+    }
+
+    const handleSaveEdit = (vid: string) => {
+        if (!formName.trim()) { toast.error('Variant name is required'); return }
+        updateMutation.mutate({
+            vid,
+            payload: {
+                name: formName.trim(),
+                sku: formSku.trim() || null,
+                price_override: formPrice ? parseFloat(formPrice) : null,
+                stock_quantity: parseInt(formStock) || 0,
+            },
+        })
+    }
+
+    const startEdit = (v: ProductVariant) => {
+        setEditingId(v.id)
+        setAddingVariant(false)
+        setFormName(v.name)
+        setFormSku(v.sku || '')
+        setFormPrice(v.price_override || '')
+        setFormStock(String(v.stock_quantity))
+    }
+
+    const handleDelete = (vid: string) => {
+        if (!confirm('Delete this variant?')) return
+        deleteMutation.mutate(vid)
+    }
+
+    const cancelForm = () => {
+        setAddingVariant(false)
+        setEditingId(null)
+        resetForm()
+    }
+
+    const totalStock = variants.reduce((sum, v) => sum + v.stock_quantity, 0)
+    const isMutating = createMutation.isPending || updateMutation.isPending
+
+    // Inline form row (shared between add & edit)
+    const renderFormRow = (vid?: string) => (
+        <div className="bg-gray-50 border border-dashed border-gray-300 rounded-lg p-3 space-y-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <input
+                    value={formName}
+                    onChange={e => setFormName(e.target.value)}
+                    placeholder="e.g. Red / XL"
+                    className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:border-[#4C3B8A] bg-white"
+                />
+                <input
+                    value={formSku}
+                    onChange={e => setFormSku(e.target.value)}
+                    placeholder="SKU (optional)"
+                    className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:border-[#4C3B8A] bg-white"
+                />
+                <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formPrice}
+                    onChange={e => setFormPrice(e.target.value)}
+                    placeholder="Same as product price"
+                    className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:border-[#4C3B8A] bg-white"
+                />
+                <input
+                    type="number"
+                    min="0"
+                    value={formStock}
+                    onChange={e => setFormStock(e.target.value)}
+                    placeholder="Stock"
+                    className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:border-[#4C3B8A] bg-white"
+                />
+            </div>
+            <div className="flex gap-2 justify-end">
+                <Button type="button" variant="outline" size="sm" onClick={cancelForm} className="text-xs border-gray-200">
+                    Cancel
+                </Button>
+                <Button
+                    type="button"
+                    size="sm"
+                    disabled={isMutating}
+                    onClick={() => vid ? handleSaveEdit(vid) : handleSaveNew()}
+                    className="bg-[#059669] hover:bg-[#047857] text-white text-xs gap-1"
+                >
+                    {isMutating && <Loader2 className="w-3 h-3 animate-spin" />}
+                    {vid ? 'Save' : 'Add Variant'}
+                </Button>
+            </div>
+        </div>
+    )
+
+    return (
+        <div className="border border-gray-200 rounded-lg overflow-hidden">
+            {/* Collapsible header */}
+            <button
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors"
+            >
+                <div className="flex items-center gap-2">
+                    <Package className="w-4 h-4 text-[#4C3B8A]" />
+                    <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                        Variants
+                    </span>
+                    {variants.length > 0 && (
+                        <span className="text-[10px] bg-[#4C3B8A] text-white rounded-full px-1.5 py-0.5 font-bold">
+                            {variants.length}
+                        </span>
+                    )}
+                </div>
+                <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {isOpen && (
+                <div className="p-4 space-y-3">
+                    {isLoading ? (
+                        <div className="flex justify-center py-6">
+                            <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                        </div>
+                    ) : variants.length === 0 && !addingVariant ? (
+                        <p className="text-sm text-gray-400 text-center py-4">
+                            No variants yet. Add size/color options above.
+                        </p>
+                    ) : (
+                        <div className="space-y-2">
+                            {variants.map(v => (
+                                editingId === v.id ? (
+                                    <div key={v.id}>{renderFormRow(v.id)}</div>
+                                ) : (
+                                    <div
+                                        key={v.id}
+                                        className="flex items-center justify-between bg-white border border-gray-100 rounded-lg px-3 py-2.5 hover:border-gray-200 transition-colors"
+                                    >
+                                        <div className="flex items-center gap-4 text-sm flex-1 min-w-0">
+                                            <span className="font-semibold text-gray-900 truncate">{v.name}</span>
+                                            {v.sku && (
+                                                <span className="text-[11px] font-mono text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">
+                                                    {v.sku}
+                                                </span>
+                                            )}
+                                            <span className={`text-xs font-bold ${v.price_override ? 'text-[#4C3B8A]' : 'text-gray-400'}`}>
+                                                {v.price_override ? `৳${Number(v.price_override).toLocaleString()}` : '—'}
+                                            </span>
+                                            <span className="text-xs text-gray-500">
+                                                {v.stock_quantity} in stock
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-1 shrink-0">
+                                            <button
+                                                type="button"
+                                                onClick={() => startEdit(v)}
+                                                className="p-1.5 text-gray-400 hover:text-[#4C3B8A] rounded hover:bg-gray-50 transition-colors"
+                                                title="Edit variant"
+                                            >
+                                                <Pencil className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDelete(v.id)}
+                                                className="p-1.5 text-gray-400 hover:text-red-500 rounded hover:bg-red-50 transition-colors"
+                                                title="Delete variant"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                )
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Add variant form */}
+                    {addingVariant && !editingId && renderFormRow()}
+
+                    {/* Add variant button */}
+                    {!addingVariant && !editingId && (
+                        <button
+                            type="button"
+                            onClick={() => { setAddingVariant(true); resetForm() }}
+                            className="flex items-center gap-1.5 text-xs font-bold text-[#4C3B8A] hover:text-[#2D1B69] transition-colors py-1"
+                        >
+                            <Plus className="w-3.5 h-3.5" /> Add Variant
+                        </button>
+                    )}
+
+                    {/* Total stock counter */}
+                    {variants.length > 0 && (
+                        <p className="text-xs text-gray-500 border-t border-gray-100 pt-2">
+                            Total stock across variants: <span className="font-bold text-gray-700">{totalStock} units</span>
+                        </p>
+                    )}
+                </div>
+            )}
+        </div>
+    )
+}
+
+// ─── Main Form Panel ───────────────────────────────────────────────
 export function ProductFormPanel({ editProduct, onClose }: ProductFormPanelProps) {
     const queryClient = useQueryClient()
 
@@ -264,6 +547,17 @@ export function ProductFormPanel({ editProduct, onClose }: ProductFormPanelProps
                         </div>
                     </div>
                 </div>
+
+                {/* ─── Variants Section ─── */}
+                {editProduct ? (
+                    <VariantsSection productSlug={editProduct.slug} />
+                ) : (
+                    <div className="bg-blue-50 border border-blue-100 rounded-lg px-4 py-3">
+                        <p className="text-xs text-blue-700">
+                            <strong>💡 Variants:</strong> Save the product first, then add size/color variants.
+                        </p>
+                    </div>
+                )}
 
                 {/* Row 5: Product Images — first one is the main, rest are gallery. */}
                 <div className="space-y-2">

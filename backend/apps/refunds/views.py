@@ -170,6 +170,8 @@ class SellerRefundListView(GenericAPIView):
                 'seller_deduction_amount': str(r.seller_deduction_amount),
                 'status': r.status,
                 'rejection_reason': r.rejection_reason,
+                'seller_response': r.seller_response,
+                'seller_response_note': r.seller_response_note,
                 'approved_at': r.approved_at,
                 'processed_at': r.processed_at,
                 'created_at': r.created_at,
@@ -178,6 +180,113 @@ class SellerRefundListView(GenericAPIView):
             'success': True,
             'message': 'Data retrieved successfully.',
             'data': data,
+        })
+
+
+class SellerAcceptRefundView(APIView):
+    """POST /api/v1/seller/refunds/{refund_id}/accept/"""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, refund_id):
+        store = None
+        try:
+            store = request.user.seller_profile.store
+        except Exception:
+            pass
+        if not store:
+            return Response(
+                {'success': False, 'message': 'No store found.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            refund = Refund.objects.select_related('order').get(
+                id=refund_id, order__store=store,
+            )
+        except Refund.DoesNotExist:
+            return Response(
+                {'success': False, 'message': 'Refund not found.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if refund.status not in ('pending', 'under_review'):
+            return Response(
+                {'success': False, 'message': f'Cannot accept — status is {refund.status}.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if refund.seller_response:
+            return Response(
+                {'success': False, 'message': 'You have already responded to this refund.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        refund.seller_response = 'accepted'
+        refund.seller_response_note = request.data.get('note', '')
+        refund.save(update_fields=['seller_response', 'seller_response_note', 'updated_at'])
+
+        return Response({
+            'success': True,
+            'message': 'Return accepted. Admin will process the refund.',
+            'data': RefundDetailSerializer(refund).data,
+        })
+
+
+class SellerDisputeRefundView(APIView):
+    """POST /api/v1/seller/refunds/{refund_id}/dispute/"""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, refund_id):
+        store = None
+        try:
+            store = request.user.seller_profile.store
+        except Exception:
+            pass
+        if not store:
+            return Response(
+                {'success': False, 'message': 'No store found.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            refund = Refund.objects.select_related('order').get(
+                id=refund_id, order__store=store,
+            )
+        except Refund.DoesNotExist:
+            return Response(
+                {'success': False, 'message': 'Refund not found.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if refund.status not in ('pending', 'under_review'):
+            return Response(
+                {'success': False, 'message': f'Cannot dispute — status is {refund.status}.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if refund.seller_response:
+            return Response(
+                {'success': False, 'message': 'You have already responded to this refund.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        note = (request.data.get('note') or '').strip()
+        if not note or len(note) < 20:
+            return Response(
+                {'success': False, 'message': 'Dispute reason must be at least 20 characters.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        refund.seller_response = 'disputed'
+        refund.seller_response_note = note
+        refund.save(update_fields=['seller_response', 'seller_response_note', 'updated_at'])
+
+        return Response({
+            'success': True,
+            'message': 'Dispute submitted. Admin will review your response.',
+            'data': RefundDetailSerializer(refund).data,
         })
 
 

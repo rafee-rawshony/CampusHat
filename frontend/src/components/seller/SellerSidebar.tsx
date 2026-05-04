@@ -16,6 +16,8 @@ import {
     Star,
     RotateCcw,
     BarChart3,
+    Tag,
+    Zap,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth.store'
 import { useQuery } from '@tanstack/react-query'
@@ -48,6 +50,8 @@ export function SellerSidebarContent() {
         { label: 'Returns',    href: '/seller/returns',     icon: RotateCcw },
         { label: 'Reviews',    href: '/seller/reviews',     icon: Star },
         { label: 'Performance', href: '/seller/performance', icon: BarChart3 },
+        { label: 'Coupons',     href: '/seller/promotions/coupons',     icon: Tag },
+        { label: 'Flash Sales', href: '/seller/promotions/flash-sales', icon: Zap },
         { label: 'Wallet',     href: '/seller/wallet',      icon: Wallet },
         { label: 'Messages',   href: '/seller/messages',    icon: MessageCircle },
         { label: 'Settings',   href: '/seller/settings',    icon: Settings },

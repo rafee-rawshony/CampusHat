@@ -5,6 +5,7 @@ from .views import (
     AdminProcessRefundView, AdminRefundDetailView,
     AdminRejectRefundView, BuyerRefundListView,
     RefundDetailView, RefundRequestView,
+    SellerAcceptRefundView, SellerDisputeRefundView,
     SellerRefundListView,
 )
 
@@ -19,6 +20,8 @@ urlpatterns = [
 # Seller-side refund views (mounted under /api/v1/seller/refunds/)
 seller_refund_urlpatterns = [
     path('', SellerRefundListView.as_view(), name='seller-refunds'),
+    path('<uuid:refund_id>/accept/', SellerAcceptRefundView.as_view(), name='seller-accept'),
+    path('<uuid:refund_id>/dispute/', SellerDisputeRefundView.as_view(), name='seller-dispute'),
 ]
 
 admin_refund_urlpatterns = [
