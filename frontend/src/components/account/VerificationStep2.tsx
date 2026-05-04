@@ -36,7 +36,7 @@ export function VerificationStep2({ data, onUpdate, onNext, onBack }: Verificati
     const { data: universities, isLoading, isError, refetch } = useQuery<University[]>({
         queryKey: ['verification-universities'],
         queryFn: async () => {
-            const res = await api.get('/universities/')
+            const res = await api.get('/universities/?page_size=1000')
             const items = res.data?.data?.results || res.data?.results || res.data?.data || res.data || []
             return Array.isArray(items) ? items : []
         },
