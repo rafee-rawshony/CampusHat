@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { Home, Search, ShoppingBasket, Key, Bell, UtensilsCrossed, Grid3X3, Store, Users, LayoutDashboard } from 'lucide-react'
+import { Home, Search, ShoppingBasket, Key, Bell, UtensilsCrossed, Grid3X3, Store, Users, LayoutDashboard, Clock } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth.store'
 
 const mallLinks = [
@@ -24,9 +24,10 @@ const marketplaceLinks = [
 
 export function SecondaryNav() {
     const pathname = usePathname()
-    const { isAuthenticated, isSeller } = useAuthStore()
+    const { isAuthenticated, isSeller, user } = useAuthStore()
     const isMarketplace = pathname?.startsWith('/marketplace')
     const links = isMarketplace ? marketplaceLinks : mallLinks
+    const sellerStatus = user?.seller_application_status
 
     return (
         <nav className="border-b border-gray-200 bg-white">
@@ -54,10 +55,11 @@ export function SecondaryNav() {
                         })}
                     </div>
 
-                    {/* Become a Seller / Seller Dashboard — Mall only, desktop only */}
+                    {/* Mall only — three states: Approved seller, Pending application, or No application */}
                     {!isMarketplace && isAuthenticated && (
                         <div className="hidden sm:flex items-center ml-4 shrink-0">
                             {isSeller() ? (
+                                // Approved → straight to Seller Dashboard
                                 <Link
                                     href="/seller"
                                     className="flex items-center gap-1.5 bg-[#4C3B8A] text-white font-bold py-1.5 px-4 rounded-md hover:bg-[#2D1B69] transition-colors text-xs whitespace-nowrap"
@@ -65,9 +67,19 @@ export function SecondaryNav() {
                                     <LayoutDashboard className="w-3.5 h-3.5" />
                                     Seller Dashboard
                                 </Link>
-                            ) : (
+                            ) : sellerStatus === 'pending' ? (
+                                // Application submitted, waiting for admin
                                 <Link
-                                    href="/seller/apply"
+                                    href="/seller"
+                                    className="flex items-center gap-1.5 bg-amber-100 text-amber-800 border border-amber-200 font-bold py-1.5 px-4 rounded-md hover:bg-amber-200 transition-colors text-xs whitespace-nowrap"
+                                >
+                                    <Clock className="w-3.5 h-3.5" />
+                                    Application Pending
+                                </Link>
+                            ) : (
+                                // First-time → new Daraz-style registration
+                                <Link
+                                    href="/seller/register"
                                     className="flex items-center gap-1.5 bg-[#4C3B8A] text-white font-bold py-1.5 px-4 rounded-md hover:bg-[#2D1B69] transition-colors text-xs whitespace-nowrap"
                                 >
                                     <Store className="w-3.5 h-3.5" />

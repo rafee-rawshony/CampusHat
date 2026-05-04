@@ -5,6 +5,7 @@ from .views import (
     AdminPlatformAnalyticsView,
     AdminRevenueChartView,
     SellerOverviewView,
+    SellerPerformanceView,
     SellerRevenueView,
     SellerTopProductsView,
 )
@@ -16,6 +17,7 @@ seller_analytics_urlpatterns = [
     path('overview/', SellerOverviewView.as_view(), name='seller-overview'),
     path('revenue/', SellerRevenueView.as_view(), name='seller-revenue'),
     path('products/top/', SellerTopProductsView.as_view(), name='seller-top-products'),
+    path('performance/', SellerPerformanceView.as_view(), name='seller-performance'),
 ]
 
 # Admin analytics

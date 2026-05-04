@@ -6,7 +6,7 @@ Category management, product CRUD, reviews, variants, and cart operations.
 
 from decimal import Decimal
 
-from django.db import transaction
+from django.db import models, transaction
 from django.db.models import F
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
@@ -632,6 +632,138 @@ class MyReviewDetailView(APIView):
             review.save(update_fields=['deleted_at'])
         return Response({
             'success': True, 'message': 'Review deleted.',
+        })
+
+
+class SellerReviewsListView(APIView):
+    """
+    GET /api/v1/seller/reviews/
+
+    Lists every review left on this seller's products. Used by the
+    Seller Centre "Reviews" page so they can read feedback and reply.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Find the seller's store, fast-fail if they don't have one.
+        store = None
+        try:
+            store = request.user.seller_profile.store
+        except Exception:
+            pass
+        if not store:
+            return Response({
+                'success': True, 'message': 'No store found.', 'data': [],
+            })
+
+        reviews = (
+            ProductReview.objects
+            .filter(product__store=store, deleted_at__isnull=True)
+            .select_related('product', 'reviewer')
+            .order_by('-created_at')
+        )
+
+        # Optional ?rating=1..5 filter for the Daraz star tabs.
+        rating_filter = request.query_params.get('rating')
+        if rating_filter and rating_filter.isdigit():
+            reviews = reviews.filter(rating=int(rating_filter))
+
+        # Optional ?has_reply=true|false to triage which need a response.
+        reply_filter = request.query_params.get('has_reply')
+        if reply_filter == 'true':
+            reviews = reviews.exclude(seller_response__isnull=True).exclude(seller_response='')
+        elif reply_filter == 'false':
+            reviews = reviews.filter(
+                models.Q(seller_response__isnull=True) | models.Q(seller_response=''),
+            )
+
+        data = []
+        for r in reviews:
+            product = r.product
+            image_url = (
+                product.images.filter(is_primary=True).values_list('image_url', flat=True).first()
+                or product.images.order_by('sort_order').values_list('image_url', flat=True).first()
+            )
+            reviewer = r.reviewer
+            data.append({
+                'id': str(r.id),
+                'product_id': str(product.id),
+                'product_slug': product.slug,
+                'product_name': product.name,
+                'product_image_url': image_url,
+                'reviewer_name': getattr(reviewer, 'full_name', '') or reviewer.email,
+                'reviewer_avatar': getattr(reviewer, 'profile_picture', None),
+                'rating': r.rating,
+                'comment': r.comment,
+                'seller_response': r.seller_response,
+                'seller_responded_at': r.seller_responded_at,
+                'is_visible': r.is_visible,
+                'created_at': r.created_at,
+            })
+
+        return Response({
+            'success': True,
+            'message': 'Data retrieved successfully.',
+            'data': data,
+        })
+
+
+class SellerReplyToReviewView(APIView):
+    """
+    POST /api/v1/seller/reviews/{review_id}/reply/
+
+    Sets / updates the seller_response on a review the seller owns.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, review_id):
+        try:
+            store = request.user.seller_profile.store
+        except Exception:
+            return Response(
+                {'success': False, 'message': 'No store found.', 'code': 'NO_STORE'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            review = ProductReview.objects.select_related('product__store').get(
+                id=review_id, deleted_at__isnull=True,
+            )
+        except ProductReview.DoesNotExist:
+            return Response(
+                {'success': False, 'message': 'Review not found.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Ownership check — sellers can only reply to reviews on their own products.
+        if review.product.store_id != store.id:
+            return Response(
+                {'success': False, 'message': 'You can only reply to reviews on your own products.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        reply = (request.data.get('reply') or '').strip()
+        if not reply:
+            return Response(
+                {'success': False, 'message': 'Reply text is required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from django.utils import timezone
+        review.seller_response = reply
+        review.seller_responded_at = timezone.now()
+        review.save(update_fields=['seller_response', 'seller_responded_at', 'updated_at'])
+
+        return Response({
+            'success': True,
+            'message': 'Reply posted.',
+            'data': {
+                'id': str(review.id),
+                'seller_response': review.seller_response,
+                'seller_responded_at': review.seller_responded_at,
+            },
         })
 
 

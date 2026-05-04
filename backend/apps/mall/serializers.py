@@ -191,7 +191,7 @@ class StoreProductListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'slug', 'base_price', 'discount_price',
             'current_price', 'sku', 'stock_quantity', 'is_in_stock',
-            'is_featured', 'rating_avg', 'review_count', 'sold_count',
+            'is_active', 'is_featured', 'rating_avg', 'review_count', 'sold_count',
             'primary_image_url', 'store', 'category_name', 'brand_name',
             'tags', 'has_variants', 'created_at',
         ]

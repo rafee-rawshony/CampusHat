@@ -17,6 +17,7 @@ from django.db.models import F
 
 from .models import SellerProfile, Store, SellerPayoutRequest, StoreFollower
 from .serializers import (
+    SellerOnboardingSerializer,
     SellerRegistrationSerializer, SellerProfileSerializer,
     StoreCreateSerializer, StoreUpdateSerializer, StoreDetailSerializer,
     StoreListSerializer, SellerPayoutRequestSerializer,
@@ -73,6 +74,49 @@ class SellerRegisterView(GenericAPIView):
         }, status=status.HTTP_201_CREATED)
 
 
+class SellerOnboardView(GenericAPIView):
+    """
+    POST /api/v1/sellers/onboard/
+
+    Daraz-style multi-section seller onboarding using pre-uploaded image
+    URLs (from /api/v1/uploads/). Creates SellerProfile + Store atomically
+    and syncs personal fields back to the User.
+    """
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = SellerOnboardingSerializer
+
+    def post(self, request):
+        # One pending or approved application per user.
+        if SellerProfile.objects.filter(
+            user=request.user, deleted_at__isnull=True,
+            status__in=['pending', 'approved'],
+        ).exists():
+            return Response({
+                'success': False,
+                'message': 'You already have an active seller application.',
+                'code': 'DUPLICATE',
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = self.get_serializer(
+            data=request.data, context={'request': request},
+        )
+        serializer.is_valid(raise_exception=True)
+        seller = serializer.save()
+
+        try:
+            from .tasks import notify_admin_new_seller_application
+            notify_admin_new_seller_application.delay(str(seller.id))
+        except Exception:
+            pass
+
+        return Response({
+            'success': True,
+            'message': 'Seller application submitted. Our team will review and get back to you within 24-48 hours.',
+            'data': SellerProfileSerializer(seller).data,
+        }, status=status.HTTP_201_CREATED)
+
+
 class SellerMyProfileView(GenericAPIView):
     """GET/PATCH /api/v1/sellers/my-profile/"""
 
@@ -118,12 +162,24 @@ class SellerMyProfileView(GenericAPIView):
 
 
 class SellerDashboardView(GenericAPIView):
-    """GET /api/v1/sellers/my-dashboard/"""
+    """
+    GET /api/v1/sellers/my-dashboard/
+
+    Returns Daraz-style KPI numbers for the dashboard home — product totals,
+    order counts by status, today vs lifetime revenue, low-stock count, and
+    seller / store metadata.
+    """
 
     permission_classes = [IsAuthenticated, IsApprovedSeller]
     serializer_class = SellerDashboardSerializer
 
     def get(self, request):
+        from datetime import datetime, time
+        from django.db.models import Count, Sum, Q
+        from django.utils import timezone
+        from apps.mall.models import StoreProduct
+        from apps.orders.models import Order
+
         seller = request.user.seller_profile
         store = getattr(seller, 'store', None)
         badges = store.badges.filter(is_active=True) if store else []
@@ -131,16 +187,73 @@ class SellerDashboardView(GenericAPIView):
             seller=seller, status='pending', deleted_at__isnull=True,
         ).count()
 
+        # ── Product KPIs ───────────────────────────────────────────────
+        product_qs = (
+            StoreProduct.objects.filter(store=store, deleted_at__isnull=True)
+            if store else StoreProduct.objects.none()
+        )
+        product_stats = product_qs.aggregate(
+            total=Count('id'),
+            active=Count('id', filter=Q(is_active=True)),
+            out_of_stock=Count('id', filter=Q(stock_quantity=0)),
+            low_stock=Count('id', filter=Q(stock_quantity__gt=0, stock_quantity__lte=5)),
+        )
+
+        # ── Order KPIs ─────────────────────────────────────────────────
+        # Today defined in BD time (UTC+6) for "today's orders" — use the
+        # server's current date as a reasonable approximation.
+        today = timezone.now().date()
+        today_start = timezone.make_aware(datetime.combine(today, time.min))
+
+        order_qs = (
+            Order.objects.filter(store=store, deleted_at__isnull=True)
+            if store else Order.objects.none()
+        )
+        order_stats = order_qs.aggregate(
+            total=Count('id'),
+            pending=Count('id', filter=Q(order_status__in=['placed', 'confirmed', 'packed'])),
+            shipped=Count('id', filter=Q(order_status='shipped')),
+            completed=Count('id', filter=Q(order_status='delivered')),
+            cancelled=Count('id', filter=Q(order_status='cancelled')),
+            today_count=Count('id', filter=Q(created_at__gte=today_start)),
+            today_revenue=Sum('seller_net_amount', filter=Q(created_at__gte=today_start, payment_status='paid')),
+            total_revenue=Sum('seller_net_amount', filter=Q(payment_status='paid')),
+        )
+
         data = {
+            # Seller / Store metadata
             'business_name': seller.business_name,
             'status': seller.status,
             'commission_rate': seller.commission_rate,
             'is_student_seller': seller.is_student_seller,
             'store_name': store.name if store else None,
             'store_status': store.status if store else None,
+            'store_logo_url': store.logo_url if store else None,
+
+            # Product KPIs (Daraz-style)
+            'total_products': product_stats['total'] or 0,
+            'active_products': product_stats['active'] or 0,
+            'out_of_stock_products': product_stats['out_of_stock'] or 0,
+            'low_stock_products': product_stats['low_stock'] or 0,
+
+            # Order KPIs
+            'total_orders': order_stats['total'] or 0,
+            'pending_orders': order_stats['pending'] or 0,
+            'shipped_orders': order_stats['shipped'] or 0,
+            'completed_orders': order_stats['completed'] or 0,
+            'cancelled_orders': order_stats['cancelled'] or 0,
+            'today_orders': order_stats['today_count'] or 0,
+
+            # Revenue
+            'today_revenue': float(order_stats['today_revenue'] or 0),
+            'total_revenue': float(order_stats['total_revenue'] or 0),
             'total_sales_count': store.total_sales_count if store else 0,
-            'rating_avg': store.rating_avg if store else 0,
+
+            # Reviews
+            'average_rating': float(store.rating_avg if store else 0),
             'review_count': store.review_count if store else 0,
+
+            # Misc
             'badges': SellerBadgeSerializer(badges, many=True).data,
             'pending_payouts': pending_payouts,
         }

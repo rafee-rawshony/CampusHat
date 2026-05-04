@@ -27,7 +27,9 @@ from .views import (
     ProductVariantDetailView,
     ProductVariantListCreateView,
     SellerProductListView,
+    SellerReplyToReviewView,
     SellerReviewResponseView,
+    SellerReviewsListView,
     StoreProductViewSet,
     WishlistToggleView,
     WishlistView,
@@ -102,4 +104,10 @@ wishlist_urlpatterns = [
 # Seller product URLs (mounted under /api/v1/seller/products/)
 seller_product_urlpatterns = [
     path('', SellerProductListView.as_view(), name='seller-products'),
+]
+
+# Seller review URLs (mounted under /api/v1/seller/reviews/)
+seller_review_urlpatterns = [
+    path('', SellerReviewsListView.as_view(), name='seller-reviews'),
+    path('<uuid:review_id>/reply/', SellerReplyToReviewView.as_view(), name='seller-reply'),
 ]

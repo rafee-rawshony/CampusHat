@@ -3,6 +3,7 @@
 from django.urls import path
 
 from .views import (
+    SellerOnboardView,
     SellerRegisterView, SellerMyProfileView, SellerDashboardView,
     StoreCreateView, MyStoreView, StoreUpdateView, StoreSubmitForReviewView,
     PublicStoreDetailView, PublicStoreListView, FeaturedStoresView,
@@ -16,6 +17,7 @@ app_name = 'sellers'
 urlpatterns = [
     # Seller
     path('register/', SellerRegisterView.as_view(), name='register'),
+    path('onboard/', SellerOnboardView.as_view(), name='onboard'),  # Daraz-style multi-section
     path('my-profile/', SellerMyProfileView.as_view(), name='my-profile'),
     path('my-dashboard/', SellerDashboardView.as_view(), name='dashboard'),
     path('featured/', FeaturedStoresView.as_view(), name='featured'),

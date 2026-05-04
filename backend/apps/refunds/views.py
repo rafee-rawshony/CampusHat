@@ -120,6 +120,67 @@ class RefundDetailView(GenericAPIView):
         })
 
 
+# ── Seller Views ─────────────────────────────────────────────────────
+
+class SellerRefundListView(GenericAPIView):
+    """
+    GET /api/v1/seller/refunds/
+
+    Lists every refund request raised against this seller's orders. The
+    seller can't approve / reject (admin-only) but they need to see
+    pending requests to prepare their side of the dispute.
+    """
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = RefundListSerializer
+
+    def get(self, request):
+        store = None
+        try:
+            store = request.user.seller_profile.store
+        except Exception:
+            pass
+        if not store:
+            return Response({
+                'success': True, 'message': 'No store found.', 'data': [],
+            })
+
+        # Optional ?status=pending|approved|rejected|processed filter.
+        refunds = Refund.objects.filter(
+            order__store=store,
+        ).select_related('order', 'requested_by').order_by('-created_at')
+        status_filter = request.query_params.get('status')
+        if status_filter:
+            refunds = refunds.filter(status=status_filter)
+
+        # Build a richer payload with order number + buyer email + first item name.
+        data = []
+        for r in refunds:
+            order = r.order
+            first_item = order.items.first() if hasattr(order, 'items') else None
+            data.append({
+                'id': str(r.id),
+                'order_id': str(order.id),
+                'order_number': order.order_number,
+                'buyer_email': order.buyer.email if order.buyer_id else None,
+                'product_name': first_item.product_name_snapshot if first_item else None,
+                'reason': r.reason,
+                'evidence_urls': r.evidence_urls or [],
+                'refund_amount': str(r.refund_amount),
+                'seller_deduction_amount': str(r.seller_deduction_amount),
+                'status': r.status,
+                'rejection_reason': r.rejection_reason,
+                'approved_at': r.approved_at,
+                'processed_at': r.processed_at,
+                'created_at': r.created_at,
+            })
+        return Response({
+            'success': True,
+            'message': 'Data retrieved successfully.',
+            'data': data,
+        })
+
+
 # ── Admin Views ──────────────────────────────────────────────────────
 
 class AdminPendingRefundsView(GenericAPIView):

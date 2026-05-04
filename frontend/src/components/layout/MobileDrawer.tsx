@@ -76,7 +76,7 @@ export function MobileDrawer() {
                 <LayoutDashboard className='w-4 h-4' /> Seller Dashboard
               </Link>
             ) : (
-              <Link href='/seller/apply'
+              <Link href='/seller/register'
                 className='flex items-center gap-2 mx-3 mt-2 px-3 py-2.5 rounded-xl font-bold
                            bg-[#4C3B8A] text-white text-sm transition-colors hover:bg-[#2D1B69]'>
                 <Store className='w-4 h-4' /> Become a Seller

@@ -71,6 +71,19 @@ BUSINESS_TYPE_CHOICES = [
     ('brand', 'Brand'),
 ]
 
+# Daraz-style store presence — physical store, online-only, or both.
+STORE_TYPE_CHOICES = [
+    ('online', 'Online'),
+    ('physical', 'Physical'),
+    ('both', 'Both Online and Physical'),
+]
+
+# Identity document types accepted at seller registration.
+IDENTITY_DOC_TYPE_CHOICES = [
+    ('nid', 'National ID'),
+    ('passport', 'Passport'),
+]
+
 SELLER_STATUS_CHOICES = [
     ('pending', 'Pending'),
     ('approved', 'Approved'),
@@ -147,9 +160,18 @@ class SellerProfile(BaseModel):
     )
 
     # BD Law Documents (S3 private)
+    # `identity_doc_type` decides whether nid_number is a NID or a Passport.
+    identity_doc_type = models.CharField(
+        max_length=10, choices=IDENTITY_DOC_TYPE_CHOICES,
+        default='nid', blank=True,
+    )
     nid_number = models.CharField(max_length=100, blank=True, null=True)
     nid_front_url = models.CharField(max_length=500, blank=True, null=True)
     nid_back_url = models.CharField(max_length=500, blank=True, null=True)
+    student_id_card_url = models.CharField(
+        max_length=500, blank=True, null=True,
+        help_text='Student ID card photo (only for student sellers).',
+    )
     trade_license_url = models.CharField(max_length=500, blank=True, null=True)
     tin_cert_url = models.CharField(max_length=500, blank=True, null=True)
     vat_cert_url = models.CharField(max_length=500, blank=True, null=True)
@@ -268,11 +290,23 @@ class Store(BaseModel):
     )
     name = models.CharField(max_length=200)
     slug = models.SlugField(max_length=220, unique=True, db_index=True)
-    description = models.TextField()
+    description = models.TextField(blank=True, default='')
     logo_url = models.CharField(max_length=500, blank=True, null=True)
     banner_url = models.CharField(max_length=500, blank=True, null=True)
-    store_category = models.CharField(max_length=100)
-    return_policy = models.TextField()
+    store_category = models.CharField(max_length=100, blank=True, default='')
+    # Daraz-style: is this an online-only, brick-and-mortar, or hybrid store?
+    store_type = models.CharField(
+        max_length=10, choices=STORE_TYPE_CHOICES, default='online',
+    )
+    store_address = models.TextField(
+        blank=True, null=True,
+        help_text='Physical store address (only relevant for physical / both).',
+    )
+    facebook_page = models.URLField(
+        max_length=500, blank=True, null=True,
+        help_text='Facebook page URL (optional).',
+    )
+    return_policy = models.TextField(blank=True, default='')
     avg_dispatch_hours = models.IntegerField(default=24)
     shipping_coverage = models.TextField(blank=True, null=True)
     business_phone = models.CharField(max_length=20)

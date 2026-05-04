@@ -96,13 +96,13 @@ from apps.sellers.admin_urls import (
 )
 
 # --- Phase 06 Cart + Wishlist + Seller Products URL patterns ---
-from apps.mall.urls import cart_urlpatterns, wishlist_urlpatterns, seller_product_urlpatterns
+from apps.mall.urls import cart_urlpatterns, wishlist_urlpatterns, seller_product_urlpatterns, seller_review_urlpatterns
 
 # --- Phase 07 Order URL patterns (seller + admin) ---
 from apps.orders.urls import seller_order_urlpatterns, admin_order_urlpatterns
 
 # --- Phase 08 URL patterns ---
-from apps.refunds.urls import admin_refund_urlpatterns
+from apps.refunds.urls import admin_refund_urlpatterns, seller_refund_urlpatterns
 from apps.delivery.urls import admin_delivery_urlpatterns
 from apps.coupons.urls import (
     flash_sale_urlpatterns,
@@ -136,6 +136,8 @@ urlpatterns += [
     path('api/v1/wishlist/', include((wishlist_urlpatterns, 'wishlist'))),
     path('api/v1/seller/orders/', include((seller_order_urlpatterns, 'seller-orders'))),
     path('api/v1/seller/products/', include((seller_product_urlpatterns, 'seller-products'))),
+    path('api/v1/seller/reviews/', include((seller_review_urlpatterns, 'seller-reviews'))),
+    path('api/v1/seller/refunds/', include((seller_refund_urlpatterns, 'seller-refunds'))),
     path('api/v1/admin/orders/', include((admin_order_urlpatterns, 'admin-orders'))),
     # Phase 08
     path('api/v1/admin/refunds/', include((admin_refund_urlpatterns, 'admin-refunds'))),

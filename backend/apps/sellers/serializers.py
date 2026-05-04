@@ -22,6 +22,210 @@ from core.validators import validate_document_file
 # SELLER REGISTRATION
 # =============================================================================
 
+class SellerOnboardingSerializer(serializers.Serializer):
+    """
+    Daraz-style multi-section seller onboarding.
+
+    Accepts pre-uploaded image URLs (from POST /api/v1/uploads/) instead of
+    multipart files, so the frontend can show inline progress + previews.
+    Creates the SellerProfile AND its Store atomically.
+
+    Required sections:
+      - personal: full_name, phone, email, gender, birthday  (synced back to User)
+      - store: store_name, store_type, store_phone, store_email
+      - identity: identity_doc_type, document_number, document_image_url
+      - terms: accepted_terms = true
+    Optional:
+      - profile_picture (synced to User)
+      - is_student_seller + student_id_card_url
+      - store logo / banner / description / address / facebook_page
+      - bank or mobile banking details
+    """
+
+    # ── Personal (also synced back to User) ─────────────────────────────
+    full_name = serializers.CharField(max_length=200)
+    phone = serializers.CharField(max_length=20)
+    email = serializers.EmailField()
+    gender = serializers.ChoiceField(choices=['male', 'female', 'other'])
+    birthday = serializers.DateField()
+    profile_picture = serializers.URLField(required=False, allow_blank=True, allow_null=True)
+
+    # ── Student verification (optional) ────────────────────────────────
+    is_student_seller = serializers.BooleanField(default=False)
+    student_id_card_url = serializers.URLField(required=False, allow_blank=True, allow_null=True)
+
+    # ── Store info ──────────────────────────────────────────────────────
+    store_name = serializers.CharField(max_length=200)
+    store_type = serializers.ChoiceField(choices=['online', 'physical', 'both'], default='online')
+    store_address = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    store_phone = serializers.CharField(max_length=20)
+    store_email = serializers.EmailField()
+    store_description = serializers.CharField(required=False, allow_blank=True, default='')
+    store_category = serializers.CharField(max_length=100, required=False, allow_blank=True, default='')
+    facebook_page = serializers.URLField(required=False, allow_blank=True, allow_null=True)
+    logo_url = serializers.URLField(required=False, allow_blank=True, allow_null=True)
+    banner_url = serializers.URLField(required=False, allow_blank=True, allow_null=True)
+
+    # ── Identity verification ──────────────────────────────────────────
+    identity_doc_type = serializers.ChoiceField(choices=['nid', 'passport'])
+    document_number = serializers.CharField(max_length=100)
+    document_image_url = serializers.URLField()
+    document_back_image_url = serializers.URLField(required=False, allow_blank=True, allow_null=True)
+
+    # ── Payment (optional but at least one recommended) ────────────────
+    mobile_banking_method = serializers.ChoiceField(
+        choices=['bkash', 'nagad', 'rocket'], required=False, allow_blank=True,
+    )
+    mobile_banking_number = serializers.CharField(
+        max_length=20, required=False, allow_blank=True,
+    )
+    bank_account_name = serializers.CharField(
+        max_length=200, required=False, allow_blank=True,
+    )
+    bank_account_number = serializers.CharField(
+        max_length=50, required=False, allow_blank=True,
+    )
+    bank_name = serializers.CharField(max_length=200, required=False, allow_blank=True)
+
+    # ── Agreement ──────────────────────────────────────────────────────
+    accepted_terms = serializers.BooleanField()
+
+    # ── Validation ─────────────────────────────────────────────────────
+
+    def validate_accepted_terms(self, value):
+        if value is not True:
+            raise serializers.ValidationError(
+                'You must accept the Terms & Conditions to register as a seller.'
+            )
+        return value
+
+    def validate(self, attrs):
+        # If physical / both, store_address is required.
+        if attrs.get('store_type') in ('physical', 'both') and not attrs.get('store_address'):
+            raise serializers.ValidationError({
+                'store_address': 'Store address is required for physical and both-mode stores.',
+            })
+        # If student seller, ID card image required.
+        if attrs.get('is_student_seller') and not attrs.get('student_id_card_url'):
+            raise serializers.ValidationError({
+                'student_id_card_url': 'Student ID card image is required for student sellers.',
+            })
+        return attrs
+
+    # ── Create ─────────────────────────────────────────────────────────
+
+    def create(self, validated_data):
+        from django.db import transaction
+        from apps.universities.models import University
+        from .models import Store
+
+        user = self.context['request'].user
+
+        # Sync the personal fields back to the User. This is the "edits here
+        # propagate back" behaviour the spec asks for.
+        with transaction.atomic():
+            updated_user_fields = []
+            full_name = validated_data['full_name'].strip()
+            if user.full_name != full_name:
+                user.full_name = full_name
+                # Best-effort first_name / last_name split.
+                parts = full_name.split(' ', 1)
+                user.first_name = parts[0]
+                user.last_name = parts[1] if len(parts) > 1 else ''
+                updated_user_fields += ['full_name', 'first_name', 'last_name']
+
+            if user.phone != validated_data['phone']:
+                user.phone = validated_data['phone']
+                updated_user_fields.append('phone')
+
+            # Email is synced back ONLY if it doesn't change the login email.
+            # If the user wants a different login email they go through the
+            # verification flow on /account; we don't bypass that here.
+            if validated_data['email'].lower() == (user.email or '').lower():
+                pass  # no-op
+            else:
+                # Treat the new email as the seller's contact email; do not
+                # change user.email silently.
+                pass
+
+            if user.gender != validated_data['gender']:
+                user.gender = validated_data['gender']
+                updated_user_fields.append('gender')
+
+            if user.birthday != validated_data['birthday']:
+                user.birthday = validated_data['birthday']
+                updated_user_fields.append('birthday')
+
+            if validated_data.get('profile_picture'):
+                user.profile_picture = validated_data['profile_picture']
+                updated_user_fields.append('profile_picture')
+
+            if updated_user_fields:
+                user.save(update_fields=list(set(updated_user_fields)))
+
+            # Determine commission rate — student sellers get a discount.
+            is_student = bool(validated_data.get('is_student_seller'))
+            commission_rate = 7.00 if is_student else 10.00
+
+            # Pick the right business_type bucket from a couple of toggles.
+            business_type = 'student' if is_student else 'individual'
+
+            seller = SellerProfile(
+                user=user,
+                business_name=validated_data['store_name'],
+                business_type=business_type,
+                business_phone=validated_data['phone'],
+                business_email=validated_data['email'],
+                identity_doc_type=validated_data['identity_doc_type'],
+                nid_number=validated_data['document_number'],
+                nid_front_url=validated_data['document_image_url'],
+                nid_back_url=validated_data.get('document_back_image_url') or '',
+                student_id_card_url=validated_data.get('student_id_card_url') or '',
+                is_student_seller=is_student,
+                commission_rate=commission_rate,
+                status='pending',
+                mobile_banking_method=validated_data.get('mobile_banking_method') or None,
+            )
+
+            # Encrypt mobile banking number if provided.
+            mobile_number = validated_data.get('mobile_banking_number')
+            if mobile_number:
+                seller.set_mobile_number(mobile_number)
+
+            # Encrypt bank account details if provided.
+            bank_acc_no = validated_data.get('bank_account_number')
+            if bank_acc_no:
+                seller.set_bank_details({
+                    'account_name': validated_data.get('bank_account_name', ''),
+                    'account_number': bank_acc_no,
+                    'bank_name': validated_data.get('bank_name', ''),
+                })
+
+            seller.save()
+
+            # Store row — starts in `under_review` so admin can approve later.
+            store_university = user.university or University.objects.filter(is_active=True).first()
+            store = Store(
+                seller=seller,
+                university=store_university,
+                name=validated_data['store_name'],
+                description=validated_data.get('store_description') or '',
+                store_category=validated_data.get('store_category') or 'general',
+                store_type=validated_data['store_type'],
+                store_address=validated_data.get('store_address') or '',
+                facebook_page=validated_data.get('facebook_page') or None,
+                logo_url=validated_data.get('logo_url') or None,
+                banner_url=validated_data.get('banner_url') or None,
+                business_phone=validated_data['store_phone'],
+                business_email=validated_data['store_email'],
+                return_policy='Standard 7-day return policy.',
+                status='under_review',
+            )
+            store.save()
+
+        return seller
+
+
 class SellerRegistrationSerializer(serializers.ModelSerializer):
     """
     Register as a seller with document uploads.
