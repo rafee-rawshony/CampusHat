@@ -469,6 +469,8 @@ class StoreUpdateSerializer(serializers.ModelSerializer):
         model = Store
         fields = [
             'name', 'description', 'store_category',
+            'logo_url', 'banner_url',
+            'store_type', 'store_address', 'facebook_page',
             'return_policy', 'avg_dispatch_hours', 'shipping_coverage',
             'business_phone', 'business_email',
         ]
@@ -485,7 +487,8 @@ class StoreDetailSerializer(serializers.ModelSerializer):
         model = Store
         fields = [
             'id', 'name', 'slug', 'description', 'logo_url', 'banner_url',
-            'store_category', 'return_policy', 'avg_dispatch_hours',
+            'store_category', 'store_type', 'store_address', 'facebook_page',
+            'return_policy', 'avg_dispatch_hours',
             'shipping_coverage', 'business_phone', 'business_email',
             'status', 'rating_avg', 'review_count', 'total_sales_count',
             'follower_count', 'response_rate',
