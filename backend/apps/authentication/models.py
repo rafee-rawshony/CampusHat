@@ -265,17 +265,26 @@ class User(AbstractBaseUser, PermissionsMixin, UUIDMixin, TimestampMixin):
     def is_profile_complete(self):
         """
         Profile is complete when the user has filled out their basic
-        identity fields AND has at least one saved delivery address.
-        Required for buying products from the Mall.
+        identity fields (name, phone, birthday, gender).
+
+        Does NOT require a delivery address — address is only mandatory
+        at checkout (see ``is_checkout_ready``).
         """
-        has_basics = bool(
+        return bool(
             self.first_name
             and self.last_name
             and self.phone
             and self.birthday
             and self.gender
         )
-        if not has_basics:
+
+    @property
+    def is_checkout_ready(self):
+        """
+        Checkout-ready = profile complete + at least one saved delivery
+        address. Required before placing an order in the Mall.
+        """
+        if not self.is_profile_complete:
             return False
         return self.addresses.filter(deleted_at__isnull=True).exists()
 

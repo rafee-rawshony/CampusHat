@@ -181,6 +181,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
     verification_rejection_reason = serializers.SerializerMethodField()
     seller_application_status = serializers.SerializerMethodField()
     is_profile_complete = serializers.BooleanField(read_only=True)
+    is_checkout_ready = serializers.BooleanField(read_only=True)
     profile_completion_percent = serializers.IntegerField(read_only=True)
 
     class Meta:
@@ -193,7 +194,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
             'is_email_verified', 'is_phone_verified',
             'reputation_score', 'verification_status',
             'verification_rejection_reason', 'seller_application_status',
-            'is_profile_complete', 'profile_completion_percent',
+            'is_profile_complete', 'is_checkout_ready', 'profile_completion_percent',
             'last_login', 'created_at', 'updated_at',
         ]
         read_only_fields = fields

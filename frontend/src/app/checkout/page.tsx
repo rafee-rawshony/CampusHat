@@ -137,7 +137,7 @@ export default function CheckoutPage() {
     if (!user || items.length === 0) return null
 
     return (
-        <ProfileGate featureName="Mall Checkout">
+        <ProfileGate featureName="Mall Checkout" requireAddress>
         <div className="min-h-screen bg-surface-base pb-20 pt-6">
             <div className="container mx-auto px-4 max-w-6xl">
 

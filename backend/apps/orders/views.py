@@ -49,9 +49,9 @@ class CheckoutView(GenericAPIView):
     serializer_class = CheckoutSerializer
 
     def post(self, request):
-        # Profile completion gate — Mall purchases require name, phone, birthday,
-        # gender, AND a saved address. Defined in User.is_profile_complete.
-        if not request.user.is_profile_complete:
+        # Checkout gate — Mall purchases require name, phone, birthday,
+        # gender, AND a saved delivery address. Defined in User.is_checkout_ready.
+        if not request.user.is_checkout_ready:
             return Response(
                 {
                     'success': False,

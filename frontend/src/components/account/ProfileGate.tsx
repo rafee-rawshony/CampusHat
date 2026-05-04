@@ -2,9 +2,12 @@
 
 /**
  * ProfileGate — blocks access to a feature until the user's
- * profile is complete (first/last name, phone, birthday, gender + address).
+ * profile is complete (first/last name, phone, birthday, gender).
  *
- * Used before: student/faculty verification, seller registration.
+ * For checkout, also requires at least one delivery address.
+ * Use `requireAddress` prop to enable address check (e.g. for checkout).
+ *
+ * Used before: student/faculty verification, seller registration, checkout.
  * Renders a card explaining what's missing instead of the wrapped content.
  */
 
@@ -17,6 +20,8 @@ interface Props {
     children: React.ReactNode
     /** Feature name shown in the gate message, e.g. "Student Verification" */
     featureName: string
+    /** If true, also requires at least one delivery address (used by checkout) */
+    requireAddress?: boolean
 }
 
 const PROFILE_FIELDS: { label: string; key: keyof ReturnType<typeof useAuthStore.getState>['user'] & string }[] = [
@@ -26,14 +31,17 @@ const PROFILE_FIELDS: { label: string; key: keyof ReturnType<typeof useAuthStore
     { label: 'Gender', key: 'gender' },
 ]
 
-export function ProfileGate({ children, featureName }: Props) {
+export function ProfileGate({ children, featureName, requireAddress = false }: Props) {
     const { user } = useAuthStore()
 
     if (!user) return null
 
-    // is_profile_complete comes from the backend property.
-    // If not yet fetched (null/undefined) we consider incomplete.
-    const isComplete = user.is_profile_complete === true
+    // Check the right backend property based on the mode.
+    // is_profile_complete = basic fields only (name, phone, DOB, gender)
+    // is_checkout_ready   = basic fields + at least one address
+    const isComplete = requireAddress
+        ? (user as any).is_checkout_ready === true
+        : user.is_profile_complete === true
 
     if (isComplete) return <>{children}</>
 
@@ -48,7 +56,8 @@ export function ProfileGate({ children, featureName }: Props) {
                 </h2>
                 <p className="text-gray-500 mb-6">
                     To access <span className="font-semibold text-gray-700">{featureName}</span>,
-                    you need to fill out your basic profile information and add a delivery address.
+                    you need to fill out your basic profile information
+                    {requireAddress && ' and add a delivery address'}.
                 </p>
 
                 {/* Checklist of required fields */}
@@ -68,11 +77,11 @@ export function ProfileGate({ children, featureName }: Props) {
                             </div>
                         )
                     })}
-                    {/* Address check */}
-                    {(() => {
-                        const hasAddress = (user.profile_completion_percent ?? 0) === 100 ||
-                            // fallback: if all other fields are set, assume address might be missing
-                            false
+
+                    {/* Address check — only shown when requireAddress is true */}
+                    {requireAddress && (() => {
+                        const hasAddress = (user as any).is_checkout_ready === true &&
+                            user.is_profile_complete === true
                         return (
                             <div className="flex items-center gap-3 text-sm">
                                 {hasAddress ? (
@@ -94,11 +103,13 @@ export function ProfileGate({ children, featureName }: Props) {
                             Go to My Profile <ArrowRight className="h-4 w-4" />
                         </Button>
                     </Link>
-                    <Link href="/account/addresses">
-                        <Button variant="outline" className="gap-2 w-full sm:w-auto">
-                            Add Address
-                        </Button>
-                    </Link>
+                    {requireAddress && (
+                        <Link href="/account/addresses">
+                            <Button variant="outline" className="gap-2 w-full sm:w-auto">
+                                Add Address
+                            </Button>
+                        </Link>
+                    )}
                 </div>
             </div>
         </div>
