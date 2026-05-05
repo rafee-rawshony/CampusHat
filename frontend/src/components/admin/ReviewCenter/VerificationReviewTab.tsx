@@ -34,21 +34,20 @@ export function VerificationReviewTab() {
 
     // Mutations
     const reviewMutation = useMutation({
-        mutationFn: ({ id, action, reason, notes }: { id: string, action: string, reason?: string, notes?: string }) => {
-            const payload: any = { action }
-            if (reason) payload.reason = reason
-            if (notes) payload.notes = notes
+        mutationFn: ({ id, status, rejection_reason }: { id: string, status: string, rejection_reason?: string }) => {
+            const payload: any = { status }
+            if (rejection_reason) payload.rejection_reason = rejection_reason
             return api.post(`/admin/verifications/${id}/review/`, payload)
         },
         onSuccess: (_, variables) => {
-            if (variables.action === 'approve') {
+            if (variables.status === 'approved') {
                 toast.success('Verified successfully!')
             } else {
                 toast.success('Verification rejected. Student notified.')
             }
             queryClient.invalidateQueries({ queryKey: ['admin-verifications-pending'] })
             queryClient.invalidateQueries({ queryKey: ['admin-pending-counts'] })
-            
+
             setRejectItem(null)
             setApproveItem(null)
         },
@@ -57,14 +56,14 @@ export function VerificationReviewTab() {
         }
     })
 
-    const handleReject = async (reason: string, notes: string) => {
+    const handleReject = async (reason: string, _notes: string) => {
         if (!rejectItem) return
-        await reviewMutation.mutateAsync({ id: rejectItem.id, action: 'reject', reason, notes })
+        await reviewMutation.mutateAsync({ id: rejectItem.id, status: 'rejected', rejection_reason: reason })
     }
 
     const handleApprove = async () => {
         if (!approveItem) return
-        await reviewMutation.mutateAsync({ id: approveItem.id, action: 'approve' })
+        await reviewMutation.mutateAsync({ id: approveItem.id, status: 'approved' })
     }
 
     if (isLoading) {
@@ -91,8 +90,8 @@ export function VerificationReviewTab() {
         <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {verifications.map((item: any) => {
-                    const isPdf = item.id_document_type === 'pdf'
-                    const docUrl = item.id_document
+                    const docUrl = item.admin_presigned_url as string | undefined
+                    const isPdf = docUrl?.toLowerCase().endsWith('.pdf') ?? false
                     const createdDate = item.created_at ? new Date(item.created_at).toLocaleDateString('en-BD') : 'N/A'
 
                     return (

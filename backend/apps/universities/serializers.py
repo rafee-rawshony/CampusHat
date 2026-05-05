@@ -14,7 +14,13 @@ class UniversityListSerializer(serializers.ModelSerializer):
     """
     Serializer for university list views — includes all editable fields
     so the admin edit drawer can pre-populate without a separate detail fetch.
+    Includes student_count (users with role='student') and created_at.
     """
+
+    student_count = serializers.SerializerMethodField()
+
+    def get_student_count(self, obj):
+        return obj.users.filter(role='student').count()
 
     class Meta:
         model = University
@@ -22,6 +28,7 @@ class UniversityListSerializer(serializers.ModelSerializer):
             'id', 'name', 'short_name', 'slug', 'system_id',
             'division', 'district', 'postal_code', 'full_address',
             'email_domain', 'short_description', 'logo_url', 'is_active',
+            'student_count', 'created_at',
         ]
         read_only_fields = fields
 

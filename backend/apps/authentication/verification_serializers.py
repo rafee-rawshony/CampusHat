@@ -9,12 +9,13 @@ import boto3
 import uuid
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from .models import UserVerification
-
-
 from core.validators import validate_document_file
+
+User = get_user_model()
 
 
 class SubmitVerificationSerializer(serializers.Serializer):
@@ -34,6 +35,14 @@ class SubmitVerificationSerializer(serializers.Serializer):
         required=False,
         allow_blank=True,
     )
+    university_email = serializers.EmailField(
+        required=False,
+        allow_blank=True,
+        help_text='University email to associate with the user account.',
+    )
+    # university_id is collected in the form but the user already has it from registration;
+    # we accept it here so the frontend does not get a 400 for extra fields.
+    university_id = serializers.UUIDField(required=False)
     submitted_document = serializers.FileField(
         required=True,
         validators=[validate_document_file],
@@ -112,6 +121,13 @@ class SubmitVerificationSerializer(serializers.Serializer):
         user = self.context['request'].user
         doc_file = validated_data.pop('submitted_document')
         cert_file = validated_data.pop('enrollment_cert', None)
+        university_email = validated_data.pop('university_email', None)
+        validated_data.pop('university_id', None)  # already set on user
+
+        # Save university email onto the user profile if provided and not already set
+        if university_email and not user.university_email:
+            user.university_email = university_email
+            user.save(update_fields=['university_email'])
 
         # Upload main document
         doc_url = self._upload_to_s3(doc_file, str(user.id), 'document')
@@ -139,6 +155,21 @@ class SubmitVerificationSerializer(serializers.Serializer):
         return verification
 
 
+class VerificationUserSerializer(serializers.ModelSerializer):
+    """Minimal user info returned inside each verification record."""
+
+    university_short_code = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['id', 'full_name', 'profile_picture', 'university_email', 'university_short_code']
+
+    def get_university_short_code(self, obj):
+        if obj.university:
+            return obj.university.short_name
+        return None
+
+
 class VerificationStatusSerializer(serializers.ModelSerializer):
     """
     Read-only serializer for displaying verification status.
@@ -147,8 +178,13 @@ class VerificationStatusSerializer(serializers.ModelSerializer):
     Non-admin users do NOT receive the presigned URL.
     """
 
+    user = VerificationUserSerializer(read_only=True)
     admin_presigned_url = serializers.SerializerMethodField()
     enrollment_cert_presigned_url = serializers.SerializerMethodField()
+    # Aliases that the admin UI expects
+    id_document = serializers.SerializerMethodField()
+    id_document_type = serializers.SerializerMethodField()
+    university_email = serializers.SerializerMethodField()
 
     class Meta:
         model = UserVerification
@@ -158,8 +194,15 @@ class VerificationStatusSerializer(serializers.ModelSerializer):
             'rejection_reason', 'valid_until',
             'reviewed_by', 'created_at', 'updated_at',
             'admin_presigned_url', 'enrollment_cert_presigned_url',
+            'id_document', 'id_document_type', 'university_email',
         ]
         read_only_fields = fields
+
+    def _is_admin(self):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            return getattr(request.user, 'role', None) in ('admin', 'moderator')
+        return False
 
     def _generate_presigned_url(self, key):
         """Generate a presigned URL for an S3 object (15-min expiry)."""
@@ -188,20 +231,33 @@ class VerificationStatusSerializer(serializers.ModelSerializer):
             return f'/mediafiles/{key}'
 
     def get_admin_presigned_url(self, obj):
-        """Only provide presigned URL to admin users."""
-        request = self.context.get('request')
-        if request and hasattr(request, 'user'):
-            if getattr(request.user, 'role', None) == 'admin':
-                return self._generate_presigned_url(obj.submitted_document_url)
+        """Only provide presigned URL to admin/moderator users."""
+        if self._is_admin():
+            return self._generate_presigned_url(obj.submitted_document_url)
         return None
 
     def get_enrollment_cert_presigned_url(self, obj):
-        """Only provide enrollment cert URL to admin users."""
-        request = self.context.get('request')
-        if request and hasattr(request, 'user'):
-            if getattr(request.user, 'role', None) == 'admin':
-                return self._generate_presigned_url(obj.enrollment_cert_url)
+        """Only provide enrollment cert URL to admin/moderator users."""
+        if self._is_admin():
+            return self._generate_presigned_url(obj.enrollment_cert_url)
         return None
+
+    def get_id_document(self, obj):
+        """Alias for admin_presigned_url — used by the admin review UI."""
+        if self._is_admin():
+            return self._generate_presigned_url(obj.submitted_document_url)
+        return None
+
+    def get_id_document_type(self, obj):
+        """Derive document type from the stored file path extension."""
+        if obj.submitted_document_url:
+            ext = obj.submitted_document_url.rsplit('.', 1)[-1].lower()
+            return 'pdf' if ext == 'pdf' else 'image'
+        return None
+
+    def get_university_email(self, obj):
+        """Return the submitting user's university email."""
+        return obj.user.university_email if obj.user else None
 
 
 class AdminReviewSerializer(serializers.Serializer):

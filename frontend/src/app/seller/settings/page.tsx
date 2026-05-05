@@ -24,6 +24,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { normalizeSingleResponse } from '@/lib/response'
 import { useAuthStore } from '@/stores/auth.store'
 import { updateMe } from '@/services/profile.service'
 import { Button } from '@/components/ui/button'
@@ -111,10 +112,12 @@ export default function SellerSettingsPage() {
     const [savedStore, setSavedStore] = React.useState(false)
     const [savedPayout, setSavedPayout] = React.useState(false)
 
-    // Fetch store data
+    // Fetch store data — backend returns { success, data: {...store} } so we unwrap it
     const { data: store } = useQuery({
         queryKey: ['my-store'],
-        queryFn: () => api.get('/stores/my-store/').then(r => r.data).catch(() => null),
+        queryFn: () => api.get('/stores/my-store/')
+            .then(r => normalizeSingleResponse(r.data))
+            .catch(() => null),
         staleTime: 300_000,
     })
 

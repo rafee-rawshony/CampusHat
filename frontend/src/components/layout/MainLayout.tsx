@@ -29,9 +29,9 @@ export function MainLayout({ children }: MainLayoutProps) {
         return () => window.removeEventListener('resize', update)
     }, [])
 
-    // Exclude global layout wrappers for admin dashboard routes
-    // as it manages its own internal Sidebar and top bar.
-    if (pathname && pathname.startsWith('/admin')) {
+    // Exclude global layout wrappers for admin and seller dashboard routes —
+    // both manage their own internal Sidebar and top bar.
+    if (pathname && (pathname.startsWith('/admin') || pathname.startsWith('/seller'))) {
         return <>{children}</>
     }
 

@@ -11,7 +11,7 @@ from django.db.models import Q
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny, IsAdminUser
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.viewsets import ModelViewSet
@@ -55,14 +55,18 @@ class UniversityViewSet(ModelViewSet):
     def get_permissions(self):
         if self.action in ('list', 'retrieve', 'search'):
             return [AllowAny()]
-        return [IsAdminUser()]
+        return [IsAdminOrModerator()]
 
     def get_queryset(self):
         """
-        Admin users see all universities (including inactive).
+        Admin/moderator users see all universities (including inactive).
         Public users see only active universities.
+        Checks both Django's is_staff flag and the app's custom role field.
         """
-        if self.request.user and self.request.user.is_staff:
+        user = self.request.user
+        if user and user.is_authenticated and (
+            user.is_staff or getattr(user, 'role', None) in ('admin', 'moderator')
+        ):
             return University.objects.all()
         return University.objects.filter(is_active=True)
 
@@ -141,10 +145,10 @@ class InstitutionRequestViewSet(ModelViewSet):
         return InstitutionRequestListSerializer
 
     def get_permissions(self):
-        # Anyone can submit; only admins can list / review.
+        # Anyone can submit; only admins/moderators can list / review.
         if self.action == 'create':
             return [AllowAny()]
-        return [IsAdminUser()]
+        return [IsAdminOrModerator()]
 
     def get_throttles(self):
         # Rate-limit anonymous submissions to prevent spam.
@@ -161,7 +165,7 @@ class InstitutionRequestViewSet(ModelViewSet):
             qs = qs.filter(status=status_filter)
         return qs
 
-    @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminOrModerator])
     def approve(self, request, pk=None):
         """
         Approve a pending request and create a University record from it.
@@ -210,7 +214,7 @@ class InstitutionRequestViewSet(ModelViewSet):
             status=status.HTTP_201_CREATED,
         )
 
-    @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminOrModerator])
     def reject(self, request, pk=None):
         """Reject a pending request with a reason."""
         instance = self.get_object()

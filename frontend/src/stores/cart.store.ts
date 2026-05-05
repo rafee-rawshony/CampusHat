@@ -74,6 +74,8 @@ export const useCartStore = create<CartState>()(
                         quantity: item.quantity,
                         variant_id: item.variant_id,
                     })
+                    // Sync to get real CartItem UUIDs from backend so removeItem works correctly
+                    await get().syncCart()
                 } catch (error) {
                     set({ items: previousItems })
                     console.error('Failed to sync cart add', error)
@@ -89,8 +91,12 @@ export const useCartStore = create<CartState>()(
                 try {
                     set({ isLoading: true })
                     await removeCartItem(id)
-                } catch (error) {
-                    set({ items: previousItems })
+                } catch (error: any) {
+                    // Don't rollback for unauthenticated users (401) — their cart is local-only
+                    // and the removal should persist. Only rollback on real server errors.
+                    if (error?.response?.status !== 401) {
+                        set({ items: previousItems })
+                    }
                     console.error('Failed to sync cart remove', error)
                 } finally {
                     set({ isLoading: false })

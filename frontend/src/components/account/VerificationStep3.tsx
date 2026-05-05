@@ -79,12 +79,13 @@ export function VerificationStep3({ step1Data, step2Data, onBack, onSuccess }: V
         setIsSubmitting(true)
         try {
             const formData = new FormData()
+            formData.append('verification_type', 'student_id')
             formData.append('student_id_number', step1Data.student_id_number)
             if (step1Data.university_email) {
                 formData.append('university_email', step1Data.university_email)
             }
             formData.append('university_id', step2Data.university_id)
-            formData.append('id_document', file)
+            formData.append('submitted_document', file)
 
             await api.post('/auth/verification/submit/', formData, {
                 headers: {

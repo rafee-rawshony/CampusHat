@@ -361,9 +361,9 @@ export function ProductFormPanel({ editProduct, onClose }: ProductFormPanelProps
                 discount_price: editProduct.discount_price ? parseFloat(editProduct.discount_price) : undefined,
                 stock_quantity: editProduct.stock_quantity || 0,
                 is_active: editProduct.is_active ?? true,
-                image_url_1: editProduct.images?.[0]?.image || editProduct.images?.[0]?.image_url || '',
-                image_url_2: editProduct.images?.[1]?.image || editProduct.images?.[1]?.image_url || '',
-                image_url_3: editProduct.images?.[2]?.image || editProduct.images?.[2]?.image_url || '',
+                image_url_1: editProduct.images?.[0]?.image_url || '',
+                image_url_2: editProduct.images?.[1]?.image_url || '',
+                image_url_3: editProduct.images?.[2]?.image_url || '',
                 short_description: editProduct.short_description || '',
                 description: editProduct.description || '',
             })
@@ -371,10 +371,6 @@ export function ProductFormPanel({ editProduct, onClose }: ProductFormPanelProps
     }, [editProduct, reset])
 
     const buildPayload = (data: ProductFormValues) => {
-        const images = [data.image_url_1, data.image_url_2, data.image_url_3]
-            .filter(Boolean)
-            .map((url, i) => ({ image: url, is_primary: i === 0 }))
-
         return {
             name: data.name,
             brand: data.brand,
@@ -386,7 +382,9 @@ export function ProductFormPanel({ editProduct, onClose }: ProductFormPanelProps
             is_active: data.is_active,
             short_description: data.short_description,
             description: data.description,
-            images,
+            image_url_1: data.image_url_1 || '',
+            image_url_2: data.image_url_2 || '',
+            image_url_3: data.image_url_3 || '',
         }
     }
 

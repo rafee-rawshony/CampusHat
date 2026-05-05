@@ -40,12 +40,12 @@ export default function AdminCampusesPage() {
     const [rejectingId, setRejectingId] = useState<string | null>(null)
     const [rejectNote, setRejectNote] = useState('')
 
-    // Universities
+    // Universities — backend wraps response in { success, data: [...] } envelope
     const { data, isLoading } = useQuery({
         queryKey: ['admin-universities'],
         queryFn: async () => {
             const res = await api.get('/universities/?include_inactive=true')
-            return res.data?.data?.results || res.data?.results || res.data || []
+            return res.data?.data?.results || res.data?.data || res.data?.results || res.data || []
         },
         staleTime: 60_000,
     })
