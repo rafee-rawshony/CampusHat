@@ -46,8 +46,13 @@ export default function CampusPage() {
             {campus ? (
                 <div className="bg-gradient-to-r from-[#4C3B8A] to-[#2D1B69] rounded-2xl p-6 text-white mb-8">
                     <div className="flex items-start gap-4">
-                        <div className="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
-                            <Building2 className="w-8 h-8 text-white" />
+                        <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 border-2 border-white/20 bg-white/10">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                                src={campus.logo_url || `https://placehold.co/80x80/ffffff/4C3B8A?text=${encodeURIComponent((campus.short_name || campus.short_code || 'UNI').substring(0, 4))}`}
+                                alt={campus.name}
+                                className="w-full h-full object-cover"
+                            />
                         </div>
                         <div>
                             <h1 className="text-2xl font-bold">{campus.name}</h1>

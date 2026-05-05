@@ -6,7 +6,6 @@ import {
     Search,
     Heart,
     ShoppingCart,
-    User,
     LogOut,
     Package,
     Wallet,
@@ -14,6 +13,11 @@ import {
     Shield,
     Store,
     Plus,
+    UserCircle,
+    MapPin,
+    CreditCard,
+    Star,
+    ShieldCheck,
 } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -22,7 +26,9 @@ import { UpgradePrompt } from '@/components/marketplace/UpgradePrompt'
 import { CartDrawer } from '@/components/mall/CartDrawer'
 import { MobileDrawer } from '@/components/layout/MobileDrawer'
 import { MobileSearchOverlay } from '@/components/layout/MobileSearchOverlay'
-import { Input } from '@/components/ui/input'
+import { SearchAutocomplete } from '@/components/layout/SearchAutocomplete'
+import { NotificationBell } from '@/components/layout/NotificationBell'
+
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -37,6 +43,7 @@ import { useAuthStore } from '@/stores/auth.store'
 import { useCartStore } from '@/stores/cart.store'
 import { getInitials } from '@/lib/utils'
 import { cn } from '@/lib/utils'
+import { absoluteMediaUrl } from '@/services/upload.service'
 
 export function Navbar() {
     const pathname = usePathname()
@@ -48,7 +55,7 @@ export function Navbar() {
 
     const handleLogout = async () => {
         await logout()
-        window.location.href = '/'
+        router.push('/')
     }
 
     // Mobile Search State
@@ -58,17 +65,6 @@ export function Navbar() {
 
     // Verification Modal State
     const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false)
-
-    const handleSearch = (e: React.KeyboardEvent<HTMLInputElement> | React.MouseEvent<HTMLButtonElement>) => {
-        if ('key' in e && e.key !== 'Enter') return
-        if (!searchQuery.trim()) return
-
-        if (isMarketplace) {
-            router.push(`/marketplace/explorer?q=${encodeURIComponent(searchQuery.trim())}`)
-        } else {
-            router.push(`/shop?q=${encodeURIComponent(searchQuery.trim())}`)
-        }
-    }
 
     const handlePostAdClick = (e: React.MouseEvent) => {
         e.preventDefault()
@@ -129,25 +125,29 @@ export function Navbar() {
                         </div>
                     </div>
 
-                    {/* Center: Search */}
-                    <div className="order-last md:order-none w-full md:flex-1 md:mx-6">
-                        <div className="relative">
-                            <input
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                onKeyDown={handleSearch}
-                                placeholder="Search for products, categories or brands..."
-                                className="w-full border border-gray-300 rounded-md py-2.5 pl-4 pr-12 focus:ring-[#4C3B8A] focus:border-[#4C3B8A] outline-none text-sm"
-                            />
-                            <button onClick={handleSearch} className="absolute inset-y-0 right-0 flex items-center pr-3">
-                                <Search className="w-5 h-5 text-gray-400" />
-                            </button>
-                        </div>
-                        {/* Mobile search icon only */}
-                        <Button variant="ghost" size="icon" className="md:hidden absolute right-16 top-4" onClick={() => setIsSearchOpen(true)}>
-                            <Search className="h-5 w-5" />
-                        </Button>
+                    {/* Center: Search (Desktop) */}
+                    <div className="order-last md:order-none w-full md:flex-1 md:mx-6 hidden md:block">
+                        {isMarketplace ? (
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && searchQuery.trim()) {
+                                            router.push(`/marketplace/explorer?q=${encodeURIComponent(searchQuery.trim())}`)
+                                        }
+                                    }}
+                                    placeholder="Search marketplace listings..."
+                                    className="w-full border border-gray-300 rounded-md py-2.5 pl-4 pr-12 focus:ring-[#4C3B8A] focus:border-[#4C3B8A] outline-none text-sm"
+                                />
+                                <button className="absolute inset-y-0 right-0 flex items-center pr-3">
+                                    <Search className="w-5 h-5 text-gray-400" />
+                                </button>
+                            </div>
+                        ) : (
+                            <SearchAutocomplete />
+                        )}
                     </div>
 
                     {/* Right: Auth + Actions */}
@@ -158,22 +158,76 @@ export function Navbar() {
                         ) : isAuthenticated ? (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <button className="flex items-center text-gray-600 hover:text-[#4C3B8A] py-2">
-                                        <User className="w-6 h-6 md:w-7 md:h-7" />
-                                        <span className="text-sm ml-2 hidden lg:inline font-semibold">
-                                            Hi, {user?.full_name?.split(' ')[0] || 'User'}
+                                    <button className="flex items-center gap-2 text-gray-600 hover:text-[#4C3B8A] py-2 group">
+                                        <Avatar className="h-8 w-8 md:h-9 md:w-9 border border-gray-200 group-hover:border-[#4C3B8A] transition-colors">
+                                            {user?.profile_picture ? (
+                                                <AvatarImage
+                                                    src={absoluteMediaUrl(user.profile_picture)}
+                                                    alt={user.full_name}
+                                                    className="object-cover"
+                                                />
+                                            ) : (
+                                                <AvatarFallback className="bg-brand-light text-[#4C3B8A] text-xs font-bold">
+                                                    {getInitials(
+                                                        (user?.first_name && user?.last_name)
+                                                            ? `${user.first_name} ${user.last_name}`
+                                                            : user?.full_name || 'U'
+                                                    )}
+                                                </AvatarFallback>
+                                            )}
+                                        </Avatar>
+                                        <span className="text-sm hidden lg:inline font-semibold">
+                                            {user?.first_name || user?.full_name?.split(' ')[0] || 'User'}
                                         </span>
                                     </button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-56">
-                                    <DropdownMenuLabel>
-                                        <p className="font-medium">{user?.full_name}</p>
-                                        <p className="text-xs text-muted-foreground">{user?.email}</p>
+                                <DropdownMenuContent align="end" className="w-64">
+                                    <DropdownMenuLabel className="pb-2">
+                                        <div className="flex items-center gap-3">
+                                            <Avatar className="h-10 w-10">
+                                                {user?.profile_picture ? (
+                                                    <AvatarImage src={absoluteMediaUrl(user.profile_picture)} alt={user.full_name} className="object-cover" />
+                                                ) : (
+                                                    <AvatarFallback className="bg-brand-light text-[#4C3B8A] text-sm font-bold">
+                                                        {getInitials(user?.full_name || 'U')}
+                                                    </AvatarFallback>
+                                                )}
+                                            </Avatar>
+                                            <div className="min-w-0">
+                                                <p className="font-medium truncate">{user?.full_name}</p>
+                                                <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                                            </div>
+                                        </div>
                                     </DropdownMenuLabel>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem asChild>
-                                        <Link href="/orders" className="gap-2">
+                                        <Link href="/account" className="gap-2">
+                                            <UserCircle className="h-4 w-4" /> My Profile
+                                        </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
+                                        <Link href="/account/orders" className="gap-2">
                                             <Package className="h-4 w-4" /> My Orders
+                                        </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
+                                        <Link href="/account/addresses" className="gap-2">
+                                            <MapPin className="h-4 w-4" /> Address Book
+                                        </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
+                                        <Link href="/account/payments" className="gap-2">
+                                            <CreditCard className="h-4 w-4" /> Payment Options
+                                        </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
+                                        <Link href="/wishlist" className="gap-2">
+                                            <Heart className="h-4 w-4" /> Wishlist
+                                        </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
+                                        <Link href="/account/reviews" className="gap-2">
+                                            <Star className="h-4 w-4" /> My Reviews
                                         </Link>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem asChild>
@@ -181,6 +235,14 @@ export function Navbar() {
                                             <Wallet className="h-4 w-4" /> Wallet
                                         </Link>
                                     </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    {user?.role === 'normal_user' && (
+                                        <DropdownMenuItem asChild>
+                                            <Link href="/account/verify" className="gap-2 text-amber-700">
+                                                <ShieldCheck className="h-4 w-4" /> Verify Student ID
+                                            </Link>
+                                        </DropdownMenuItem>
+                                    )}
                                     {isSeller() && (
                                         <DropdownMenuItem asChild>
                                             <Link href="/seller" className="gap-2">
@@ -210,25 +272,45 @@ export function Navbar() {
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         ) : (
-                            <Link
-                                href="/auth/login"
-                                className="flex items-center text-gray-600 hover:text-[#4C3B8A]"
-                            >
-                                <User className="w-6 h-6 md:w-7 md:h-7" />
-                                <span className="text-sm ml-2 hidden lg:inline font-semibold">Sign In</span>
-                            </Link>
+                            <div className="flex items-center gap-2">
+                                {/* Sign In — outlined ghost button */}
+                                <Link
+                                    href="/auth/login"
+                                    className="inline-flex items-center justify-center h-9 md:h-10 px-4 md:px-5 text-sm font-semibold text-gray-700 border border-gray-200 hover:border-[#4C3B8A] hover:text-[#4C3B8A] hover:bg-[#4C3B8A]/5 rounded-full transition-all duration-200"
+                                >
+                                    Sign In
+                                </Link>
+                                {/* Register — gradient solid with brand-color glow on hover */}
+                                <Link
+                                    href="/auth/register"
+                                    className="hidden md:inline-flex items-center justify-center h-10 px-5 text-sm font-semibold text-white bg-gradient-to-r from-[#4C3B8A] to-[#5d4ba1] hover:shadow-lg hover:shadow-[#4C3B8A]/30 hover:-translate-y-px rounded-full transition-all duration-200"
+                                >
+                                    Register
+                                </Link>
+                            </div>
                         )}
 
-                        {/* Mall mode: Heart + Cart */}
+                        {/* Notification Bell */}
+                        {isAuthenticated && <NotificationBell />}
+
+                        {/* Mall mode: Heart + Cart — circle ghost buttons matching sign-in */}
                         {!isMarketplace ? (
                             <>
-                                <Link href="/wishlist" className="relative text-gray-600 hover:text-[#4C3B8A]">
-                                    <Heart className="w-6 h-6 md:w-7 md:h-7" />
-                                    <span className="absolute -top-1 -right-2 bg-red-500 text-white text-xs rounded-full h-4 w-4 md:h-5 md:w-5 flex items-center justify-center">0</span>
+                                <Link
+                                    href="/wishlist"
+                                    aria-label="Wishlist"
+                                    className="relative inline-flex items-center justify-center h-10 w-10 rounded-full text-gray-600 hover:text-[#4C3B8A] hover:bg-[#4C3B8A]/5 transition-all"
+                                >
+                                    <Heart className="w-5 h-5" />
+                                    <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center ring-2 ring-white">0</span>
                                 </Link>
-                                <button onClick={() => setIsOpen(true)} className="relative flex items-center text-gray-600 hover:text-[#4C3B8A]">
-                                    <ShoppingCart className="w-6 h-6 md:w-7 md:h-7" />
-                                    <span className="absolute -top-1 -right-2 bg-[#4C3B8A] text-white text-xs rounded-full h-4 w-4 md:h-5 md:w-5 flex items-center justify-center">{getItemCount()}</span>
+                                <button
+                                    onClick={() => setIsOpen(true)}
+                                    aria-label="Cart"
+                                    className="relative inline-flex items-center justify-center h-10 w-10 rounded-full text-gray-600 hover:text-[#4C3B8A] hover:bg-[#4C3B8A]/5 transition-all"
+                                >
+                                    <ShoppingCart className="w-5 h-5" />
+                                    <span className="absolute -top-0.5 -right-0.5 bg-[#4C3B8A] text-white text-[10px] font-bold rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center ring-2 ring-white">{getItemCount()}</span>
                                 </button>
                             </>
                         ) : (

@@ -16,10 +16,14 @@ from drf_spectacular.views import (
 )
 
 from apps.core.views import health_check
+from core.upload_views import FileUploadView
 
 urlpatterns = [
     # --- Health Check ---
     path('api/health/', health_check, name='health-check'),
+
+    # --- Universal file upload (images) ---
+    path('api/v1/uploads/', FileUploadView.as_view(), name='file-upload'),
 
     # --- Django built-in admin (moved to avoid conflict with Next.js /admin route) ---
     path('django-admin/', admin.site.urls),
@@ -92,13 +96,13 @@ from apps.sellers.admin_urls import (
 )
 
 # --- Phase 06 Cart + Wishlist + Seller Products URL patterns ---
-from apps.mall.urls import cart_urlpatterns, wishlist_urlpatterns, seller_product_urlpatterns
+from apps.mall.urls import cart_urlpatterns, wishlist_urlpatterns, seller_product_urlpatterns, seller_review_urlpatterns, chat_urlpatterns, seller_chat_urlpatterns
 
 # --- Phase 07 Order URL patterns (seller + admin) ---
 from apps.orders.urls import seller_order_urlpatterns, admin_order_urlpatterns
 
 # --- Phase 08 URL patterns ---
-from apps.refunds.urls import admin_refund_urlpatterns
+from apps.refunds.urls import admin_refund_urlpatterns, seller_refund_urlpatterns
 from apps.delivery.urls import admin_delivery_urlpatterns
 from apps.coupons.urls import (
     flash_sale_urlpatterns,
@@ -132,7 +136,11 @@ urlpatterns += [
     path('api/v1/wishlist/', include((wishlist_urlpatterns, 'wishlist'))),
     path('api/v1/seller/orders/', include((seller_order_urlpatterns, 'seller-orders'))),
     path('api/v1/seller/products/', include((seller_product_urlpatterns, 'seller-products'))),
+    path('api/v1/seller/reviews/', include((seller_review_urlpatterns, 'seller-reviews'))),
+    path('api/v1/seller/refunds/', include((seller_refund_urlpatterns, 'seller-refunds'))),
+    path('api/v1/seller/chats/', include((seller_chat_urlpatterns, 'seller-chats'))),
     path('api/v1/admin/orders/', include((admin_order_urlpatterns, 'admin-orders'))),
+    path('api/v1/mall/chats/', include((chat_urlpatterns, 'mall-chats'))),
     # Phase 08
     path('api/v1/admin/refunds/', include((admin_refund_urlpatterns, 'admin-refunds'))),
     path('api/v1/admin/delivery/', include((admin_delivery_urlpatterns, 'admin-delivery'))),

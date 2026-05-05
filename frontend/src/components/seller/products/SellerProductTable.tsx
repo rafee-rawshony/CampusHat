@@ -18,6 +18,7 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import toast from 'react-hot-toast'
+import { normalizeListResponse } from '@/lib/response'
 import { cn } from '@/lib/utils'
 
 interface SellerProductTableProps {
@@ -33,7 +34,7 @@ export function SellerProductTable({ onEdit }: SellerProductTableProps) {
         queryKey: ['seller-products'],
         queryFn: () =>
             api.get('/seller/products/').then(r => r.data?.results || r.data || []),
-        staleTime: 0,
+        staleTime: 60_000,
     })
 
     const toggleActiveMutation = useMutation({
@@ -55,7 +56,7 @@ export function SellerProductTable({ onEdit }: SellerProductTableProps) {
         onError: () => toast.error('Failed to delete product'),
     })
 
-    const products: any[] = data || []
+    const products = normalizeListResponse<any>(data)
 
     const StockCell = ({ qty }: { qty: number }) => {
         if (qty === 0) return <span className="text-red-500 font-semibold text-sm">0 <Badge className="bg-red-100 text-red-500 text-[10px] ml-1 py-0 font-bold">Out</Badge></span>
@@ -146,11 +147,11 @@ export function SellerProductTable({ onEdit }: SellerProductTableProps) {
                                     <td className="px-4 py-3">
                                         {product.discount_price ? (
                                             <>
-                                                <p className="font-semibold text-gray-900">৳{Number(product.discount_price).toLocaleString()}</p>
-                                                <p className="text-xs text-gray-400 line-through">৳{Number(product.base_price).toLocaleString()}</p>
+                                                <p className="font-semibold text-gray-900">৳{Number(product.discount_price || 0).toLocaleString()}</p>
+                                                <p className="text-xs text-gray-400 line-through">৳{Number(product.base_price || 0).toLocaleString()}</p>
                                             </>
                                         ) : (
-                                            <p className="font-semibold text-gray-900">৳{Number(product.base_price).toLocaleString()}</p>
+                                            <p className="font-semibold text-gray-900">৳{Number(product.base_price || 0).toLocaleString()}</p>
                                         )}
                                     </td>
                                     {/* Stock */}

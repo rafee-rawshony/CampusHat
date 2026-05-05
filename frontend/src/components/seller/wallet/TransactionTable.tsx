@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { formatDateTime } from '@/lib/formatDate'
 import { cn } from '@/lib/utils'
+import { normalizeListResponse } from '@/lib/response'
 
 const TYPE_MAP: Record<string, { label: string; className: string }> = {
     credit_sale:    { label: 'Sale',      className: 'bg-green-100 text-green-700' },
@@ -24,17 +25,18 @@ export function TransactionTable() {
     const { data, isLoading } = useQuery({
         queryKey: ['seller-transactions', filter, page],
         queryFn: () =>
-            api.get(`/wallet/transactions/?page=${page}&page_size=15&ordering=-created_at`).then(r => r.data),
+            api.get(`/wallet/transactions/?page=${page}&page_size=15&ordering=-created_at`)
+                .then(r => normalizeListResponse<any>(r.data?.data ?? r.data)),
         staleTime: 60_000,
     })
 
-    const transactions: any[] = (data?.results || data || []).filter((t: any) => {
+    const transactions = normalizeListResponse<any>(data).filter((t: any) => {
         if (filter === 'credits') return CREDIT_TYPES.includes(t.type)
         if (filter === 'debits') return !CREDIT_TYPES.includes(t.type)
         return true
     })
 
-    const totalPages = Math.ceil((data?.count || 0) / 15)
+    const totalPages = Math.ceil((Number((data as { count?: number })?.count || 0)) / 15)
 
     return (
         <div id="transactions">

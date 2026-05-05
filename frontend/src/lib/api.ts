@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth.store'
 export const api = axios.create({
     baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1',
     withCredentials: true,
+    timeout: 15000,
     headers: { 'Content-Type': 'application/json' },
 })
 
@@ -76,7 +77,8 @@ api.interceptors.response.use(
                     useAuthStore.getState().logout()
                     if (typeof window !== 'undefined') {
                         sessionStorage.setItem('session_expired', '1')
-                        window.location.href = '/auth/login'
+                        // Use replace to avoid adding a history entry for the failed page
+                        window.location.replace('/auth/login')
                     }
                 }
                 return Promise.reject(refreshError)

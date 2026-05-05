@@ -59,7 +59,7 @@ export default function AdminActivityPage() {
             setLastFetchTime(new Date())
             return res.data?.data || res.data || { results: [], pagination: { count: 0, total_pages: 1, current_page: 1 } }
         },
-        staleTime: 0,
+        staleTime: 30_000,
         refetchInterval: 30_000, // 30s auto-refresh
     })
 

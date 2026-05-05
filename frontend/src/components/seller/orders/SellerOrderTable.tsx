@@ -11,6 +11,7 @@ import { OrderStatusBadge } from '@/components/seller/OrderStatusBadge'
 import { ShipOrderModal } from '@/components/seller/orders/ShipOrderModal'
 import toast from 'react-hot-toast'
 import { Loader2 } from 'lucide-react'
+import { normalizeListResponse } from '@/lib/response'
 
 interface SellerOrderTableProps {
     orders: any[]
@@ -20,6 +21,7 @@ interface SellerOrderTableProps {
 export function SellerOrderTable({ orders, isLoading }: SellerOrderTableProps) {
     const queryClient = useQueryClient()
     const [shipTarget, setShipTarget] = useState<any>(null)
+    const safeOrders = normalizeListResponse<any>(orders)
 
     const actionMutation = useMutation({
         mutationFn: ({ id, action }: { id: string; action: string }) =>
@@ -108,7 +110,7 @@ export function SellerOrderTable({ orders, isLoading }: SellerOrderTableProps) {
         )
     }
 
-    if (orders.length === 0) {
+    if (safeOrders.length === 0) {
         return (
             <div className="bg-white rounded-xl border border-gray-100 p-12 text-center">
                 <p className="text-gray-400 text-sm">No orders found for this filter.</p>
@@ -129,7 +131,7 @@ export function SellerOrderTable({ orders, isLoading }: SellerOrderTableProps) {
                         </tr>
                     </thead>
                     <tbody>
-                        {orders.map((order: any) => {
+                        {safeOrders.map((order: any) => {
                             const firstItem = order.items?.[0]
                             const moreCount = (order.items?.length || 1) - 1
                             return (
@@ -173,7 +175,7 @@ export function SellerOrderTable({ orders, isLoading }: SellerOrderTableProps) {
 
             {/* Mobile Card list */}
             <div className="md:hidden space-y-3">
-                {orders.map((order: any) => (
+                {safeOrders.map((order: any) => (
                     <div key={order.id} className="bg-white border border-gray-100 rounded-xl p-4">
                         <div className="flex items-center justify-between mb-2">
                             <span className="font-mono text-sm font-semibold text-gray-800">#{order.order_number}</span>

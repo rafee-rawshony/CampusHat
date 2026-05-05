@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { MessageCircle, Clock, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { api } from '@/lib/api'
+import { normalizeListResponse } from '@/lib/response'
 import { formatDistanceToNow } from 'date-fns'
 
 // Types for chat data
@@ -22,16 +23,23 @@ function getInitials(name: string) {
 }
 
 export default function SellerMessagesPage() {
-    // Fetch all chats where this seller is a participant
+    // Fetch all chats where this seller is a participant (mall store chats)
     const { data: chatsData, isLoading } = useQuery({
         queryKey: ['seller-chats'],
         queryFn: () =>
-            api.get('/marketplace/chats/').then(r => r.data?.data?.results || r.data?.results || r.data || []),
+            api.get('/seller/chats/').then(r => normalizeListResponse<ChatItem>(r.data?.data ?? r.data))
+                .catch(() => api.get('/marketplace/chats/').then(r => normalizeListResponse<ChatItem>(r.data?.data ?? r.data))),
         staleTime: 30_000,
         refetchInterval: 60_000,
     })
 
-    const chats: ChatItem[] = chatsData || []
+    const chats = Array.isArray(chatsData)
+        ? chatsData
+        : Array.isArray((chatsData as { results?: unknown })?.results)
+        ? (chatsData as { results: ChatItem[] }).results
+        : Array.isArray((chatsData as { data?: unknown })?.data)
+        ? (chatsData as { data: ChatItem[] }).data
+        : []
 
     return (
         <div>
@@ -70,7 +78,7 @@ export default function SellerMessagesPage() {
                         return (
                             <Link
                                 key={chat.id}
-                                href={`/marketplace/chat?id=${chat.id}`}
+                                href={`/account/messages/mall/${chat.id}`}
                                 className="flex items-center gap-3 bg-white border border-gray-100 rounded-xl p-4 hover:border-[#4C3B8A]/30 hover:shadow-sm transition-all group"
                             >
                                 {/* Buyer avatar */}

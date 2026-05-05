@@ -6,6 +6,7 @@ import { Navbar } from './Navbar'
 import { SecondaryNav } from './SecondaryNav'
 import { MobileBottomNav } from './MobileBottomNav'
 import { Footer } from './Footer'
+import { ProfileCompletionBanner } from './ProfileCompletionBanner'
 import { usePathname } from 'next/navigation'
 
 interface MainLayoutProps {
@@ -28,9 +29,9 @@ export function MainLayout({ children }: MainLayoutProps) {
         return () => window.removeEventListener('resize', update)
     }, [])
 
-    // Exclude global layout wrappers for admin dashboard routes
-    // as it manages its own internal Sidebar and top bar.
-    if (pathname && pathname.startsWith('/admin')) {
+    // Exclude global layout wrappers for admin and seller dashboard routes —
+    // both manage their own internal Sidebar and top bar.
+    if (pathname && (pathname.startsWith('/admin') || pathname.startsWith('/seller'))) {
         return <>{children}</>
     }
 
@@ -39,6 +40,7 @@ export function MainLayout({ children }: MainLayoutProps) {
             {/* Fixed Header Stack */}
             <header ref={headerRef} className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm">
                 <AnnouncementBar />
+                <ProfileCompletionBanner />
                 <Navbar />
                 <div className="hidden sm:block">
                     <SecondaryNav />

@@ -11,6 +11,7 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     ChangePasswordView,
+    ConfirmEmailChangeView,
     ForgotPasswordView,
     LoginView,
     LogoutView,
@@ -19,6 +20,7 @@ from .views import (
     OTPSendView,
     OTPVerifyView,
     RegisterView,
+    RequestEmailChangeView,
     ResendVerificationView,
     ResetPasswordView,
     CookieTokenRefreshView,
@@ -28,6 +30,7 @@ from .verification_views import (
     MyVerificationStatusView,
     SubmitVerificationView,
 )
+from .google_oauth import GoogleAuthView
 from .address_views import UserAddressViewSet
 from .session_views import (
     SessionListView,
@@ -56,9 +59,16 @@ urlpatterns = [
     path('otp/send/', OTPSendView.as_view(), name='otp-send'),
     path('otp/verify/', OTPVerifyView.as_view(), name='otp-verify'),
 
+    # Social Login — Google OAuth
+    path('google/', GoogleAuthView.as_view(), name='google-auth'),
+
     # Profile (Phase 02)
     path('me/', MeView.as_view(), name='me'),
     path('me/update/', MeUpdateView.as_view(), name='me-update'),
+
+    # Email change (verification-based)
+    path('me/email/request-change/', RequestEmailChangeView.as_view(), name='email-request-change'),
+    path('me/email/confirm-change/', ConfirmEmailChangeView.as_view(), name='email-confirm-change'),
 
     # Password (Phase 02)
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),

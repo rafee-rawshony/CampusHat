@@ -56,6 +56,12 @@ class Refund(BaseModel):
         null=True, blank=True, related_name='refunds_reviewed',
     )
     rejection_reason = models.TextField(blank=True, null=True)
+    seller_response = models.CharField(
+        max_length=20,
+        choices=[('accepted', 'Accepted'), ('disputed', 'Disputed')],
+        null=True, blank=True,
+    )
+    seller_response_note = models.TextField(null=True, blank=True)
     approved_at = models.DateTimeField(blank=True, null=True)
     processed_at = models.DateTimeField(blank=True, null=True)
 

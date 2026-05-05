@@ -5,7 +5,7 @@ from decimal import Decimal
 from rest_framework import serializers
 
 from .models import Coupon, CouponUsage, FlashSale, FlashSaleProduct
-
+from apps.mall.serializers import StoreProductListSerializer
 
 # ── Coupon ──
 
@@ -51,15 +51,11 @@ class CouponValidateResponseSerializer(serializers.Serializer):
 # ── Flash Sale ──
 
 class FlashSaleProductSerializer(serializers.ModelSerializer):
-    product_name = serializers.CharField(source='product.name', read_only=True)
-    product_slug = serializers.CharField(source='product.slug', read_only=True)
-    original_price = serializers.DecimalField(
-        source='product.price', max_digits=10, decimal_places=2, read_only=True,
-    )
+    product = StoreProductListSerializer(read_only=True)
 
     class Meta:
         model = FlashSaleProduct
-        fields = ['id', 'product', 'product_name', 'product_slug', 'original_price', 'override_price']
+        fields = ['id', 'product', 'override_price']
         read_only_fields = ['id']
 
 

@@ -15,7 +15,7 @@ export default function SellerProductsPage() {
     const { data } = useQuery({
         queryKey: ['seller-products'],
         queryFn: () => api.get('/seller/products/').then(r => r.data?.results || r.data || []),
-        staleTime: 0,
+        staleTime: 60_000,
     })
 
     const products: any[] = data || []

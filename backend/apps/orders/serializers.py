@@ -62,22 +62,46 @@ class OrderStatusHistorySerializer(serializers.ModelSerializer):
 # =============================================================================
 
 class OrderListSerializer(serializers.ModelSerializer):
-    """Buyer's order list — summary view."""
+    """Buyer's order list — summary view with up to 3 item previews."""
 
     store_name = serializers.CharField(source='store.store_name', read_only=True)
     item_count = serializers.SerializerMethodField()
+    items_preview = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
         fields = [
             'id', 'order_number', 'store', 'store_name',
             'total_amount', 'payment_status', 'order_status',
-            'item_count', 'created_at',
+            'item_count', 'items_preview',
+            'cancelled_at', 'cancellation_reason',
+            'created_at',
         ]
         read_only_fields = fields
 
     def get_item_count(self, obj):
         return obj.items.count()
+
+    def get_items_preview(self, obj):
+        """First 3 items — name, qty, image — for the order list card."""
+        previews = []
+        for item in obj.items.all()[:3]:
+            image_url = None
+            # Try variant image first, then product main image. Wrapped in
+            # try/except because field names vary across product models.
+            try:
+                if item.variant and getattr(item.variant, 'image_url', None):
+                    image_url = item.variant.image_url
+                elif item.product and getattr(item.product, 'main_image_url', None):
+                    image_url = item.product.main_image_url
+            except Exception:
+                image_url = None
+            previews.append({
+                'product_name': item.product_name_snapshot,
+                'quantity': item.quantity,
+                'image_url': image_url,
+            })
+        return previews
 
 
 class OrderDetailSerializer(serializers.ModelSerializer):

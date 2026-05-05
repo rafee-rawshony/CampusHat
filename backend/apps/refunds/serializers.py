@@ -11,7 +11,8 @@ class RefundListSerializer(serializers.ModelSerializer):
         model = Refund
         fields = [
             'id', 'order', 'order_number', 'refund_amount',
-            'status', 'reason', 'created_at',
+            'status', 'reason', 'seller_response', 'seller_response_note',
+            'created_at',
         ]
         read_only_fields = fields
 
@@ -30,6 +31,7 @@ class RefundDetailSerializer(serializers.ModelSerializer):
             'refund_amount', 'commission_reversal_amount',
             'seller_deduction_amount', 'refund_method',
             'status', 'reviewed_by_email', 'rejection_reason',
+            'seller_response', 'seller_response_note',
             'approved_at', 'processed_at', 'created_at',
         ]
         read_only_fields = fields
@@ -38,6 +40,9 @@ class RefundDetailSerializer(serializers.ModelSerializer):
 class RefundRequestSerializer(serializers.Serializer):
     order_id = serializers.UUIDField()
     reason = serializers.CharField()
+    evidence_urls = serializers.ListField(
+        child=serializers.URLField(), required=False, max_length=5,
+    )
 
 
 class AdminRefundActionSerializer(serializers.Serializer):

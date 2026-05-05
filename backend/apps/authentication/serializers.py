@@ -7,6 +7,7 @@ All password handling uses Django's built-in hashing.
 
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
+from django.db import models
 from rest_framework import serializers
 from apps.universities.models import University
 from core.validators import validate_document_file
@@ -179,15 +180,21 @@ class UserDetailSerializer(serializers.ModelSerializer):
     verification_status = serializers.SerializerMethodField()
     verification_rejection_reason = serializers.SerializerMethodField()
     seller_application_status = serializers.SerializerMethodField()
+    is_profile_complete = serializers.BooleanField(read_only=True)
+    is_checkout_ready = serializers.BooleanField(read_only=True)
+    profile_completion_percent = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = User
         fields = [
-            'id', 'email', 'full_name', 'phone', 'profile_picture',
+            'id', 'email', 'university_email',
+            'full_name', 'first_name', 'last_name',
+            'phone', 'birthday', 'gender', 'profile_picture',
             'role', 'university_id', 'university_name',
             'is_email_verified', 'is_phone_verified',
             'reputation_score', 'verification_status',
             'verification_rejection_reason', 'seller_application_status',
+            'is_profile_complete', 'is_checkout_ready', 'profile_completion_percent',
             'last_login', 'created_at', 'updated_at',
         ]
         read_only_fields = fields
@@ -230,12 +237,21 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
 class UserUpdateSerializer(serializers.ModelSerializer):
     """
-    Serializer for updating own profile: name, phone, profile picture.
+    Serializer for updating own profile.
+
+    Editable fields: name (first/last/full), phone, birthday, gender,
+    profile_picture, and university_email. Login email is intentionally
+    NOT here — it changes through the dedicated email-change flow with
+    verification (see RequestEmailChangeView).
     """
 
     class Meta:
         model = User
-        fields = ['full_name', 'phone', 'profile_picture']
+        fields = [
+            'full_name', 'first_name', 'last_name',
+            'phone', 'birthday', 'gender', 'profile_picture',
+            'university_email',
+        ]
 
     def validate_phone(self, value):
         """Ensure phone number is unique if provided."""
@@ -246,6 +262,73 @@ class UserUpdateSerializer(serializers.ModelSerializer):
                     'This phone number is already in use.'
                 )
         return value
+
+    def validate_university_email(self, value):
+        """Empty string -> None. Reject duplicates and clashes with login emails."""
+        if not value:
+            return None
+        value = value.lower().strip()
+        # Cannot reuse another user's login email or university_email.
+        clash = User.objects.filter(
+            models.Q(email__iexact=value) | models.Q(university_email__iexact=value)
+        ).exclude(id=self.instance.id)
+        if clash.exists():
+            raise serializers.ValidationError(
+                'This email is already in use by another account.'
+            )
+        return value
+
+    def update(self, instance, validated_data):
+        # Keep full_name in sync with first_name + last_name when both are set.
+        first = validated_data.get('first_name', instance.first_name)
+        last = validated_data.get('last_name', instance.last_name)
+        if first and last and 'full_name' not in validated_data:
+            validated_data['full_name'] = f'{first.strip()} {last.strip()}'
+        return super().update(instance, validated_data)
+
+
+# =============================================================================
+# EMAIL CHANGE
+# =============================================================================
+
+class RequestEmailChangeSerializer(serializers.Serializer):
+    """
+    Body for POST /auth/me/email/request-change/.
+
+    The user has to re-prove identity by entering their current password
+    so that a stolen access token alone can't take over the account.
+    """
+
+    new_email = serializers.EmailField()
+    current_password = serializers.CharField(write_only=True)
+
+    def validate_current_password(self, value):
+        user = self.context['request'].user
+        if not user.check_password(value):
+            raise serializers.ValidationError('Current password is incorrect.')
+        return value
+
+    def validate_new_email(self, value):
+        value = value.lower().strip()
+        user = self.context['request'].user
+        if value == (user.email or '').lower():
+            raise serializers.ValidationError(
+                'This is already your current email address.'
+            )
+        # Block if the new email belongs to a different account already.
+        from .models import User as _User
+        clash = _User.objects.filter(email__iexact=value).exclude(id=user.id)
+        if clash.exists():
+            raise serializers.ValidationError(
+                'This email is already in use by another account.'
+            )
+        return value
+
+
+class ConfirmEmailChangeSerializer(serializers.Serializer):
+    """Body for POST /auth/me/email/confirm-change/."""
+
+    token = serializers.CharField(max_length=128)
 
 
 # =============================================================================

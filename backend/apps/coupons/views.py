@@ -31,6 +31,24 @@ from .serializers import (
 # COUPON VALIDATION
 # ═══════════════════════════════════════════════════════════════════
 
+class ActiveCouponsListView(APIView):
+    """GET /api/v1/coupons/active/"""
+
+    permission_classes = []
+
+    def get(self, request):
+        from django.utils import timezone
+        now = timezone.now()
+        coupons = Coupon.objects.filter(
+            is_active=True, valid_from__lte=now, expires_at__gte=now,
+        ).select_related('store').order_by('-created_at')
+
+        return Response({
+            'success': True,
+            'data': CouponSerializer(coupons, many=True).data,
+        })
+
+
 class CouponValidateView(APIView):
     """GET /api/v1/coupons/validate/?code=XXX&cart_total=YYY"""
 
@@ -150,10 +168,10 @@ class ActiveFlashSalesView(APIView):
         now = timezone.now()
         sales = FlashSale.objects.filter(
             is_active=True, starts_at__lte=now, ends_at__gte=now,
-        ).select_related('store').order_by('-starts_at')
+        ).select_related('store').prefetch_related('products', 'products__product').order_by('-starts_at')
 
         return Response({
-            'success': True, 'data': FlashSaleListSerializer(sales, many=True).data,
+            'success': True, 'data': FlashSaleDetailSerializer(sales, many=True).data,
         })
 
 

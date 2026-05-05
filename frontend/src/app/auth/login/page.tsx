@@ -23,6 +23,7 @@ import {
     verifyOtp,
 } from '@/services/auth.service'
 import { useAuthStore } from '@/stores/auth.store'
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton'
 
 // OTP login is backed by /auth/otp/send/ and /auth/otp/verify/ on the backend.
 const OTP_LOGIN_ENABLED = true
@@ -68,9 +69,9 @@ export default function LoginPage() {
     useEffect(() => {
         if (_hasHydrated && isAuthenticated && user) {
             const searchParams = new URLSearchParams(window.location.search)
-            window.location.href = getRoleRedirect(user, searchParams.get('redirect'))
+            router.replace(getRoleRedirect(user, searchParams.get('redirect')))
         }
-    }, [_hasHydrated, isAuthenticated, user])
+    }, [_hasHydrated, isAuthenticated, user, router])
 
     useEffect(() => {
         if (sessionStorage.getItem('session_expired')) {
@@ -97,13 +98,37 @@ export default function LoginPage() {
             const { user, access_token } = await loginApi(data)
             setAccessToken(access_token)
             setUser(user)
+            loginForm.reset()
             toast.success('Welcome back!')
 
             const searchParams = new URLSearchParams(window.location.search)
-            window.location.href = getRoleRedirect(user, searchParams.get('redirect'))
+            router.push(getRoleRedirect(user, searchParams.get('redirect')))
         } catch (error: any) {
-            const message = error.response?.data?.message || error.response?.data?.detail || 'Login failed'
-            if (message.includes('not verified') || error.response?.data?.code === 'EMAIL_NOT_VERIFIED') {
+            // DRF wraps validation errors in `errors.non_field_errors` — read those
+            // first so the user sees the real reason (e.g. "Please verify your email")
+            // instead of the generic "Validation failed" wrapper message.
+            const errorsObj = error.response?.data?.errors || {}
+            const nonField = errorsObj.non_field_errors?.[0]
+            const fieldFirst = (() => {
+                for (const key of Object.keys(errorsObj)) {
+                    const val = errorsObj[key]
+                    if (Array.isArray(val) && val.length) return val[0]
+                }
+                return null
+            })()
+            const message =
+                nonField ||
+                fieldFirst ||
+                error.response?.data?.message ||
+                error.response?.data?.detail ||
+                'Login failed'
+
+            const lc = String(message).toLowerCase()
+            if (
+                lc.includes('verify') ||
+                lc.includes('not verified') ||
+                error.response?.data?.code === 'EMAIL_NOT_VERIFIED'
+            ) {
                 setEmailNotVerified(true)
                 setUnverifiedEmail(data.email)
             }
@@ -135,10 +160,12 @@ export default function LoginPage() {
             })
             setAccessToken(access_token)
             setUser(user)
+            otpForm.reset()
+            setOtp('')
             toast.success('Welcome!')
 
             const searchParams = new URLSearchParams(window.location.search)
-            window.location.href = getRoleRedirect(user, searchParams.get('redirect'))
+            router.push(getRoleRedirect(user, searchParams.get('redirect')))
         } catch (error: any) {
             toast.error(error.response?.data?.message || 'Invalid OTP')
         } finally {
@@ -219,13 +246,14 @@ export default function LoginPage() {
 
                                     {/* Password Login */}
                                     <TabsContent value="password">
-                                        <form onSubmit={loginForm.handleSubmit(handlePasswordLogin)} className="space-y-4">
+                                        <form onSubmit={loginForm.handleSubmit(handlePasswordLogin)} className="space-y-4" autoComplete="off">
                                             <div className="space-y-2">
                                                 <Label htmlFor="email">Email</Label>
                                                 <Input
                                                     id="email"
                                                     type="email"
-                                                    placeholder="your@university.edu"
+                                                    placeholder="Enter your Email or Student Email"
+                                                    autoComplete="off"
                                                     {...loginForm.register('email')}
                                                 />
                                                 {loginForm.formState.errors.email && (
@@ -239,6 +267,7 @@ export default function LoginPage() {
                                                         id="password"
                                                         type={showPassword ? 'text' : 'password'}
                                                         placeholder="••••••••"
+                                                        autoComplete="new-password"
                                                         {...loginForm.register('password')}
                                                     />
                                                     <button
@@ -270,10 +299,10 @@ export default function LoginPage() {
                                         {!otpSent ? (
                                             <form onSubmit={otpForm.handleSubmit(handleSendOtp)} className="space-y-4">
                                                 <div className="space-y-2">
-                                                    <Label htmlFor="identifier">Email or Phone</Label>
+                                                    <Label htmlFor="identifier">Email</Label>
                                                     <Input
                                                         id="identifier"
-                                                        placeholder="Email or phone number"
+                                                        placeholder="Enter your email"
                                                         {...otpForm.register('identifier')}
                                                     />
                                                     {otpForm.formState.errors.identifier && (
@@ -311,30 +340,16 @@ export default function LoginPage() {
                                     )}
                                 </Tabs>
 
-                                {/* Join as Seller */}
-                                <div className="mt-4">
-                                    <Button variant="outline" className="w-full gap-2" asChild>
-                                        <Link href="/auth/register?seller=true">
-                                            <Store className="h-4 w-4" /> Join as Seller
-                                        </Link>
-                                    </Button>
-                                </div>
-
-                                {/* Social Login */}
+                                {/* Social Login — Google */}
                                 <div className="mt-6">
-                                    <div className="relative">
-                                        <Separator />
-                                        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-surface-card px-2 text-xs text-muted-foreground">
-                                            or continue with
+                                    <div className="relative flex items-center my-4">
+                                        <Separator className="flex-1" />
+                                        <span className="px-3 text-xs text-muted-foreground bg-white">
+                                            or
                                         </span>
+                                        <Separator className="flex-1" />
                                     </div>
-                                    <div className="flex justify-center gap-4 mt-4">
-                                        {['Google', 'Apple', 'Facebook'].map((provider) => (
-                                            <Button key={provider} variant="outline" size="icon" className="rounded-full">
-                                                <span className="text-xs font-semibold">{provider[0]}</span>
-                                            </Button>
-                                        ))}
-                                    </div>
+                                    <GoogleSignInButton mode="signin" />
                                 </div>
                             </TabsContent>
                         </Tabs>

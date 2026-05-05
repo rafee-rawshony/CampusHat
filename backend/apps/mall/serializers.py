@@ -4,11 +4,8 @@ Mall Serializers.
 Covers categories, products, variants, reviews, and cart operations.
 """
 
-import uuid
-
 from decimal import Decimal
 
-from django.conf import settings
 from django.db import transaction
 from rest_framework import serializers
 
@@ -164,7 +161,7 @@ class ProductVariantCreateUpdateSerializer(serializers.ModelSerializer):
         return value
 
 
-from core.validators import validate_image_file, sanitize_html
+from core.validators import sanitize_html
 
 # =============================================================================
 # PRODUCT SERIALIZERS
@@ -178,6 +175,7 @@ class StoreProductListSerializer(serializers.ModelSerializer):
     )
     is_in_stock = serializers.BooleanField(read_only=True)
     primary_image_url = serializers.SerializerMethodField()
+    images = serializers.SerializerMethodField()
     store = MiniStoreSerializer(read_only=True)
     category_name = serializers.CharField(
         source='category.name', read_only=True, default=None,
@@ -191,8 +189,8 @@ class StoreProductListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'slug', 'base_price', 'discount_price',
             'current_price', 'sku', 'stock_quantity', 'is_in_stock',
-            'is_featured', 'rating_avg', 'review_count', 'sold_count',
-            'primary_image_url', 'store', 'category_name', 'brand_name',
+            'is_active', 'is_featured', 'rating_avg', 'review_count', 'sold_count',
+            'primary_image_url', 'images', 'store', 'category_name', 'brand_name',
             'tags', 'has_variants', 'created_at',
         ]
         read_only_fields = fields
@@ -204,6 +202,10 @@ class StoreProductListSerializer(serializers.ModelSerializer):
         first = obj.images.order_by('sort_order').first()
         return first.image_url if first else None
 
+    def get_images(self, obj):
+        imgs = obj.images.order_by('sort_order')[:3]
+        return StoreProductImageSerializer(imgs, many=True).data
+
 
 class StoreProductDetailSerializer(serializers.ModelSerializer):
     """Full product detail serializer."""
@@ -212,7 +214,7 @@ class StoreProductDetailSerializer(serializers.ModelSerializer):
         max_digits=10, decimal_places=2, read_only=True,
     )
     is_in_stock = serializers.BooleanField(read_only=True)
-    all_images = StoreProductImageSerializer(source='images', many=True, read_only=True)
+    images = StoreProductImageSerializer(source='images', many=True, read_only=True)
     variants = serializers.SerializerMethodField()
     store = StoreDetailForProductSerializer(read_only=True)
     category_name = serializers.CharField(
@@ -229,7 +231,7 @@ class StoreProductDetailSerializer(serializers.ModelSerializer):
             'current_price', 'sku', 'stock_quantity', 'is_in_stock',
             'is_featured', 'rating_avg', 'review_count', 'sold_count',
             'description', 'short_description', 'weight_grams',
-            'all_images', 'variants', 'is_active', 'has_variants',
+            'images', 'variants', 'is_active', 'has_variants',
             'tags', 'store', 'category_name', 'brand_name',
             'view_count', 'created_at',
         ]
@@ -247,12 +249,11 @@ class StoreProductDetailSerializer(serializers.ModelSerializer):
 class StoreProductCreateUpdateSerializer(serializers.ModelSerializer):
     """Seller-only product create/update serializer."""
 
-    images = serializers.ListField(
-        child=serializers.ImageField(max_length=500, validators=[validate_image_file]),
-        required=False,
-        write_only=True,
-        max_length=8,
-    )
+    # Frontend uploads images first via /uploads/ and gets back URL strings.
+    # We accept those URLs directly here — no raw file upload needed.
+    image_url_1 = serializers.URLField(required=False, allow_blank=True, write_only=True, default='')
+    image_url_2 = serializers.URLField(required=False, allow_blank=True, write_only=True, default='')
+    image_url_3 = serializers.URLField(required=False, allow_blank=True, write_only=True, default='')
 
     class Meta:
         model = StoreProduct
@@ -260,7 +261,7 @@ class StoreProductCreateUpdateSerializer(serializers.ModelSerializer):
             'category', 'brand', 'name', 'description', 'short_description',
             'base_price', 'discount_price', 'sku', 'stock_quantity',
             'has_variants', 'is_featured', 'is_active', 'weight_grams',
-            'tags', 'images',
+            'tags', 'image_url_1', 'image_url_2', 'image_url_3',
         ]
 
     def validate_tags(self, value):
@@ -282,82 +283,46 @@ class StoreProductCreateUpdateSerializer(serializers.ModelSerializer):
             )
         return value
 
-    def _upload_image(self, image_file, product_id):
-        """Upload image to S3 or save locally."""
-        try:
-            aws_key = getattr(settings, 'AWS_ACCESS_KEY_ID', '')
-            if not aws_key:
-                raise ValueError("S3 not configured")
-
-            import boto3
-            s3_client = boto3.client(
-                's3',
-                aws_access_key_id=getattr(settings, 'AWS_ACCESS_KEY_ID', ''),
-                aws_secret_access_key=getattr(settings, 'AWS_SECRET_ACCESS_KEY', ''),
-                region_name=getattr(settings, 'AWS_S3_REGION_NAME', 'ap-southeast-1'),
-            )
-            bucket = getattr(settings, 'AWS_STORAGE_BUCKET_NAME', 'campushat-media')
-            ext = image_file.name.rsplit('.', 1)[-1] if '.' in image_file.name else 'jpg'
-            key = f'mall/products/{product_id}/{uuid.uuid4().hex}.{ext}'
-            s3_client.upload_fileobj(
-                image_file, bucket, key,
-                ExtraArgs={'ContentType': image_file.content_type},
-            )
-            domain = getattr(settings, 'AWS_S3_CUSTOM_DOMAIN', '')
-            if domain:
-                return f'https://{domain}/{key}'
-            return f'https://{bucket}.s3.amazonaws.com/{key}'
-        except Exception:
-            import os
-            upload_dir = os.path.join(
-                settings.BASE_DIR, 'mediafiles', 'mall', 'products', str(product_id),
-            )
-            os.makedirs(upload_dir, exist_ok=True)
-            ext = image_file.name.rsplit('.', 1)[-1] if '.' in image_file.name else 'jpg'
-            file_name = f'{uuid.uuid4().hex}.{ext}'
-            file_path = os.path.join(upload_dir, file_name)
-            with open(file_path, 'wb+') as dest:
-                for chunk in image_file.chunks():
-                    dest.write(chunk)
-            return f'/media/mall/products/{product_id}/{file_name}'
-
-    def create(self, validated_data):
-        images = validated_data.pop('images', [])
-        request = self.context['request']
-        store = request.user.seller_profile.store
-
-        with transaction.atomic():
-            product = StoreProduct.objects.create(
-                store=store, **validated_data,
-            )
-            for i, image_file in enumerate(images[:8]):
-                url = self._upload_image(image_file, str(product.id))
+    def _save_images(self, product, image_urls):
+        """Create StoreProductImage records from a list of URL strings."""
+        for i, url in enumerate(image_urls):
+            if url:
                 StoreProductImage.objects.create(
                     product=product,
                     image_url=url,
                     sort_order=i,
                     is_primary=(i == 0),
                 )
+
+    def create(self, validated_data):
+        image_urls = [
+            validated_data.pop('image_url_1', ''),
+            validated_data.pop('image_url_2', ''),
+            validated_data.pop('image_url_3', ''),
+        ]
+        request = self.context['request']
+        store = request.user.seller_profile.store
+
+        with transaction.atomic():
+            product = StoreProduct.objects.create(store=store, **validated_data)
+            self._save_images(product, image_urls)
         return product
 
     def update(self, instance, validated_data):
-        images = validated_data.pop('images', None)
+        image_urls = [
+            validated_data.pop('image_url_1', None),
+            validated_data.pop('image_url_2', None),
+            validated_data.pop('image_url_3', None),
+        ]
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
 
-        if images is not None:
-            # Replace all images
+        # Only replace images if at least one URL field was sent in the request
+        if any(url is not None for url in image_urls):
             instance.images.all().delete()
-            for i, image_file in enumerate(images[:8]):
-                url = self._upload_image(image_file, str(instance.id))
-                StoreProductImage.objects.create(
-                    product=instance,
-                    image_url=url,
-                    sort_order=i,
-                    is_primary=(i == 0),
-                )
+            self._save_images(instance, [url or '' for url in image_urls])
         return instance
 
 
@@ -376,7 +341,7 @@ class ProductReviewSerializer(serializers.ModelSerializer):
         model = ProductReview
         fields = [
             'id', 'reviewer', 'reviewer_name', 'rating', 'comment',
-            'seller_response', 'seller_responded_at',
+            'evidence_urls', 'seller_response', 'seller_responded_at',
             'is_visible', 'created_at',
         ]
         read_only_fields = fields
@@ -387,6 +352,9 @@ class ProductReviewCreateSerializer(serializers.Serializer):
 
     rating = serializers.IntegerField(min_value=1, max_value=5)
     comment = serializers.CharField(required=False, allow_blank=True)
+    evidence_urls = serializers.ListField(
+        child=serializers.URLField(), required=False, max_length=5,
+    )
     order_item_id = serializers.UUIDField(required=False)
 
     def validate_comment(self, value):
@@ -401,6 +369,7 @@ class ProductReviewCreateSerializer(serializers.Serializer):
             reviewer=request.user,
             rating=validated_data['rating'],
             comment=validated_data.get('comment', ''),
+            evidence_urls=validated_data.get('evidence_urls', []),
             order_item_id=validated_data.get('order_item_id'),
         )
         return review
@@ -570,3 +539,67 @@ class UpdateCartItemSerializer(serializers.Serializer):
                         f'Only {item.product.stock_quantity} in stock.'
                     )
         return value
+
+
+# =============================================================================
+# PRODUCT Q&A SERIALIZERS
+# =============================================================================
+
+from .models import ProductQuestion
+
+
+class ProductQuestionSerializer(serializers.ModelSerializer):
+    """Read-only Q&A list serializer."""
+
+    asker_name = serializers.CharField(
+        source='asker.full_name', read_only=True,
+    )
+    answerer_name = serializers.CharField(
+        source='answered_by.full_name', read_only=True, default=None,
+    )
+
+    class Meta:
+        model = ProductQuestion
+        fields = [
+            'id', 'asker', 'asker_name', 'question', 'answer',
+            'answered_by', 'answerer_name', 'answered_at',
+            'vote_count', 'created_at',
+        ]
+        read_only_fields = fields
+
+
+class ProductQuestionCreateSerializer(serializers.Serializer):
+    """Create a question on a product."""
+
+    question = serializers.CharField(max_length=500)
+
+    def validate_question(self, value):
+        return sanitize_html(value)
+
+    def create(self, validated_data):
+        request = self.context['request']
+        product = self.context['product']
+
+        return ProductQuestion.objects.create(
+            product=product,
+            asker=request.user,
+            question=validated_data['question'],
+        )
+
+
+class SellerAnswerQuestionSerializer(serializers.Serializer):
+    """Seller answers a question."""
+
+    answer = serializers.CharField()
+
+    def validate_answer(self, value):
+        return sanitize_html(value)
+
+    def update(self, instance, validated_data):
+        from django.utils import timezone
+        instance.answer = validated_data['answer']
+        instance.answered_by = self.context['request'].user
+        instance.answered_at = timezone.now()
+        instance.save(update_fields=['answer', 'answered_by', 'answered_at'])
+        return instance
+

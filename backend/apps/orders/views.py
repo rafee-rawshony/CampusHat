@@ -49,8 +49,31 @@ class CheckoutView(GenericAPIView):
     serializer_class = CheckoutSerializer
 
     def post(self, request):
+        # Checkout gate — Mall purchases require name, phone, birthday,
+        # gender, AND a saved delivery address. Defined in User.is_checkout_ready.
+        if not request.user.is_checkout_ready:
+            return Response(
+                {
+                    'success': False,
+                    'message': 'Please complete your profile (name, phone, birthday, gender) and add a delivery address before checking out.',
+                    'code': 'PROFILE_INCOMPLETE',
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        # Address is required for Mall delivery — we don't accept "no address" checkouts.
+        if not serializer.validated_data.get('delivery_address_id'):
+            return Response(
+                {
+                    'success': False,
+                    'message': 'A delivery address is required to checkout.',
+                    'code': 'ADDRESS_REQUIRED',
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         try:
             cart = Cart.objects.get(user=request.user)
@@ -102,7 +125,25 @@ class BuyerOrderListView(GenericAPIView):
     def get(self, request):
         orders = Order.objects.filter(
             buyer=request.user,
-        ).select_related('store').order_by('-created_at')
+        ).select_related('store').prefetch_related('items').order_by('-created_at')
+
+        # Optional status filter — Daraz-style tabs send ?status=to_pay,to_ship,etc.
+        # We map UI tab names to actual order_status / payment_status combinations.
+        status_filter = request.query_params.get('status', '').lower().strip()
+        if status_filter == 'to_pay':
+            orders = orders.filter(payment_status='pending').exclude(order_status='cancelled')
+        elif status_filter == 'to_ship':
+            orders = orders.filter(
+                payment_status='paid', order_status__in=['placed', 'confirmed', 'packed'],
+            )
+        elif status_filter == 'to_receive':
+            orders = orders.filter(order_status='shipped')
+        elif status_filter == 'completed':
+            orders = orders.filter(order_status='delivered')
+        elif status_filter == 'cancelled':
+            orders = orders.filter(order_status='cancelled')
+        elif status_filter == 'refunded':
+            orders = orders.filter(payment_status__in=['refunded', 'partially_refunded'])
 
         paginator = CampusHatPagination()
         page = paginator.paginate_queryset(orders, request)

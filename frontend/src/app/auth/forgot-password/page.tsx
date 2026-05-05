@@ -147,6 +147,8 @@ export default function ForgotPasswordPage() {
                                         {...resetForm.register('otp')}
                                         placeholder="000000"
                                         maxLength={6}
+                                        inputMode="numeric"
+                                        autoComplete="one-time-code"
                                         className="bg-gray-50 text-center text-xl tracking-[0.5em] font-bold"
                                     />
                                     {resetForm.formState.errors.otp && (

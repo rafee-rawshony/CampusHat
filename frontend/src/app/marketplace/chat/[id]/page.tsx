@@ -52,6 +52,7 @@ export default function ChatDetailPage() {
     const chatWindowData = chatData
         ? {
               id: chatData.id || chatId,
+              seller_id: chatData.seller || '',  // UUID of listing owner from API
               listing: {
                   id: chatData.listing?.id || '',
                   title: chatData.listing?.title || '',

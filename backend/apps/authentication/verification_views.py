@@ -36,6 +36,17 @@ class SubmitVerificationView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        # Require complete profile before submitting verification.
+        if not request.user.is_profile_complete:
+            return Response(
+                {
+                    'success': False,
+                    'message': 'Please complete your profile (name, phone, birthday, gender, and address) before submitting for verification.',
+                    'code': 'PROFILE_INCOMPLETE',
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         serializer = SubmitVerificationSerializer(
             data=request.data,
             context={'request': request},

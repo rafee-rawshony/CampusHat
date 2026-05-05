@@ -81,6 +81,8 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # GZip compresses all API responses by 60-80%. Must come BEFORE CommonMiddleware.
+    'django.middleware.gzip.GZipMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -141,6 +143,10 @@ DATABASES = {
         'PASSWORD': config('DB_PASSWORD', default='campushat_password'),
         'HOST': config('DB_HOST', default='localhost'),
         'PORT': config('DB_PORT', default='5432'),
+        # Persistent connection pooling — reuses DB connections for 60s.
+        # Saves 10-50ms per request vs opening a new connection every time.
+        'CONN_MAX_AGE': 60,
+        'CONN_HEALTH_CHECKS': True,
         'OPTIONS': {
             'connect_timeout': 10,
         },
@@ -342,15 +348,23 @@ AWS_S3_FILE_OVERWRITE = False
 # EMAIL
 # =============================================================================
 
-EMAIL_BACKEND = config(
-    'EMAIL_BACKEND',
-    default='django.core.mail.backends.smtp.EmailBackend'
-)
-EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
-EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
-EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+# Treat empty/whitespace env values as "not set" so defaults apply.
+# docker-compose env_file passes blank values as "" rather than unsetting them,
+# which breaks `cast=int` / `cast=bool` if we use `config()` directly.
+def _email_env(key, default, cast=str):
+    raw = config(key, default=None)
+    if raw is None or str(raw).strip() == '':
+        return default
+    if cast is bool:
+        return str(raw).strip().lower() in ('1', 'true', 'yes', 'on')
+    return cast(raw)
+
+EMAIL_BACKEND = _email_env('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = _email_env('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = _email_env('EMAIL_PORT', 587, cast=int)
+EMAIL_USE_TLS = _email_env('EMAIL_USE_TLS', True, cast=bool)
+EMAIL_HOST_USER = _email_env('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = _email_env('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = config(
     'DEFAULT_FROM_EMAIL',
     default='CampusHat <noreply@campushat.com>'
@@ -405,3 +419,11 @@ SPECTACULAR_SETTINGS = {
 
 SITE_URL = config('SITE_URL', default='http://localhost:8000')
 FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
+
+# =============================================================================
+# GOOGLE OAUTH (Sign in with Google)
+# =============================================================================
+
+# OAuth 2.0 Client ID from Google Cloud Console.
+# Used to verify ID tokens received from the frontend.
+GOOGLE_OAUTH_CLIENT_ID = config('GOOGLE_OAUTH_CLIENT_ID', default='')

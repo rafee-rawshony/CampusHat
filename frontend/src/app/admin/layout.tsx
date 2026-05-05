@@ -57,40 +57,43 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             router.push('/unauthorized')
             return
         }
+    }, [isAuthenticated, isAdmin, isModerator, router, _hasHydrated])
 
-        // Moderators: fetch their specific permissions
+    // Moderator permissions — only fetch for non-admin moderators (admins have all perms)
+    useEffect(() => {
+        if (!_hasHydrated || !isAuthenticated) return
         if (isModerator() && !isAdmin()) {
             api.get('/admin/my-permissions/')
                 .then(r => setPermissions(r.data?.data?.permissions || r.data?.permissions || []))
                 .catch(() => setPermissions([]))
         }
+    }, [_hasHydrated, isAuthenticated, isAdmin, isModerator])
 
-        // Fetch pending approval counts for badge display
+    // Pending counts — single endpoint returns all 3 counts in one round-trip.
+    // Deferred 500ms so it doesn't block first paint.
+    useEffect(() => {
+        if (!_hasHydrated || !isAuthenticated) return
+        if (!isAdmin() && !isModerator()) return
+
         const fetchPendingCounts = async () => {
             try {
-                const results = await Promise.allSettled([
-                    api.get('/admin/verifications/?page_size=1'),
-                    api.get('/admin/sellers/pending/?page_size=1'),
-                    api.get('/admin/marketplace/pending/?page_size=1'),
-                ])
-                let total = 0
-                results.forEach(result => {
-                    if (result.status === 'fulfilled') {
-                        const count = result.value.data?.data?.pagination?.count
-                            ?? result.value.data?.count
-                            ?? result.value.data?.data?.length
-                            ?? 0
-                        total += count
-                    }
-                })
+                const r = await api.get('/admin/approvals/counts/')
+                const d = r.data?.data || r.data || {}
+                const total =
+                    (d.verifications || 0) +
+                    (d.sellers || 0) +
+                    (d.marketplace || 0)
                 setPendingCounts({ total })
             } catch { /* badge just won't show */ }
         }
 
-        fetchPendingCounts()
-        const interval = setInterval(fetchPendingCounts, 60_000)
-        return () => clearInterval(interval)
-    }, [isAuthenticated, isAdmin, isModerator, router, setPendingCounts, _hasHydrated])
+        const initialTimer = setTimeout(fetchPendingCounts, 500)
+        const interval = setInterval(fetchPendingCounts, 120_000)
+        return () => {
+            clearTimeout(initialTimer)
+            clearInterval(interval)
+        }
+    }, [_hasHydrated, isAuthenticated, isAdmin, isModerator, setPendingCounts])
 
     if (!isAuthenticated || (!isAdmin() && !isModerator())) return null
 

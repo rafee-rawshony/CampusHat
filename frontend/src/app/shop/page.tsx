@@ -66,7 +66,7 @@ function ShopPageContent() {
             if (data?.data?.results) return { results: data.data.results, count: data.data.count }
             return { results: [], count: 0 }
         }),
-        staleTime: 0,
+        staleTime: 60_000,
     })
 
     // Categories

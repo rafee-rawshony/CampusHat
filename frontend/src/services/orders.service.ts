@@ -17,6 +17,11 @@ export async function checkout(payload: CheckoutPayload) {
     return data
 }
 
+// Daraz-style status tabs map to these backend filters.
+export type OrderStatusTab =
+    | 'all' | 'to_pay' | 'to_ship' | 'to_receive'
+    | 'completed' | 'cancelled' | 'refunded'
+
 // GET /api/v1/orders/
 export async function listMyOrders(params?: Record<string, string | number>) {
     const { data } = await api.get('/orders/', { params })

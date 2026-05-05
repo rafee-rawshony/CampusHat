@@ -25,7 +25,7 @@ export function FlashSaleSection() {
     // If no active flash sale, hide entirely
     if (!isLoading && !flashSale) return null
 
-    const items = flashSale?.items || []
+    const items = flashSale?.products || []
 
     return (
         <div className="max-w-7xl mx-auto px-4 lg:px-6 mb-10">

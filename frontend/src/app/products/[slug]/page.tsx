@@ -8,7 +8,9 @@ import {
     ChevronRight,
     Store as StoreIcon,
     PackageX,
-    ArrowLeft
+    ArrowLeft,
+    Star,
+    MessageCircle,
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { useQuery } from '@tanstack/react-query'
@@ -35,6 +37,7 @@ import { StickyCartBar } from '@/components/mall/StickyCartBar'
 import { ProductReviewsTab } from '@/components/mall/ProductReviewsTab'
 import { ProductStoreInfoTab } from '@/components/mall/ProductStoreInfoTab'
 import { ProductShippingTab } from '@/components/mall/ProductShippingTab'
+import { ProductQATab } from '@/components/mall/ProductQATab'
 import { RelatedProducts } from '@/components/mall/RelatedProducts'
 
 export default function ProductDetailPage() {
@@ -166,6 +169,26 @@ export default function ProductDetailPage() {
         } else {
             navigator.clipboard.writeText(window.location.href)
             toast.success("Link copied to clipboard!")
+        }
+    }
+
+    const handleChatSeller = async () => {
+        if (!isAuthenticated) {
+            router.push(`/auth/login?redirect=/products/${slug}`)
+            return
+        }
+        if (!product?.store?.id) {
+            toast.error("Store not found")
+            return
+        }
+        try {
+            const res = await api.post('/mall/chats/start/', { store_id: product.store.id })
+            const chatId = res.data?.data?.id
+            if (chatId) {
+                router.push(`/account/messages/mall/${chatId}`)
+            }
+        } catch (e) {
+            toast.error("Failed to start chat")
         }
     }
 
@@ -418,23 +441,29 @@ export default function ProductDetailPage() {
                                 </div>
                             </div>
 
-                            {/* Interaction Row */}
-                            <div className="flex items-center gap-3 mt-6">
+                            <div className="flex items-center gap-3 mt-6 flex-wrap">
                                 <button
                                     onClick={() => isAuthenticated ? toggleWishlist(product.id) : router.push(`/auth/login?redirect=/products/${slug}`)}
                                     className={cn(
-                                        "flex-1 flex items-center justify-center gap-2 border rounded-xl py-3 text-sm font-bold transition-all",
+                                        "flex-1 flex items-center justify-center gap-2 border rounded-xl py-3 text-sm font-bold transition-all min-w-[140px]",
                                         isWishlistedState 
                                             ? "border-red-200 text-red-500 bg-red-50 hover:bg-red-100" 
                                             : "border-gray-200 text-gray-600 hover:border-red-200 hover:text-red-500 hover:bg-gray-50"
                                     )}
                                 >
                                     <Heart className="w-4 h-4" fill={isWishlistedState ? 'currentColor' : 'none'} />
-                                    {isWishlistedState ? 'Saved' : 'Save to Wishlist'}
+                                    {isWishlistedState ? 'Saved' : 'Wishlist'}
+                                </button>
+                                <button
+                                    onClick={handleChatSeller}
+                                    className="flex-1 flex items-center justify-center gap-2 border border-brand-primary/20 bg-brand-light/30 rounded-xl py-3 text-sm font-bold text-brand-primary hover:bg-brand-primary hover:text-white transition-all min-w-[140px]"
+                                >
+                                    <MessageCircle className="w-4 h-4" />
+                                    Chat with Seller
                                 </button>
                                 <button
                                     onClick={handleShare}
-                                    className="flex-[0.5] flex items-center justify-center gap-2 border border-gray-200 rounded-xl py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                                    className="flex-[0.5] flex items-center justify-center gap-2 border border-gray-200 rounded-xl py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors min-w-[80px]"
                                 >
                                     Share
                                 </button>
@@ -474,6 +503,12 @@ export default function ProductDetailPage() {
                                     className="snap-start shrink-0 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[#4C3B8A] data-[state=active]:shadow-none rounded-none text-sm sm:text-base font-bold text-gray-500 data-[state=active]:text-[#4C3B8A] px-4 sm:px-8 pb-4 transition-all"
                                 >
                                     Shipping
+                                </TabsTrigger>
+                                <TabsTrigger
+                                    value="qa"
+                                    className="snap-start shrink-0 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[#4C3B8A] data-[state=active]:shadow-none rounded-none text-sm sm:text-base font-bold text-gray-500 data-[state=active]:text-[#4C3B8A] px-4 sm:px-8 pb-4 transition-all"
+                                >
+                                    Q&A
                                 </TabsTrigger>
                             </TabsList>
 
@@ -519,6 +554,13 @@ export default function ProductDetailPage() {
                             {/* TAB: SHIPPING */}
                             <TabsContent value="shipping" className="focus:outline-none animate-in fade-in duration-500">
                                 <ProductShippingTab />
+                            </TabsContent>
+
+                            {/* TAB: Q&A */}
+                            <TabsContent value="qa" className="focus:outline-none animate-in fade-in duration-500">
+                                <div className="max-w-5xl">
+                                    <ProductQATab productSlug={product.slug} />
+                                </div>
                             </TabsContent>
 
                         </Tabs>

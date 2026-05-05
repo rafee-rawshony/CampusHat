@@ -16,12 +16,15 @@ interface FlashSaleItem {
         id: string
         name: string
         slug: string
-        images: { image: string; image_url?: string }[]
+        images?: { image: string; image_url?: string }[]
+        primary_image_url?: string
         base_price: number | string
         rating_avg: number
-        rating_count: number
+        rating_count?: number
+        review_count?: number
         stock_quantity: number
-        category: { name: string }
+        category?: { name: string }
+        category_name?: string
     }
     sale_price: number | string
     quantity_limit: number | null
@@ -38,10 +41,12 @@ export function FlashSaleProductCard({ item }: FlashSaleProductCardProps) {
     const { product } = item
 
     const basePrice = typeof product.base_price === 'string' ? parseFloat(product.base_price) : product.base_price
-    const salePrice = typeof item.sale_price === 'string' ? parseFloat(item.sale_price) : item.sale_price
+    const salePrice = item.override_price || (typeof item.sale_price === 'string' ? parseFloat(item.sale_price as string) : item.sale_price)
     const discountPercent = basePrice > 0 ? Math.round((1 - salePrice / basePrice) * 100) : 0
-    const imageUrl = product.images?.[0]?.image_url || product.images?.[0]?.image || null
+    const imageUrl = product.primary_image_url || product.images?.[0]?.image_url || product.images?.[0]?.image || null
     const remaining = item.quantity_limit ? item.quantity_limit - item.sold_count : null
+    const categoryName = product.category_name || product.category?.name || 'Category'
+    const reviewCount = product.review_count ?? product.rating_count ?? 0
 
     const handleAddToCart = (e: React.MouseEvent) => {
         e.preventDefault()
@@ -98,13 +103,13 @@ export function FlashSaleProductCard({ item }: FlashSaleProductCardProps) {
             {/* Body */}
             <div className="p-3">
                 <p className="text-[10px] uppercase text-gray-400 mb-1 tracking-wide font-semibold">
-                    {product.category?.name}
+                    {categoryName}
                 </p>
                 <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-tight">
                     {product.name}
                 </h3>
                 <div className="mt-1">
-                    <StarRating rating={product.rating_avg || 0} count={product.rating_count} size="sm" />
+                    <StarRating rating={product.rating_avg || 0} count={reviewCount} size="sm" />
                 </div>
                 <div className="mt-2 flex items-center gap-2">
                     <span className="font-bold text-[#4C3B8A] text-base">৳{salePrice.toLocaleString()}</span>

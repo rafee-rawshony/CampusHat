@@ -3,15 +3,24 @@
 import React from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { 
-    LayoutDashboard, 
-    Package, 
-    ShoppingBag, 
-    Wallet, 
-    MessageCircle, 
-    Settings, 
-    LogOut, 
-    ExternalLink 
+import {
+    LayoutDashboard,
+    Package,
+    ShoppingBag,
+    Wallet,
+    MessageCircle,
+    Settings,
+    LogOut,
+    ExternalLink,
+    Boxes,
+    Star,
+    RotateCcw,
+    BarChart3,
+    Tag,
+    Zap,
+    TrendingUp,
+    Users,
+    Upload,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth.store'
 import { useQuery } from '@tanstack/react-query'
@@ -31,18 +40,27 @@ export function SellerSidebarContent() {
         // Don't refetch too aggressively here, the main dashboard will handle the heavy lifting
     })
 
+    // Daraz-style menu — grouped by function. Badge counts come from
+    // the dashboard endpoint so the user sees what needs attention.
     const NAV_ITEMS = [
-        { label: 'Overview', href: '/seller', icon: LayoutDashboard, exact: true },
-        { label: 'Products', href: '/seller/products', icon: Package },
-        { 
-            label: 'Orders', 
-            href: '/seller/orders', 
-            icon: ShoppingBag, 
-            badge: statsData?.orders_awaiting > 0 ? statsData.orders_awaiting : null 
-        },
-        { label: 'Wallet', href: '/seller/wallet', icon: Wallet },
-        { label: 'Messages', href: '/seller/messages', icon: MessageCircle },
-        { label: 'Settings', href: '/seller/settings', icon: Settings },
+        { label: 'Overview',    href: '/seller',             icon: LayoutDashboard, exact: true },
+        { label: 'Products',    href: '/seller/products',    icon: Package, exact: true,
+            badge: statsData?.out_of_stock_products > 0 ? statsData.out_of_stock_products : null },
+        { label: 'Bulk Upload', href: '/seller/products/bulk-upload', icon: Upload },
+        { label: 'Top Products', href: '/seller/products/top', icon: TrendingUp },
+        { label: 'Inventory',   href: '/seller/inventory',   icon: Boxes,
+            badge: statsData?.low_stock_products > 0 ? statsData.low_stock_products : null },
+        { label: 'Orders',      href: '/seller/orders',      icon: ShoppingBag,
+            badge: statsData?.pending_orders > 0 ? statsData.pending_orders : null },
+        { label: 'Returns',     href: '/seller/returns',     icon: RotateCcw },
+        { label: 'Reviews',     href: '/seller/reviews',     icon: Star },
+        { label: 'Customers',   href: '/seller/customers',   icon: Users },
+        { label: 'Performance', href: '/seller/performance', icon: BarChart3 },
+        { label: 'Coupons',     href: '/seller/promotions/coupons',     icon: Tag },
+        { label: 'Flash Sales', href: '/seller/promotions/flash-sales', icon: Zap },
+        { label: 'Wallet',      href: '/seller/wallet',      icon: Wallet },
+        { label: 'Messages',    href: '/seller/messages',    icon: MessageCircle },
+        { label: 'Settings',    href: '/seller/settings',    icon: Settings },
     ]
 
     const handleLogout = async () => {

@@ -24,13 +24,16 @@ from rest_framework_simplejwt.views import TokenRefreshView as SimpleJWTTokenRef
 from .models import EmailVerificationToken, OTPCode, User, UserSession, UserVerification
 from .serializers import (
     ChangePasswordSerializer,
+    ConfirmEmailChangeSerializer,
     ForgotPasswordSerializer,
+    RequestEmailChangeSerializer,
     ResetPasswordSerializer,
     UserDetailSerializer,
     UserLoginSerializer,
     UserRegistrationSerializer,
     UserUpdateSerializer,
 )
+from .models import EmailChangeRequest
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +70,10 @@ class RegisterView(APIView):
             user.role = 'normal_user'
             user.save(update_fields=['role'])
 
-        # Generate verification token and queue email
+        # Generate verification token and queue email. We always require
+        # explicit email verification — even in dev. Local development uses
+        # the Mailpit container (see docker-compose) so the link is visible
+        # in a web inbox at http://localhost:8025/ instead of a real inbox.
         EmailVerificationToken.objects.create(
             user=user,
             token=secrets.token_urlsafe(48),
@@ -83,6 +89,13 @@ class RegisterView(APIView):
             logger.exception(
                 'Failed to queue verification email for %s: %s', user.email, exc,
             )
+
+        # Escape hatch for automated tests / CI / CLI seeding only.
+        # MUST NOT be enabled in production — gated by an explicit env flag,
+        # never auto-detected from email backend strings.
+        if getattr(settings, 'AUTO_VERIFY_EMAIL_ON_REGISTER', False):
+            user.is_email_verified = True
+            user.save(update_fields=['is_email_verified'])
 
         return Response({
             'success': True,
@@ -332,16 +345,25 @@ def _build_login_user_data(user) -> dict:
     return {
         'id': str(user.id),
         'email': user.email,
+        'university_email': user.university_email,
         'full_name': user.full_name,
+        'first_name': user.first_name,
+        'last_name': user.last_name,
+        'phone': user.phone,
+        'birthday': user.birthday.isoformat() if user.birthday else None,
+        'gender': user.gender,
         'role': user.role,
         'university_id': university_id,
         'university_name': university_name,
         'profile_picture': user.profile_picture,
         'is_email_verified': user.is_email_verified,
+        'is_phone_verified': user.is_phone_verified,
         'reputation_score': str(user.reputation_score),
         'verification_status': verification_status,
         'verification_rejection_reason': verification_rejection_reason,
         'seller_application_status': seller_application_status,
+        'is_profile_complete': user.is_profile_complete,
+        'profile_completion_percent': user.profile_completion_percent,
     }
 
 
@@ -628,6 +650,140 @@ class MeUpdateView(GenericAPIView):
                 'success': True,
                 'message': 'Profile updated successfully.',
                 'data': detail_serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+# =============================================================================
+# EMAIL CHANGE FLOW
+# =============================================================================
+
+class RequestEmailChangeView(GenericAPIView):
+    """
+    POST /api/v1/auth/me/email/request-change/
+
+    Body: {"new_email": "...", "current_password": "..."}
+
+    Creates an EmailChangeRequest and sends a verification link to the new
+    address. The actual email field on the user is NOT updated until the
+    user clicks the link (handled by ConfirmEmailChangeView).
+    """
+
+    serializer_class = RequestEmailChangeSerializer
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'otp_send'  # Reuse the OTP send throttle bucket.
+
+    def post(self, request):
+        serializer = self.get_serializer(
+            data=request.data, context={'request': request},
+        )
+        serializer.is_valid(raise_exception=True)
+
+        new_email = serializer.validated_data['new_email']
+        change_req = EmailChangeRequest.create_for_user(request.user, new_email)
+
+        # Queue confirmation email to the NEW address.
+        try:
+            from .tasks import send_email_change_confirmation
+            send_email_change_confirmation.delay(str(change_req.id))
+        except Exception as exc:
+            logger.exception(
+                'Failed to queue email-change confirmation for %s: %s',
+                new_email, exc,
+            )
+
+        return Response(
+            {
+                'success': True,
+                'message': (
+                    f'A confirmation link has been sent to {new_email}. '
+                    'Click it to finish changing your email.'
+                ),
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class ConfirmEmailChangeView(GenericAPIView):
+    """
+    POST /api/v1/auth/me/email/confirm-change/
+    GET  /api/v1/auth/me/email/confirm-change/?token=xxx
+
+    Validates the token, swaps user.email to the new address, marks the
+    request used, and notifies the OLD address (for security audit).
+    """
+
+    serializer_class = ConfirmEmailChangeSerializer
+    permission_classes = [AllowAny]  # Token-only — anyone with the link confirms.
+
+    def post(self, request):
+        return self._confirm(request.data.get('token'))
+
+    def get(self, request):
+        # Convenience: support GET so the email link can be a plain URL.
+        return self._confirm(request.query_params.get('token'))
+
+    def _confirm(self, token):
+        if not token:
+            return Response(
+                {'success': False, 'message': 'Token is required.', 'code': 'MISSING_TOKEN'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            change_req = EmailChangeRequest.objects.select_related('user').get(token=token)
+        except EmailChangeRequest.DoesNotExist:
+            return Response(
+                {'success': False, 'message': 'Invalid or expired link.', 'code': 'INVALID_TOKEN'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not change_req.is_valid:
+            return Response(
+                {'success': False, 'message': 'This link is no longer valid.', 'code': 'EXPIRED'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # If someone else grabbed the new_email between request and confirm, fail.
+        if User.objects.filter(
+            email__iexact=change_req.new_email,
+        ).exclude(id=change_req.user.id).exists():
+            return Response(
+                {
+                    'success': False,
+                    'message': 'That email is already in use by another account.',
+                    'code': 'EMAIL_TAKEN',
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        old_email = change_req.user.email
+        user = change_req.user
+        user.email = change_req.new_email
+        user.save(update_fields=['email'])
+
+        change_req.is_used = True
+        change_req.save(update_fields=['is_used'])
+
+        # Notify the old email so the rightful owner sees the change in case
+        # the account was compromised.
+        try:
+            from .tasks import send_email_changed_notice_to_old_address
+            send_email_changed_notice_to_old_address.delay(
+                old_email, user.email, user.full_name,
+            )
+        except Exception as exc:
+            logger.exception(
+                'Failed to queue old-email notice for %s -> %s: %s',
+                old_email, user.email, exc,
+            )
+
+        return Response(
+            {
+                'success': True,
+                'message': 'Email changed successfully. Please log in with your new email.',
             },
             status=status.HTTP_200_OK,
         )

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Confirm your new CampusHat email</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background:#f4f7fa; margin:0; padding:20px; }
+        .container { max-width:560px; margin:0 auto; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.08); }
+        .header { background:linear-gradient(135deg,#4C3B8A 0%,#5d4ba1 100%); padding:32px 24px; text-align:center; }
+        .header h1 { color:#fff; font-size:24px; margin:0; }
+        .body { padding:32px 24px; color:#222; line-height:1.6; }
+        .body p { font-size:15px; margin:0 0 16px; }
+        .row { background:#f8f9fb; border-radius:8px; padding:14px 16px; font-size:14px; margin:14px 0; }
+        .row b { color:#4C3B8A; }
+        .button { display:inline-block; background:#4C3B8A; color:#fff !important; padding:14px 28px; border-radius:8px; text-decoration:none; font-weight:bold; }
+        .footer { padding:16px 24px; background:#f9fafc; color:#6b7280; font-size:12px; text-align:center; border-top:1px solid #e5e7eb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header"><h1>Confirm your new email</h1></div>
+        <div class="body">
+            <p>Hi <b>{{ user_name }}</b>,</p>
+            <p>You asked to change the email on your CampusHat account.</p>
+            <div class="row">
+                <p><b>Old email:</b> {{ old_email }}</p>
+                <p style="margin:0;"><b>New email:</b> {{ new_email }}</p>
+            </div>
+            <p>Click the button below to confirm <b>{{ new_email }}</b> as your new login email:</p>
+            <p style="text-align:center; margin:28px 0;">
+                <a href="{{ confirm_link }}" class="button">Confirm New Email</a>
+            </p>
+            <p style="font-size:13px; color:#6b7280;">Or copy this link into your browser:<br><span style="word-break:break-all;">{{ confirm_link }}</span></p>
+            <p style="font-size:13px; color:#6b7280;">This link expires in {{ expiry_hours }} hours. If you didn't request this change, ignore this email — your account is safe.</p>
+        </div>
+        <div class="footer">CampusHat &middot; This is an automated message. Please do not reply.</div>
+    </div>
+</body>
+</html>

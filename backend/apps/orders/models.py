@@ -194,6 +194,28 @@ class Order(BaseModel):
             note=note,
         )
 
+        # Auto-send notification to buyer
+        try:
+            from apps.admin_panel.notification_utils import send_notification
+            STATUS_MESSAGES = {
+                'confirmed': ('Order Confirmed ✓', f'Your order #{self.order_number} has been confirmed by the seller.'),
+                'packed': ('Order Packed 📦', f'Your order #{self.order_number} is being packed for shipment.'),
+                'shipped': ('Order Shipped 🚚', f'Your order #{self.order_number} has been shipped!'),
+                'delivered': ('Order Delivered ✅', f'Your order #{self.order_number} has been delivered. Enjoy!'),
+                'cancelled': ('Order Cancelled ❌', f'Your order #{self.order_number} has been cancelled.'),
+            }
+            if new_status in STATUS_MESSAGES:
+                title, message = STATUS_MESSAGES[new_status]
+                send_notification(
+                    user=self.buyer,
+                    notification_type='order',
+                    title=title,
+                    message=message,
+                    action_url=f'/orders/{self.id}',
+                )
+        except Exception:
+            pass  # Don't block order transition on notification failures
+
 
 # =============================================================================
 # MODEL 2: ORDER ITEM

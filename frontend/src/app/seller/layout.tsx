@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth.store'
 import { SellerSidebar } from '@/components/seller/SellerSidebar'
 import { SellerTopBar } from '@/components/seller/SellerTopBar'
@@ -11,10 +11,17 @@ import { ApplicationUnderReviewCard } from '@/components/seller/ApplicationUnder
 
 export default function SellerLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter()
+    const pathname = usePathname()
     const { isAuthenticated, isSeller, isAdmin, user, _hasHydrated } = useAuthStore()
+
+    // These paths are accessible to non-sellers (registration flow)
+    const isPublicSellerPath = pathname === '/seller/register' || pathname === '/seller/apply'
 
     useEffect(() => {
         if (!_hasHydrated) return
+
+        // Let registration pages through without seller checks
+        if (isPublicSellerPath) return
 
         if (!isAuthenticated) {
             router.push('/auth/login?redirect=/seller')
@@ -29,9 +36,14 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
                 router.push('/seller/apply')
             }
         }
-    }, [isAuthenticated, isSeller, isAdmin, user?.seller_application_status, _hasHydrated, router])
+    }, [isAuthenticated, isSeller, isAdmin, user?.seller_application_status, _hasHydrated, router, isPublicSellerPath])
 
     if (!_hasHydrated) return null
+
+    // If a public path (register/apply), just render the children directly — no sidebar needed
+    if (isPublicSellerPath) {
+        return <>{children}</>
+    }
 
     // If pending and not an approved seller/admin
     if (!isSeller() && !isAdmin() && user?.seller_application_status === 'pending') {

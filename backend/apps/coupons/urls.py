@@ -3,6 +3,7 @@
 from django.urls import path
 
 from .views import (
+    ActiveCouponsListView,
     ActiveFlashSalesView,
     AdminCouponDetailView,
     AdminCouponListView,
@@ -20,6 +21,7 @@ app_name = 'coupons'
 
 # Public
 urlpatterns = [
+    path('active/', ActiveCouponsListView.as_view(), name='active'),
     path('validate/', CouponValidateView.as_view(), name='validate'),
 ]
 

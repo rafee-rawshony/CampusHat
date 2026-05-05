@@ -119,6 +119,13 @@ class User(AbstractBaseUser, PermissionsMixin, UUIDMixin, TimestampMixin):
         unique=True,
         help_text='Email address used for login.',
     )
+    university_email = models.EmailField(
+        max_length=255,
+        blank=True,
+        null=True,
+        unique=True,
+        help_text='University-issued email (used for student/faculty verification).',
+    )
     phone = models.CharField(
         max_length=20,
         unique=True,
@@ -128,7 +135,36 @@ class User(AbstractBaseUser, PermissionsMixin, UUIDMixin, TimestampMixin):
     )
     full_name = models.CharField(
         max_length=200,
-        help_text='Full name of the user.',
+        help_text='Full name of the user (auto-synced from first_name + last_name when both are set).',
+    )
+    first_name = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text='First name (Daraz-style profile).',
+    )
+    last_name = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text='Last name (Daraz-style profile).',
+    )
+    birthday = models.DateField(
+        blank=True,
+        null=True,
+        help_text='Date of birth (optional).',
+    )
+    GENDER_CHOICES = [
+        ('male', 'Male'),
+        ('female', 'Female'),
+        ('other', 'Other'),
+    ]
+    gender = models.CharField(
+        max_length=10,
+        choices=GENDER_CHOICES,
+        blank=True,
+        null=True,
+        help_text='Gender (optional).',
     )
     profile_picture = models.URLField(
         max_length=500,
@@ -224,6 +260,48 @@ class User(AbstractBaseUser, PermissionsMixin, UUIDMixin, TimestampMixin):
         if seller_profile is None:
             return False
         return getattr(seller_profile, 'is_approved', False)
+
+    @property
+    def is_profile_complete(self):
+        """
+        Profile is complete when the user has filled out their basic
+        identity fields (name, phone, birthday, gender).
+
+        Does NOT require a delivery address — address is only mandatory
+        at checkout (see ``is_checkout_ready``).
+        """
+        return bool(
+            self.first_name
+            and self.last_name
+            and self.phone
+            and self.birthday
+            and self.gender
+        )
+
+    @property
+    def is_checkout_ready(self):
+        """
+        Checkout-ready = profile complete + at least one saved delivery
+        address. Required before placing an order in the Mall.
+        """
+        if not self.is_profile_complete:
+            return False
+        return self.addresses.filter(deleted_at__isnull=True).exists()
+
+    @property
+    def profile_completion_percent(self):
+        """Return % completion (0-100) of profile fields. Helps drive UI nudges."""
+        fields = [
+            bool(self.first_name),
+            bool(self.last_name),
+            bool(self.phone),
+            bool(self.birthday),
+            bool(self.gender),
+            bool(self.profile_picture),
+            self.addresses.filter(deleted_at__isnull=True).exists(),
+        ]
+        filled = sum(1 for f in fields if f)
+        return int((filled / len(fields)) * 100)
 
     # ── Soft Delete ─────────────────────────────────────────────────
 
@@ -330,6 +408,90 @@ class EmailVerificationToken(UUIDMixin):
             expires_at=timezone.now() + timezone.timedelta(hours=24),
         )
         return token
+
+
+# =============================================================================
+# EMAIL CHANGE REQUEST
+# =============================================================================
+
+class EmailChangeRequest(UUIDMixin):
+    """
+    A pending request to change a user's login email.
+
+    Flow:
+        1. Authenticated user posts new_email + current_password.
+        2. Backend validates the password and that new_email is free.
+        3. A token is generated and emailed to the NEW address.
+        4. User clicks the link, which calls /confirm-email-change/.
+        5. Backend swaps user.email, marks the request used, and notifies
+           the OLD address (security audit trail).
+
+    Tokens expire after 24 hours and can only be used once.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='email_change_requests',
+        db_index=True,
+        help_text='User who initiated the change.',
+    )
+    old_email = models.EmailField(
+        max_length=255,
+        help_text="Email at the time the request was created (audit only).",
+    )
+    new_email = models.EmailField(
+        max_length=255,
+        help_text='Address the user wants to switch to.',
+    )
+    token = models.CharField(
+        max_length=64,
+        unique=True,
+        help_text='Secure random token sent to the new email.',
+    )
+    expires_at = models.DateTimeField(
+        help_text='Expiration time for this token.',
+    )
+    is_used = models.BooleanField(
+        default=False,
+        help_text='Whether this token has been consumed.',
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text='When this request was created.',
+    )
+
+    class Meta:
+        db_table = 'auth_email_change_requests'
+        verbose_name = 'Email Change Request'
+        verbose_name_plural = 'Email Change Requests'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.old_email} -> {self.new_email} (used={self.is_used})'
+
+    @property
+    def is_expired(self):
+        return timezone.now() >= self.expires_at
+
+    @property
+    def is_valid(self):
+        return not self.is_used and not self.is_expired
+
+    @classmethod
+    def create_for_user(cls, user, new_email):
+        """
+        Build a fresh change request for a user, invalidating any pending
+        ones first so a single user can't have two open at once.
+        """
+        cls.objects.filter(user=user, is_used=False).update(is_used=True)
+        return cls.objects.create(
+            user=user,
+            old_email=user.email,
+            new_email=new_email.lower().strip(),
+            token=secrets.token_urlsafe(48),
+            expires_at=timezone.now() + timezone.timedelta(hours=24),
+        )
 
 
 # =============================================================================
@@ -663,6 +825,14 @@ class UserAddress(UUIDMixin, TimestampMixin):
     Setting is_default=True atomically unsets any other default address.
     """
 
+    LABEL_CHOICES = [
+        ('home', 'Home'),
+        ('hostel', 'Hostel'),
+        ('office', 'Office'),
+        ('campus', 'Campus'),
+        ('other', 'Other'),
+    ]
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -671,16 +841,36 @@ class UserAddress(UUIDMixin, TimestampMixin):
         help_text='User who owns this address.',
     )
     label = models.CharField(
-        max_length=100,
-        help_text="Label for this address, e.g. 'Home', 'Dorm', 'Campus'.",
+        max_length=20,
+        choices=LABEL_CHOICES,
+        default='home',
+        help_text='Label for this address.',
+    )
+    recipient_name = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        help_text="Name of the person receiving deliveries at this address.",
+    )
+    recipient_phone = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        help_text='Recipient phone number for delivery contact.',
     )
     address_line1 = models.TextField(
-        help_text='Primary address line.',
+        help_text='Primary address line (street, road, house number).',
     )
     address_line2 = models.TextField(
         blank=True,
         null=True,
         help_text='Secondary address line (optional).',
+    )
+    landmark = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        help_text='Nearby landmark for easier delivery (optional).',
     )
     campus_building = models.CharField(
         max_length=100,
@@ -694,17 +884,34 @@ class UserAddress(UUIDMixin, TimestampMixin):
         null=True,
         help_text='Room number (if applicable).',
     )
+    division = models.CharField(
+        max_length=80,
+        blank=True,
+        null=True,
+        help_text='Division name (e.g. Dhaka, Chittagong).',
+    )
     district = models.CharField(
         max_length=80,
         help_text='District name.',
     )
     city = models.CharField(
         max_length=100,
-        help_text='City name.',
+        help_text='City / Region.',
+    )
+    area = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text='Area / Upazila / Thana.',
     )
     postal_code = models.CharField(
         max_length=10,
         help_text='Postal code.',
+    )
+    additional_notes = models.TextField(
+        blank=True,
+        null=True,
+        help_text='Additional delivery instructions (optional).',
     )
     is_default = models.BooleanField(
         default=False,
