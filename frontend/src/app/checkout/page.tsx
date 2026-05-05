@@ -38,12 +38,12 @@ type AddressFormValues = z.infer<typeof addressSchema>
 
 // Payment Options — all supported BD methods
 const PAYMENT_METHODS = [
-    { id: 'wallet', title: 'Wallet Balance', icon: Wallet, description: 'Pay instantly using your CampusHat wallet' },
     { id: 'cod', title: 'Cash on Delivery', icon: Truck, description: 'Pay when you receive the order' },
+    { id: 'wallet', title: 'Wallet Balance', icon: Wallet, description: 'Pay instantly using your CampusHat wallet' },
     { id: 'bkash', title: 'bKash', icon: CreditCard, description: 'Mobile banking — bKash' },
     { id: 'nagad', title: 'Nagad', icon: CreditCard, description: 'Mobile banking — Nagad' },
     { id: 'rocket', title: 'Rocket', icon: CreditCard, description: 'Mobile banking — Rocket' },
-    { id: 'bank_transfer', title: 'Bank Transfer', icon: CreditCard, description: 'NPSB / internet banking' },
+    { id: 'card', title: 'Card Payment', icon: CreditCard, description: 'Debit / Credit card' },
 ]
 
 export default function CheckoutPage() {
@@ -72,7 +72,7 @@ export default function CheckoutPage() {
         }
     })
 
-    const [paymentMethod, setPaymentMethod] = useState<string>('cash') // Default to avoid instant wallet block if low funds
+    const [paymentMethod, setPaymentMethod] = useState<string>('cod')
 
     // Guard Checks + fetch saved addresses
     useEffect(() => {
@@ -137,9 +137,17 @@ export default function CheckoutPage() {
     const applyCoupon = async () => {
         if (!couponCode) return
         try {
-            const { data } = await api.get(`/coupons/validate/?code=${couponCode}`)
-            setDiscount(data.discount_amount)
-            toast.success('Coupon applied.')
+            const { data } = await api.get(`/coupons/validate/`, {
+                params: { code: couponCode, cart_total: subtotal }
+            })
+            const result = data?.data || data
+            if (result?.is_valid) {
+                setDiscount(parseFloat(result.discount_amount) || 0)
+                toast.success('Coupon applied!')
+            } else {
+                toast.error(result?.error || 'Invalid coupon.')
+                setDiscount(0)
+            }
         } catch {
             toast.error('Invalid or expired coupon.')
             setDiscount(0)
@@ -152,13 +160,44 @@ export default function CheckoutPage() {
             return
         }
 
+        // Backend requires a saved delivery_address_id — not a raw address object.
+        // If user picked a saved address, use that ID. If they entered a new one,
+        // we must create the address first, then checkout with its ID.
+        let addressId = selectedAddressId
+
+        if (showNewAddressForm || !addressId) {
+            try {
+                const addrRes = await api.post('/auth/addresses/', {
+                    label: 'campus',
+                    recipient_name: data.full_name,
+                    recipient_phone: data.phone,
+                    campus_building: data.campus_building,
+                    room_number: data.room_number,
+                    address_line1: data.campus_building,
+                    city: 'Dhaka',
+                    district: 'Dhaka',
+                    postal_code: '1000',
+                    additional_notes: data.notes || '',
+                    is_default: savedAddresses.length === 0,
+                })
+                addressId = addrRes.data?.data?.id || addrRes.data?.id
+            } catch (error: any) {
+                toast.error(error?.response?.data?.message || 'Failed to save address.')
+                return
+            }
+        }
+
+        if (!addressId) {
+            toast.error('Please select or add a delivery address.')
+            return
+        }
+
         setIsLoading(true)
         try {
             const payload = {
-                items: items.map(i => ({ product_id: i.product_id, quantity: i.quantity, variant_id: i.variant_id })),
-                shipping_address: data,
+                delivery_address_id: addressId,
                 payment_method: paymentMethod,
-                coupon_code: discount > 0 ? couponCode : null,
+                buyer_note: data.notes || '',
             }
 
             const res = await api.post('/orders/checkout/', payload)

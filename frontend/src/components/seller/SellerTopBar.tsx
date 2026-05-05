@@ -11,11 +11,19 @@ export function SellerTopBar() {
 
     // Determine title from URL safely
     let title = 'Dashboard Overview'
-    if (pathname.includes('/products')) title = 'Inventory Management'
+    if (pathname.includes('/products/bulk-upload')) title = 'Bulk Product Upload'
+    else if (pathname.includes('/products/top')) title = 'Top Products'
+    else if (pathname.includes('/products')) title = 'Product Management'
+    else if (pathname.includes('/inventory')) title = 'Inventory Management'
     else if (pathname.includes('/orders')) title = 'Order Management'
+    else if (pathname.includes('/returns')) title = 'Returns & Refunds'
+    else if (pathname.includes('/reviews')) title = 'Customer Reviews'
+    else if (pathname.includes('/customers')) title = 'Customer Insights'
+    else if (pathname.includes('/performance')) title = 'Performance Scorecard'
+    else if (pathname.includes('/promotions')) title = 'Promotions'
     else if (pathname.includes('/wallet')) title = 'Wallet & Payouts'
-    else if (pathname.includes('/settings')) title = 'Store Settings'
     else if (pathname.includes('/messages')) title = 'Customer Messages'
+    else if (pathname.includes('/settings')) title = 'Store Settings'
 
     return (
         <header className="bg-white border-b border-gray-100 h-14 flex items-center justify-between px-6 shrink-0 sticky top-0 z-20">

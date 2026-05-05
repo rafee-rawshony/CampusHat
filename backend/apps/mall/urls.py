@@ -26,6 +26,7 @@ from .views import (
     ProductReviewListView,
     ProductVariantDetailView,
     ProductVariantListCreateView,
+    SellerBulkProductUploadView,
     SellerProductListView,
     SellerReplyToReviewView,
     SellerReviewResponseView,
@@ -123,6 +124,7 @@ wishlist_urlpatterns = [
 # Seller product URLs (mounted under /api/v1/seller/products/)
 seller_product_urlpatterns = [
     path('', SellerProductListView.as_view(), name='seller-products'),
+    path('bulk-upload/', SellerBulkProductUploadView.as_view(), name='seller-bulk-upload'),
 ]
 
 # Seller review URLs (mounted under /api/v1/seller/reviews/)

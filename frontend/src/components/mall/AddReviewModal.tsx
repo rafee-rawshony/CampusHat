@@ -91,7 +91,7 @@ export function AddReviewModal({ isOpen, onOpenChange, productId, productName, p
         setErrors({})
 
         try {
-            await api.post(`/mall/products/${productId}/reviews/`, {
+            await api.post(`/mall/products/${productSlug}/reviews/create/`, {
                 rating,
                 comment,
                 evidence_urls: imageUrls

@@ -8,7 +8,7 @@ Admin platform-wide analytics.
 from datetime import timedelta
 from decimal import Decimal
 
-from django.db.models import Count, Sum
+from django.db.models import Avg, Count, Sum
 from django.utils import timezone
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -137,17 +137,52 @@ class SellerRevenueView(APIView):
 
 class SellerTopProductsView(APIView):
     """
-    GET /api/v1/analytics/seller/products/top/
+    GET /api/v1/analytics/seller/products/top/?type=best|slow
 
-    Top 10 best-selling products for the logged-in seller's store.
+    Top 10 best-selling or slowest-moving products for the seller's store.
     """
 
     permission_classes = [IsAuthenticated, IsApprovedSeller]
 
     def get(self, request):
         from apps.orders.models import OrderItem
+        from apps.mall.models import StoreProduct
 
         store = request.user.seller_profile.store
+        report_type = request.query_params.get('type', 'best')
+
+        if report_type == 'slow':
+            # Products with fewest sales (including zero-sale products)
+            all_products = StoreProduct.objects.filter(
+                store=store, deleted_at__isnull=True, is_active=True,
+            ).values('id', 'name', 'slug', 'base_price', 'stock_quantity')
+
+            # Get sold counts
+            sold_map = dict(
+                OrderItem.objects.filter(
+                    order__store=store, order__payment_status='paid',
+                )
+                .values_list('product__id')
+                .annotate(sold=Sum('quantity'))
+                .values_list('product__id', 'sold')
+            )
+
+            products = []
+            for p in all_products:
+                products.append({
+                    'product__id': str(p['id']),
+                    'product__name': p['name'],
+                    'product__slug': p['slug'],
+                    'base_price': str(p['base_price']),
+                    'stock_quantity': p['stock_quantity'],
+                    'sold_count': sold_map.get(p['id'], 0),
+                    'total_revenue': '0.00',
+                })
+
+            products.sort(key=lambda x: x['sold_count'])
+            return Response({'success': True, 'data': products[:10]})
+
+        # Default: best sellers
         top_products = (
             OrderItem.objects.filter(
                 order__store=store, order__payment_status='paid',
@@ -155,7 +190,7 @@ class SellerTopProductsView(APIView):
             .values('product__id', 'product__name', 'product__slug')
             .annotate(
                 sold_count=Sum('quantity'),
-                total_revenue=Sum('line_total'),  # line_total, not total_price
+                total_revenue=Sum('line_total'),
             )
             .order_by('-sold_count')[:10]
         )
@@ -163,6 +198,83 @@ class SellerTopProductsView(APIView):
         return Response({
             'success': True,
             'data': list(top_products),
+        })
+
+
+class SellerCustomerInsightsView(APIView):
+    """
+    GET /api/v1/analytics/seller/customers/
+
+    Customer demographics, repeat buyers, and lifetime value for the seller.
+    """
+
+    permission_classes = [IsAuthenticated, IsApprovedSeller]
+
+    def get(self, request):
+        from apps.orders.models import Order
+        from apps.authentication.models import User
+
+        store = request.user.seller_profile.store
+
+        # All paid orders for this store
+        orders = Order.objects.filter(
+            store=store, payment_status='paid', deleted_at__isnull=True,
+        )
+
+        total_customers = orders.values('buyer').distinct().count()
+
+        # Repeat buyers: ordered more than once
+        buyer_counts = (
+            orders.values('buyer')
+            .annotate(order_count=Count('id'))
+        )
+        repeat_buyers = sum(1 for b in buyer_counts if b['order_count'] > 1)
+        one_time_buyers = total_customers - repeat_buyers
+
+        # Top 10 customers by lifetime value
+        top_customers = (
+            orders.values('buyer__id', 'buyer__email', 'buyer__first_name', 'buyer__last_name')
+            .annotate(
+                total_spent=Sum('total_amount'),
+                order_count=Count('id'),
+            )
+            .order_by('-total_spent')[:10]
+        )
+
+        # University distribution (demographics)
+        university_dist = (
+            orders.values('buyer__university__name')
+            .annotate(count=Count('buyer', distinct=True))
+            .order_by('-count')[:10]
+        )
+
+        # Monthly order trend (last 6 months)
+        six_months_ago = timezone.now() - timedelta(days=180)
+        monthly_orders = (
+            orders.filter(created_at__gte=six_months_ago)
+            .extra(select={'month': "TO_CHAR(created_at, 'YYYY-MM')"})
+            .values('month')
+            .annotate(
+                customers=Count('buyer', distinct=True),
+                orders=Count('id'),
+                revenue=Sum('total_amount'),
+            )
+            .order_by('month')
+        )
+        avg_order_value = orders.aggregate(avg=Avg('total_amount'))['avg'] or Decimal('0')
+
+        return Response({
+            'success': True,
+            'data': {
+                'total_customers': total_customers,
+                'repeat_buyers': repeat_buyers,
+                'one_time_buyers': one_time_buyers,
+                'repeat_rate': round(repeat_buyers / max(total_customers, 1) * 100, 1),
+                'average_order_value': str(round(avg_order_value, 2)),
+                'top_customers': list(top_customers),
+                'university_distribution': list(university_dist),
+                'monthly_trend': list(monthly_orders),
+            },
         })
 
 

@@ -12,6 +12,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.parsers import MultiPartParser, JSONParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -419,6 +420,176 @@ class SellerProductListView(APIView):
             'message': 'Data retrieved successfully.',
             'data': serializer.data,
         })
+
+
+class SellerBulkProductUploadView(APIView):
+    """
+    POST /api/v1/seller/products/bulk-upload/
+
+    Accepts a CSV file and creates products in bulk for the seller's store.
+    Expected CSV columns: name, description, base_price, discount_price,
+    stock_quantity, sku, category_slug, tags (comma-separated).
+    """
+
+    permission_classes = [IsAuthenticated, IsApprovedSeller]
+    parser_classes = [MultiPartParser, JSONParser]
+
+    def get(self, request):
+        """Return a sample CSV template."""
+        import csv
+        from django.http import HttpResponse
+
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="product_upload_template.csv"'
+
+        writer = csv.writer(response)
+        writer.writerow([
+            'name', 'description', 'base_price', 'discount_price',
+            'stock_quantity', 'sku', 'category_slug', 'tags',
+        ])
+        writer.writerow([
+            'Example Product', 'A great product description', '999.00', '899.00',
+            '50', 'SKU-001', 'electronics', 'laptop,gaming',
+        ])
+        return response
+
+    def post(self, request):
+        import csv
+        import io
+        from django.utils.text import slugify
+
+        seller = request.user.seller_profile
+        store = getattr(seller, 'store', None)
+        if not store:
+            return Response({
+                'success': False,
+                'message': 'No store found. Create a store first.',
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        csv_file = request.FILES.get('file')
+        if not csv_file:
+            return Response({
+                'success': False,
+                'message': 'No CSV file uploaded. Field name: "file".',
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if not csv_file.name.endswith('.csv'):
+            return Response({
+                'success': False,
+                'message': 'Only .csv files are accepted.',
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if csv_file.size > 5 * 1024 * 1024:  # 5 MB limit
+            return Response({
+                'success': False,
+                'message': 'File too large. Maximum 5MB.',
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            decoded = csv_file.read().decode('utf-8-sig')
+            reader = csv.DictReader(io.StringIO(decoded))
+        except Exception:
+            return Response({
+                'success': False,
+                'message': 'Could not parse CSV file. Ensure UTF-8 encoding.',
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        required_fields = {'name', 'description', 'base_price', 'stock_quantity'}
+        if not required_fields.issubset(set(reader.fieldnames or [])):
+            return Response({
+                'success': False,
+                'message': f'Missing required columns: {required_fields - set(reader.fieldnames or [])}',
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        created = []
+        errors = []
+
+        for row_num, row in enumerate(reader, start=2):
+            name = (row.get('name') or '').strip()
+            if not name:
+                errors.append({'row': row_num, 'error': 'Name is required.'})
+                continue
+
+            try:
+                base_price = Decimal(row['base_price'].strip())
+                if base_price <= 0:
+                    raise ValueError()
+            except (ValueError, Exception):
+                errors.append({'row': row_num, 'error': f'Invalid base_price for "{name}".'})
+                continue
+
+            try:
+                stock = int(row['stock_quantity'].strip())
+                if stock < 0:
+                    raise ValueError()
+            except (ValueError, Exception):
+                errors.append({'row': row_num, 'error': f'Invalid stock_quantity for "{name}".'})
+                continue
+
+            # Build slug — ensure uniqueness
+            base_slug = slugify(name)[:300]
+            slug = base_slug
+            counter = 1
+            while StoreProduct.objects.filter(slug=slug).exists():
+                slug = f'{base_slug}-{counter}'
+                counter += 1
+
+            # Optional fields
+            discount_price = None
+            if row.get('discount_price', '').strip():
+                try:
+                    discount_price = Decimal(row['discount_price'].strip())
+                except Exception:
+                    pass
+
+            category = None
+            cat_slug = (row.get('category_slug') or '').strip()
+            if cat_slug:
+                category = MallCategory.objects.filter(
+                    slug=cat_slug, is_active=True, deleted_at__isnull=True,
+                ).first()
+
+            tags = []
+            tags_str = (row.get('tags') or '').strip()
+            if tags_str:
+                tags = [t.strip() for t in tags_str.split(',') if t.strip()]
+
+            sku = (row.get('sku') or '').strip() or None
+            if sku and StoreProduct.objects.filter(sku=sku).exists():
+                sku = None  # Skip duplicate SKU silently
+
+            product = StoreProduct(
+                store=store,
+                name=name,
+                slug=slug,
+                description=(row.get('description') or '').strip(),
+                base_price=base_price,
+                discount_price=discount_price,
+                stock_quantity=stock,
+                sku=sku,
+                category=category,
+                tags=tags,
+                is_active=True,
+            )
+            created.append(product)
+
+            # Limit to 200 products per upload
+            if len(created) >= 200:
+                errors.append({'row': row_num, 'error': 'Maximum 200 products per upload reached.'})
+                break
+
+        if created:
+            StoreProduct.objects.bulk_create(created)
+
+        return Response({
+            'success': True,
+            'message': f'Successfully created {len(created)} products.',
+            'data': {
+                'created_count': len(created),
+                'error_count': len(errors),
+                'errors': errors[:20],  # Return first 20 errors
+            },
+        }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
 
 # =============================================================================

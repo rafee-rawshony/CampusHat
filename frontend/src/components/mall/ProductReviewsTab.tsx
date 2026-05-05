@@ -36,7 +36,7 @@ export function ProductReviewsTab({ productId, productSlug, productName }: Produ
 
     const { data: reviewsData, isLoading } = useQuery({
         queryKey: ['product-reviews', productSlug, page],
-        queryFn: () => api.get(`/mall/products/${productId}/reviews/`, {
+        queryFn: () => api.get(`/mall/products/${productSlug}/reviews/`, {
             params: { ordering: '-created_at', page, page_size: 10 }
         }).then(r => r.data),
     })
