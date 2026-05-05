@@ -26,7 +26,10 @@ interface CampusCardProps {
 }
 
 export default function CampusCard({ campus, onEdit }: CampusCardProps) {
-    const fallbackInitials = (campus.short_name || 'N/A').substring(0, 4)
+    const shortName = (campus.short_name || 'N/A').substring(0, 4)
+    // Use uploaded logo if available, otherwise placehold.co with short name
+    const logoSrc = campus.logo_url
+        || `https://placehold.co/80x80/4C3B8A/ffffff?text=${encodeURIComponent(shortName)}`
 
     return (
         <div
@@ -45,16 +48,10 @@ export default function CampusCard({ campus, onEdit }: CampusCardProps) {
 
             <div className="relative z-20">
                 <div className="flex items-start justify-between">
-                    {/* Logo or initial badge */}
+                    {/* Logo — placehold.co fallback until real logo is uploaded */}
                     <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-gray-100">
-                        {campus.logo_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={campus.logo_url} alt={campus.short_name} className="w-full h-full object-cover" />
-                        ) : (
-                            <div className="w-full h-full bg-[#4C3B8A] text-white flex items-center justify-center font-bold text-sm tracking-wide">
-                                {fallbackInitials}
-                            </div>
-                        )}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={logoSrc} alt={campus.short_name} className="w-full h-full object-cover" />
                     </div>
 
                     <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold

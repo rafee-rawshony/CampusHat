@@ -200,15 +200,21 @@ export function CampusSwitcher() {
                                     <Globe className="inline-block w-4 h-4 mr-2 opacity-50" /> All Campuses (Global)
                                 </button>
                                 <div className="h-px bg-gray-100 my-1 mx-2" />
-                                {filtered.map((campus) => (
-                                    <button
-                                        key={campus.id}
-                                        onClick={() => { setCampus(campus.id, campus.name); setOpen(false); setSearchQuery('') }}
-                                        className={`w-full text-left px-4 py-3 rounded-xl text-xs transition-colors leading-tight ${String(selectedCampusId) === campus.id ? 'bg-purple-50 text-[#4C3B8A] font-bold' : 'text-gray-600 hover:bg-gray-50 font-medium'}`}
-                                    >
-                                        {campus.name}
-                                    </button>
-                                ))}
+                                {filtered.map((campus) => {
+                                    const logoSrc = `https://placehold.co/40x40/4C3B8A/ffffff?text=${encodeURIComponent(campus.short_name.substring(0, 3))}`
+                                    const isSelected = String(selectedCampusId) === campus.id
+                                    return (
+                                        <button
+                                            key={campus.id}
+                                            onClick={() => { setCampus(campus.id, campus.name); setOpen(false); setSearchQuery('') }}
+                                            className={`w-full text-left px-3 py-2.5 rounded-xl text-xs transition-colors flex items-center gap-3 ${isSelected ? 'bg-purple-50 text-[#4C3B8A] font-bold' : 'text-gray-600 hover:bg-gray-50 font-medium'}`}
+                                        >
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img src={logoSrc} alt="" className="w-7 h-7 rounded-lg shrink-0 object-cover" />
+                                            <span className="leading-tight">{campus.name}</span>
+                                        </button>
+                                    )
+                                })}
 
                                 {filtered.length === 0 && campuses.length === 0 && (
                                     <div className="px-4 py-6 text-center">

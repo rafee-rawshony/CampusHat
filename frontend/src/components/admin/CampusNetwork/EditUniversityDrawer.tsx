@@ -132,14 +132,12 @@ export default function EditUniversityDrawer({ university, isOpen, onClose }: Ed
                     <div className={`relative bg-gray-50 border border-gray-200 rounded-xl p-4 overflow-hidden pointer-events-none ${!isActiveValue ? 'opacity-60' : ''}`}>
                         <div className="flex items-start justify-between">
                             <div className="w-10 h-10 rounded-xl overflow-hidden border border-gray-200">
-                                {logoUrl ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img src={logoUrl} alt="" className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="w-full h-full bg-[#4C3B8A] text-white flex items-center justify-center font-bold text-xs">
-                                        {(shortNameValue || university.short_name).substring(0, 4)}
-                                    </div>
-                                )}
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                    src={logoUrl || `https://placehold.co/80x80/4C3B8A/ffffff?text=${encodeURIComponent((shortNameValue || university.short_name).substring(0, 4))}`}
+                                    alt=""
+                                    className="w-full h-full object-cover"
+                                />
                             </div>
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isActiveValue ? 'bg-green-100 text-green-600' : 'bg-gray-200 text-gray-500'}`}>
                                 {isActiveValue ? 'Active' : 'Inactive'}
