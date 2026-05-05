@@ -31,7 +31,13 @@ export default function BulkProductUploadPage() {
             const res = await api.post('/seller/products/bulk-upload/', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             })
-            return res.data?.data as UploadResult
+            // Safely extract result, ensure errors is always an array
+            const uploadResult = res.data?.data as UploadResult
+            return {
+                created_count: uploadResult?.created_count || 0,
+                error_count: uploadResult?.error_count || 0,
+                errors: Array.isArray(uploadResult?.errors) ? uploadResult.errors : [],
+            } as UploadResult
         },
         onSuccess: (data) => {
             setResult(data)
@@ -219,7 +225,7 @@ export default function BulkProductUploadPage() {
                     </div>
 
                     {/* Error details */}
-                    {result.errors.length > 0 && (
+                    {result.errors && Array.isArray(result.errors) && result.errors.length > 0 && (
                         <div className="bg-white rounded-xl border border-red-100 overflow-hidden">
                             <div className="px-4 py-3 border-b border-red-100 bg-red-50/50 flex items-center gap-2">
                                 <AlertTriangle className="w-4 h-4 text-red-500" />

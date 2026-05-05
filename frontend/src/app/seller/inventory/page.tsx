@@ -18,6 +18,7 @@ import {
 import toast from 'react-hot-toast'
 
 import { api } from '@/lib/api'
+import { normalizeListResponse } from '@/lib/response'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { absoluteMediaUrl } from '@/services/upload.service'
@@ -46,8 +47,7 @@ export default function InventoryPage() {
     const { data, isLoading } = useQuery({
         queryKey: ['seller-inventory'],
         queryFn: () => api.get('/seller/products/').then(
-            // Endpoint returns { success, message, data: [...] }; tolerate raw arrays too.
-            r => r.data?.data || r.data?.results || (Array.isArray(r.data) ? r.data : []),
+            r => normalizeListResponse(r.data),
         ),
     })
 
@@ -171,7 +171,7 @@ export default function InventoryPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                                {filtered.map((p) => {
+                                {Array.isArray(filtered) && filtered.length > 0 && filtered.map((p) => {
                                     const stock = p.stock_quantity
                                     const stockColor = stock === 0
                                         ? 'text-red-600'
