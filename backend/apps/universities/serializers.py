@@ -12,15 +12,16 @@ from .models import InstitutionRequest, University
 
 class UniversityListSerializer(serializers.ModelSerializer):
     """
-    Lightweight serializer for university list views.
-    Returns only essential fields for browsing.
+    Serializer for university list views — includes all editable fields
+    so the admin edit drawer can pre-populate without a separate detail fetch.
     """
 
     class Meta:
         model = University
         fields = [
             'id', 'name', 'short_name', 'slug', 'system_id',
-            'division', 'district', 'logo_url', 'is_active',
+            'division', 'district', 'postal_code', 'full_address',
+            'email_domain', 'short_description', 'logo_url', 'is_active',
         ]
         read_only_fields = fields
 
