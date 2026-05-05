@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { SellerOrderTable } from '@/components/seller/orders/SellerOrderTable'
 import { cn } from '@/lib/utils'
+import { normalizeListResponse } from '@/lib/response'
 
 const TABS = [
     { id: 'all', label: 'All' },
@@ -30,12 +31,12 @@ export default function SellerOrdersPage() {
         queryFn: () => {
             const params = new URLSearchParams({ ordering: '-created_at' })
             if (activeTab !== 'all') params.set('status', activeTab)
-            return api.get(`/seller/orders/?${params}`).then(r => r.data?.results || r.data || [])
+            return api.get(`/seller/orders/?${params}`).then(r => normalizeListResponse(r.data))
         },
         staleTime: 30_000,
     })
 
-    const orders: any[] = data || []
+    const orders = normalizeListResponse<any>(data)
 
     return (
         <div>

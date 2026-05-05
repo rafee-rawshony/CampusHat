@@ -22,6 +22,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { absoluteMediaUrl } from '@/services/upload.service'
 import { getInitials } from '@/lib/utils'
+import { normalizeListResponse } from '@/lib/response'
 
 interface SellerReview {
     id: string
@@ -74,7 +75,7 @@ export default function SellerReviewsPage() {
         queryKey: ['seller-reviews', queryParams],
         queryFn: () =>
             api.get('/seller/reviews/', { params: queryParams })
-                .then((r) => r.data?.data || []),
+                .then((r) => normalizeListResponse<SellerReview>(r.data?.data ?? r.data)),
     })
 
     const replyMutation = useMutation({

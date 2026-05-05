@@ -17,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { api } from '@/lib/api'
 import toast from 'react-hot-toast'
+import { normalizeListResponse } from '@/lib/response'
 
 interface SellerRefund {
     id: string
@@ -60,7 +61,7 @@ export default function SellerReturnsPage() {
         queryFn: () =>
             api.get('/seller/refunds/', {
                 params: statusFilter !== 'all' ? { status: statusFilter } : {},
-            }).then((r) => r.data?.data || []),
+            }).then((r) => normalizeListResponse<SellerRefund>(r.data?.data ?? r.data)),
     })
 
     const acceptMutation = useMutation({

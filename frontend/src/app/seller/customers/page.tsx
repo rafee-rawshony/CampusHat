@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 
 import { api } from '@/lib/api'
+import { normalizeSingleResponse } from '@/lib/response'
 
 interface CustomerData {
     total_customers: number
@@ -59,7 +60,7 @@ export default function CustomerInsightsPage() {
     const { data, isLoading } = useQuery<CustomerData>({
         queryKey: ['seller-customer-insights'],
         queryFn: () =>
-            api.get('/analytics/seller/customers/').then(r => r.data?.data),
+            api.get('/analytics/seller/customers/').then(r => normalizeSingleResponse<CustomerData>(r.data?.data ?? r.data)),
     })
 
     if (isLoading) {
@@ -80,7 +81,7 @@ export default function CustomerInsightsPage() {
         )
     }
 
-    const maxUniCount = Math.max(...(data.university_distribution || []).map(u => u.count), 1)
+    const maxUniCount = Math.max(...(data.university_distribution || []).map(u => Number(u.count || 0)), 1)
 
     return (
         <div className="space-y-6">
@@ -152,7 +153,7 @@ export default function CustomerInsightsPage() {
                                         </p>
                                     </div>
                                     <span className="text-sm font-bold text-gray-700">
-                                        ৳{parseFloat(customer.total_spent).toLocaleString()}
+                                            ৳{Number(customer.total_spent || 0).toLocaleString()}
                                     </span>
                                 </div>
                             ))}
@@ -217,7 +218,7 @@ export default function CustomerInsightsPage() {
                                         <td className="py-2.5 px-4 text-right text-gray-600">{row.customers}</td>
                                         <td className="py-2.5 px-4 text-right text-gray-600">{row.orders}</td>
                                         <td className="py-2.5 px-4 text-right font-medium text-gray-700">
-                                            ৳{parseFloat(row.revenue || '0').toLocaleString()}
+                                            ৳{Number(row.revenue || 0).toLocaleString()}
                                         </td>
                                     </tr>
                                 ))}
