@@ -25,10 +25,22 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
         self.chat_id = self.scope['url_route']['kwargs']['chat_id']
         self.group_name = f'marketplace_chat_{self.chat_id}'
-        self.user = self.scope.get('user')
+        self.user = None
 
-        # Reject unauthenticated connections
-        if not self.user or self.user.is_anonymous:
+        # Extract JWT access token from ?token= query param (frontend sends it this way)
+        query_string = self.scope.get('query_string', b'').decode('utf-8')
+        token = None
+        for param in query_string.split('&'):
+            if param.startswith('token='):
+                token = param.split('=', 1)[1]
+                break
+
+        if not token:
+            await self.close(code=4001)
+            return
+
+        self.user = await self._get_user_from_token(token)
+        if not self.user:
             await self.close(code=4001)
             return
 
@@ -118,6 +130,19 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             await self.send_json({'type': 'chat.typing', 'data': event['data']})
 
     # --- Database helpers ---
+
+    @database_sync_to_async
+    def _get_user_from_token(self, token_str):
+        """Validate JWT access token and return the user, or None on failure."""
+        from django.contrib.auth import get_user_model
+        from rest_framework_simplejwt.tokens import AccessToken
+        User = get_user_model()
+        try:
+            access_token = AccessToken(token_str)
+            user_id = access_token['user_id']
+            return User.objects.get(id=user_id, is_active=True)
+        except Exception:
+            return None
 
     @database_sync_to_async
     def _is_chat_participant(self):

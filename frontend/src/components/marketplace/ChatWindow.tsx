@@ -19,6 +19,7 @@ interface ChatWindowProps {
     chatId: string
     chatData?: {
         id: string
+        seller_id: string  // UUID of the listing owner — used to determine if current user is seller
         listing: {
             id: string | number
             title: string
@@ -195,10 +196,8 @@ export function ChatWindow({ chatId, chatData }: ChatWindowProps) {
         }
     }
 
-    // Check if user is the seller (listing owner) vs buyer
-    const isSeller = chatData
-        ? String(user?.id) !== String(chatData.other_user.id) // If current user is NOT the other_user, they could be the seller
-        : false
+    // Current user is the seller if their ID matches the listing owner's ID
+    const isSeller = chatData ? String(user?.id) === String(chatData.seller_id) : false
 
     return (
         <div className="flex flex-col h-full" style={{ height: '100dvh' }}>
