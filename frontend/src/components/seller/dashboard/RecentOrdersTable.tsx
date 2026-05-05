@@ -17,7 +17,16 @@ export function RecentOrdersTable() {
         staleTime: 30_000,
     })
 
-    const orders: any[] = data || []
+    // Normalize API response: some endpoints return an array, others return
+    // a paginated object { results: [] } or wrapper { data: [] }.
+    const ordersRaw: any = data || []
+    const orders: any[] = Array.isArray(ordersRaw)
+        ? ordersRaw
+        : Array.isArray(ordersRaw?.results)
+        ? ordersRaw.results
+        : Array.isArray(ordersRaw?.data)
+        ? ordersRaw.data
+        : []
 
     return (
         <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
