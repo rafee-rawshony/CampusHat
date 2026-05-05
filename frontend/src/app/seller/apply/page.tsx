@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -11,12 +11,11 @@ import { useAuthStore } from '@/stores/auth.store'
 import { useRouter } from 'next/navigation'
 import { Store, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { ImageUpload } from '@/components/common/ImageUpload'
 
 const schema = z.object({
     store_name: z.string().min(2, 'Store name is required'),
     description: z.string().optional(),
-    logo: z.string().url().optional().or(z.literal('')),
-    banner: z.string().url().optional().or(z.literal('')),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -24,13 +23,19 @@ type FormValues = z.infer<typeof schema>
 export default function SellerApplyPage() {
     const { user, setUser } = useAuthStore()
     const router = useRouter()
+    const [logoUrl, setLogoUrl] = useState<string | null>(null)
+    const [bannerUrl, setBannerUrl] = useState<string | null>(null)
 
     const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
         resolver: zodResolver(schema),
     })
 
     const applyMutation = useMutation({
-        mutationFn: (data: FormValues) => api.post('/sellers/register/', data),
+        mutationFn: (data: FormValues) => api.post('/sellers/register/', {
+            ...data,
+            logo: logoUrl || undefined,
+            banner: bannerUrl || undefined,
+        }),
         onSuccess: () => {
             // Update auth store with pending status
             if (user) {
@@ -99,22 +104,30 @@ export default function SellerApplyPage() {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Logo URL <span className="text-gray-400 font-normal">(optional)</span></label>
-                                <input
-                                    type="url"
-                                    {...register('logo')}
-                                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#4C3B8A] bg-gray-50"
-                                    placeholder="https://..."
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">
+                                    Store Logo <span className="text-gray-400 font-normal">(optional)</span>
+                                </label>
+                                <ImageUpload
+                                    value={logoUrl}
+                                    onChange={setLogoUrl}
+                                    category="store_logo"
+                                    variant="avatar"
+                                    fallbackText="S"
+                                    size={80}
+                                    label="JPG, PNG or WebP — max 5MB"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Banner URL <span className="text-gray-400 font-normal">(optional)</span></label>
-                                <input
-                                    type="url"
-                                    {...register('banner')}
-                                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#4C3B8A] bg-gray-50"
-                                    placeholder="https://..."
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">
+                                    Store Banner <span className="text-gray-400 font-normal">(optional)</span>
+                                </label>
+                                <ImageUpload
+                                    value={bannerUrl}
+                                    onChange={setBannerUrl}
+                                    category="store_banner"
+                                    variant="rectangle"
+                                    label="Recommended: 1200×300px — JPG, PNG or WebP — max 5MB"
                                 />
                             </div>
                         </div>

@@ -10,11 +10,13 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { Package, RotateCcw, Loader2, Upload, X, Plus, Camera, Clock, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
+import { Package, RotateCcw, Loader2, ImageIcon, X, Plus, Clock, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useRef } from 'react'
 
 import { api } from '@/lib/api'
 import { listMyOrders } from '@/services/orders.service'
+import { uploadImage } from '@/services/upload.service'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
@@ -45,7 +47,9 @@ export default function ReturnsPage() {
     const [reason, setReason] = useState('')
     const [description, setDescription] = useState('')
     const [evidenceUrls, setEvidenceUrls] = useState<string[]>([])
-    const [imageUrl, setImageUrl] = useState('')
+    const [evidencePreviews, setEvidencePreviews] = useState<string[]>([])
+    const [uploadingEvidence, setUploadingEvidence] = useState(false)
+    const evidenceInputRef = useRef<HTMLInputElement>(null)
 
     // Fetch refund requests
     const { data: refunds, isLoading: refundsLoading } = useQuery({
@@ -82,7 +86,9 @@ export default function ReturnsPage() {
             setSelectedOrderId('')
             setReason('')
             setDescription('')
+            evidencePreviews.forEach(p => URL.revokeObjectURL(p))
             setEvidenceUrls([])
+            setEvidencePreviews([])
             queryClient.invalidateQueries({ queryKey: ['my-refunds'] })
         },
         onError: (err: any) => {
@@ -91,15 +97,40 @@ export default function ReturnsPage() {
         },
     })
 
-    const addEvidenceUrl = () => {
-        if (imageUrl.trim() && evidenceUrls.length < 5) {
-            setEvidenceUrls([...evidenceUrls, imageUrl.trim()])
-            setImageUrl('')
+    const handleEvidenceFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || [])
+        e.target.value = ''
+        const slots = 5 - evidenceUrls.length
+        if (slots <= 0) return
+
+        setUploadingEvidence(true)
+        for (const file of files.slice(0, slots)) {
+            if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+                toast.error(`${file.name}: Only JPG/PNG/WebP allowed`)
+                continue
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                toast.error(`${file.name}: Must be under 5 MB`)
+                continue
+            }
+            const preview = URL.createObjectURL(file)
+            setEvidencePreviews(prev => [...prev, preview])
+            try {
+                const result = await uploadImage(file, 'review')
+                setEvidenceUrls(prev => [...prev, result.url])
+            } catch {
+                toast.error(`Failed to upload ${file.name}`)
+                setEvidencePreviews(prev => prev.filter(p => p !== preview))
+                URL.revokeObjectURL(preview)
+            }
         }
+        setUploadingEvidence(false)
     }
 
     const removeEvidence = (idx: number) => {
-        setEvidenceUrls(evidenceUrls.filter((_, i) => i !== idx))
+        URL.revokeObjectURL(evidencePreviews[idx])
+        setEvidenceUrls(prev => prev.filter((_, i) => i !== idx))
+        setEvidencePreviews(prev => prev.filter((_, i) => i !== idx))
     }
 
     const refundList: any[] = Array.isArray(refunds) ? refunds : []
@@ -179,36 +210,64 @@ export default function ReturnsPage() {
 
                         {/* Evidence Photos */}
                         <div className="space-y-2">
-                            <label className="text-sm font-semibold text-gray-700">
-                                Evidence Photos <span className="text-gray-400 font-normal">(Optional, max 5)</span>
-                            </label>
-                            <div className="flex gap-2">
-                                <input
-                                    type="url"
-                                    value={imageUrl}
-                                    onChange={(e) => setImageUrl(e.target.value)}
-                                    placeholder="Paste image URL..."
-                                    className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#4C3B8A]/30"
-                                />
-                                <Button type="button" onClick={addEvidenceUrl} variant="outline" className="rounded-xl" disabled={evidenceUrls.length >= 5}>
-                                    <Camera className="w-4 h-4" />
-                                </Button>
+                            <div className="flex items-center justify-between">
+                                <label className="text-sm font-semibold text-gray-700">
+                                    Evidence Photos <span className="text-gray-400 font-normal">(Optional, max 5)</span>
+                                </label>
+                                <span className="text-xs text-gray-400">{evidencePreviews.length}/5</span>
                             </div>
-                            {evidenceUrls.length > 0 && (
-                                <div className="flex flex-wrap gap-2 mt-2">
-                                    {evidenceUrls.map((url, idx) => (
-                                        <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden bg-gray-100">
-                                            <img src={url} alt="" className="w-full h-full object-cover" />
+                            <div className="flex flex-wrap gap-2">
+                                {/* Thumbnails */}
+                                {evidencePreviews.map((preview, idx) => (
+                                    <div key={preview} className="relative w-16 h-16 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 group shrink-0">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img src={preview} alt="" className="w-full h-full object-cover" />
+                                        {/* show spinner if upload still in progress (url not yet set) */}
+                                        {!evidenceUrls[idx] && (
+                                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                                <Loader2 className="w-4 h-4 text-white animate-spin" />
+                                            </div>
+                                        )}
+                                        {evidenceUrls[idx] && (
                                             <button
+                                                type="button"
                                                 onClick={() => removeEvidence(idx)}
-                                                className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px]"
+                                                className="absolute top-0.5 right-0.5 bg-black/60 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
                                             >
-                                                ×
+                                                <X className="w-3 h-3" />
                                             </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                                        )}
+                                    </div>
+                                ))}
+
+                                {/* Add photo button */}
+                                {evidencePreviews.length < 5 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => evidenceInputRef.current?.click()}
+                                        disabled={uploadingEvidence}
+                                        className="w-16 h-16 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center gap-1 text-gray-400 hover:text-[#4C3B8A] hover:border-[#4C3B8A] hover:bg-purple-50 transition-colors shrink-0 disabled:opacity-50"
+                                    >
+                                        {uploadingEvidence ? (
+                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                        ) : (
+                                            <>
+                                                <ImageIcon className="w-5 h-5" />
+                                                <span className="text-[9px] font-semibold">Upload</span>
+                                            </>
+                                        )}
+                                    </button>
+                                )}
+                            </div>
+                            <p className="text-xs text-gray-400">JPG, PNG or WebP — max 5 MB each</p>
+                            <input
+                                ref={evidenceInputRef}
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                multiple
+                                className="hidden"
+                                onChange={handleEvidenceFiles}
+                            />
                         </div>
 
                         {/* Submit */}
