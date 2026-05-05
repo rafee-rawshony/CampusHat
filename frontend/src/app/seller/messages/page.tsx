@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { MessageCircle, Clock, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { api } from '@/lib/api'
+import { normalizeListResponse } from '@/lib/response'
 import { formatDistanceToNow } from 'date-fns'
 
 // Types for chat data
@@ -26,13 +27,19 @@ export default function SellerMessagesPage() {
     const { data: chatsData, isLoading } = useQuery({
         queryKey: ['seller-chats'],
         queryFn: () =>
-            api.get('/seller/chats/').then(r => r.data?.data?.results || r.data?.results || r.data || [])
-                .catch(() => api.get('/marketplace/chats/').then(r => r.data?.data?.results || r.data?.results || r.data || [])),
+            api.get('/seller/chats/').then(r => normalizeListResponse<ChatItem>(r.data?.data ?? r.data))
+                .catch(() => api.get('/marketplace/chats/').then(r => normalizeListResponse<ChatItem>(r.data?.data ?? r.data))),
         staleTime: 30_000,
         refetchInterval: 60_000,
     })
 
-    const chats: ChatItem[] = chatsData || []
+    const chats = Array.isArray(chatsData)
+        ? chatsData
+        : Array.isArray((chatsData as { results?: unknown })?.results)
+        ? (chatsData as { results: ChatItem[] }).results
+        : Array.isArray((chatsData as { data?: unknown })?.data)
+        ? (chatsData as { data: ChatItem[] }).data
+        : []
 
     return (
         <div>
