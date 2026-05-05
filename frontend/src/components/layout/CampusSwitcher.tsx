@@ -47,10 +47,12 @@ export function CampusSwitcher() {
         if (open) setTimeout(() => searchRef.current?.focus(), 100)
     }, [open])
 
-    const filtered = campuses.filter((c) =>
-        c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.short_name.toLowerCase().includes(searchQuery.toLowerCase())
-    )
+    const filtered = campuses.filter((c) => {
+        const words = searchQuery.toLowerCase().split(/\s+/).filter(Boolean)
+        if (words.length === 0) return true
+        const haystack = (c.name + ' ' + c.short_name).toLowerCase()
+        return words.every(word => haystack.includes(word))
+    })
 
     return (
         <div className="relative" ref={dropdownRef}>
