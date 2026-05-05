@@ -56,6 +56,7 @@ services:
     restart: unless-stopped
     command: >
       sh -c "python manage.py migrate --noinput &&
+             python manage.py seed_universities &&
              python manage.py runserver 0.0.0.0:8000"
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.development
