@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 
 import { api } from '@/lib/api'
+import { normalizeSingleResponse } from '@/lib/response'
 
 interface PerformanceData {
     period_days: number
@@ -115,7 +116,7 @@ export default function SellerPerformancePage() {
         queryKey: ['seller-performance', period],
         queryFn: () =>
             api.get('/analytics/seller/performance/', { params: { days: period } })
-                .then((r) => r.data?.data || {}),
+                .then((r) => normalizeSingleResponse<PerformanceData>(r.data?.data ?? r.data) || {}),
     })
 
     return (

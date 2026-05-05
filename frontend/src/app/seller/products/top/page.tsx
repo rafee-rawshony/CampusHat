@@ -10,6 +10,7 @@ import {
 
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
+import { normalizeListResponse } from '@/lib/response'
 
 interface TopProduct {
     product__id: string
@@ -28,14 +29,14 @@ export default function TopProductsPage() {
         queryKey: ['seller-top-products', 'best'],
         queryFn: () =>
             api.get('/analytics/seller/products/top/', { params: { type: 'best' } })
-                .then(r => r.data?.data || []),
+                .then(r => normalizeListResponse<TopProduct>(r.data?.data ?? r.data)),
     })
 
     const { data: slowMovers = [], isLoading: loadingSlow } = useQuery<TopProduct[]>({
         queryKey: ['seller-top-products', 'slow'],
         queryFn: () =>
             api.get('/analytics/seller/products/top/', { params: { type: 'slow' } })
-                .then(r => r.data?.data || []),
+                .then(r => normalizeListResponse<TopProduct>(r.data?.data ?? r.data)),
     })
 
     const isLoading = tab === 'best' ? loadingBest : loadingSlow

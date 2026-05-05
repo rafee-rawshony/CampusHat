@@ -12,6 +12,7 @@ import {
     Zap, Plus, Loader2, Pencil, Search, Clock, CheckCircle2, XCircle, ShoppingBag,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { normalizeListResponse } from '@/lib/response'
 
 interface FlashSaleProduct {
     id: string
@@ -93,7 +94,7 @@ function ProductPicker({ saleId, onDone }: { saleId: string; onDone: () => void 
         queryKey: ['seller-products-search', search],
         queryFn: () =>
             api.get('/seller/products/', { params: search ? { search } : {} })
-                .then(r => r.data?.results || r.data?.data || r.data || []),
+                .then(r => normalizeListResponse<any>(r.data?.data ?? r.data)),
         enabled: true,
     })
 
@@ -264,8 +265,7 @@ export default function SellerFlashSalesPage() {
         queryKey: ['flash-sales'],
         queryFn: () =>
             api.get('/flash-sales/active/').then(r => {
-                const d = r.data?.data?.results || r.data?.results || r.data?.data || r.data
-                return Array.isArray(d) ? d : []
+                return normalizeListResponse<FlashSale>(r.data?.data ?? r.data)
             }),
     })
 

@@ -12,6 +12,7 @@ import {
     Tag, Plus, Loader2, Pencil, Trash2, Eye, EyeOff, Ticket,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { normalizeListResponse } from '@/lib/response'
 
 interface Coupon {
     id: string
@@ -59,10 +60,7 @@ export default function SellerCouponsPage() {
     const { data: coupons = [], isLoading } = useQuery<Coupon[]>({
         queryKey: ['seller-coupons'],
         queryFn: () =>
-            api.get('/seller/coupons/').then(r => {
-                const d = r.data?.data?.results || r.data?.results || r.data?.data || r.data
-                return Array.isArray(d) ? d : []
-            }),
+            api.get('/seller/coupons/').then(r => normalizeListResponse<Coupon>(r.data?.data ?? r.data)),
     })
 
     const resetForm = () => {
