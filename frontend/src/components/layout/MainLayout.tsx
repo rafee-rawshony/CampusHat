@@ -42,9 +42,13 @@ export function MainLayout({ children }: MainLayoutProps) {
         }
     }, [])
 
-    // Exclude global layout wrappers for admin and seller dashboard routes —
-    // both manage their own internal Sidebar and top bar.
-    if (pathname && (pathname.startsWith('/admin') || pathname.startsWith('/seller'))) {
+    // Exclude global layout wrappers only for real admin/seller dashboard route
+    // segments. This avoids accidental matches like "/sellers" (public mall page).
+    const isAdminDashboardRoute = !!pathname && /^\/admin(?:\/|$)/.test(pathname)
+    const isSellerDashboardRoute = !!pathname && /^\/seller(?:\/|$)/.test(pathname)
+
+    // Admin and seller dashboards manage their own internal sidebar/top bar.
+    if (isAdminDashboardRoute || isSellerDashboardRoute) {
         return <>{children}</>
     }
 
