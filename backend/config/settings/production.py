@@ -55,17 +55,54 @@ X_FRAME_OPTIONS = 'DENY'
 #   AWS_S3_ENDPOINT_URL=https://sgp1.digitaloceanspaces.com   (use your region)
 #   AWS_S3_CUSTOM_DOMAIN=your-space-name.sgp1.digitaloceanspaces.com
 
-STORAGES = {
-    'default': {
-        'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage',
-    },
-    'staticfiles': {
-        'BACKEND': 'storages.backends.s3boto3.S3StaticStorage',
-    },
-}
+AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID', default='')
+AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY', default='')
+AWS_STORAGE_BUCKET_NAME = config('AWS_STORAGE_BUCKET_NAME', default='campushat-media')
+AWS_S3_REGION_NAME = config('AWS_S3_REGION_NAME', default='ap-southeast-1')
+AWS_S3_CUSTOM_DOMAIN = config('AWS_S3_CUSTOM_DOMAIN', default='')
 
-# DigitalOcean Spaces endpoint (leave blank if using real AWS S3)
-AWS_S3_ENDPOINT_URL = config('AWS_S3_ENDPOINT_URL', default='')
+
+def _is_real_aws_value(value: str) -> bool:
+    value = str(value or '').strip()
+    if not value:
+        return False
+    lowered = value.lower()
+    if lowered.startswith('your-'):
+        return False
+    if lowered in {'changeme', 'change-me', 'placeholder', 'example', 'example-value'}:
+        return False
+    return True
+
+# If AWS/S3 is not configured, fall back to local filesystem storage so the
+# prod Docker stack can boot cleanly on a dev machine or VPS without object storage.
+USE_S3_STORAGE = all([
+    _is_real_aws_value(AWS_ACCESS_KEY_ID),
+    _is_real_aws_value(AWS_SECRET_ACCESS_KEY),
+    _is_real_aws_value(AWS_STORAGE_BUCKET_NAME),
+])
+
+if USE_S3_STORAGE:
+    STORAGES = {
+        'default': {
+            'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage',
+        },
+        'staticfiles': {
+            'BACKEND': 'storages.backends.s3boto3.S3StaticStorage',
+        },
+    }
+    # Empty endpoint causes boto3 to raise "Invalid endpoint" during collectstatic.
+    # Keep it as None unless a real S3-compatible endpoint is configured.
+    AWS_S3_ENDPOINT_URL = config('AWS_S3_ENDPOINT_URL', default='').strip() or None
+else:
+    STORAGES = {
+        'default': {
+            'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        },
+        'staticfiles': {
+            'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+        },
+    }
+    AWS_S3_ENDPOINT_URL = None
 
 # =============================================================================
 # CACHES — Redis

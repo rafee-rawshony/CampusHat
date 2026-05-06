@@ -179,3 +179,4 @@ Thumbs.db
 *.log
 
 campushat-demo/
+.claude/settings.json

@@ -2,7 +2,7 @@ import axios from 'axios'
 import { useAuthStore } from '@/stores/auth.store'
 
 export const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1',
+    baseURL: process.env.NEXT_PUBLIC_API_URL || '/api/v1',
     withCredentials: true,
     timeout: 15000,
     headers: { 'Content-Type': 'application/json' },
@@ -60,7 +60,7 @@ api.interceptors.response.use(
 
             try {
                 const { data } = await axios.post(
-                    `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/auth/token/refresh/`,
+                    `${process.env.NEXT_PUBLIC_API_URL || '/api/v1'}/auth/token/refresh/`,
                     {},
                     { withCredentials: true }
                 )
