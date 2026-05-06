@@ -34,14 +34,7 @@ export function RoleChangeDialog({ isOpen, onClose, user }: RoleChangeDialogProp
 
     const { mutate: changeRole, isPending } = useMutation({
         mutationFn: async (role: string) => {
-            // First try a PATCH, then fallback in case routing is slightly different
-            return api.patch(`/admin/users/${user.id}/role/`, { role })
-                .catch(err => {
-                    if (err.response?.status === 404 || err.response?.status === 405) {
-                        return api.post(`/admin/users/${user.id}/change-role/`, { role })
-                    }
-                    throw err
-                })
+            return api.patch(`/admin/users/${user.id}/change-role/`, { role })
         },
         onSuccess: (_, variables) => {
             const roleLabel = ROLES.find(r => r.value === variables)?.label
