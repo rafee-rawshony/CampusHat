@@ -19,14 +19,27 @@ export function MainLayout({ children }: MainLayoutProps) {
     const [headerHeight, setHeaderHeight] = useState(0)
 
     useEffect(() => {
-        const update = () => {
-            if (headerRef.current) {
-                setHeaderHeight(headerRef.current.offsetHeight)
-            }
-        }
+        const el = headerRef.current
+        if (!el) return
+
+        const update = () => setHeaderHeight(el.offsetHeight)
         update()
+
+        // Re-measure on window resize
         window.addEventListener('resize', update)
-        return () => window.removeEventListener('resize', update)
+
+        // Re-measure when the header itself grows/shrinks
+        // (e.g. ProfileCompletionBanner appearing after auth hydration)
+        let ro: ResizeObserver | undefined
+        if (typeof ResizeObserver !== 'undefined') {
+            ro = new ResizeObserver(update)
+            ro.observe(el)
+        }
+
+        return () => {
+            window.removeEventListener('resize', update)
+            ro?.disconnect()
+        }
     }, [])
 
     // Exclude global layout wrappers for admin and seller dashboard routes —
