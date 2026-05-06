@@ -1,10 +1,10 @@
 import React, { useState } from 'react'
 import {
-    Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose, SheetOverlay
+    Sheet, SheetContent, SheetHeader, SheetTitle, SheetOverlay
 } from '@/components/ui/sheet'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
-import { X, Shield, Ban, CheckCircle, Grid3x3, ShoppingBag, ClipboardCopy } from 'lucide-react'
+import { Shield, Ban, CheckCircle, Grid3x3, ShoppingBag, ClipboardCopy } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { getInitials } from '@/lib/utils'
 import { timeAgo } from '@/lib/timeAgo'
@@ -114,14 +114,11 @@ export function UserDetailDrawer({ userId, isOpen, onClose }: UserDetailDrawerPr
 
     return (
         <Sheet open={isOpen} onOpenChange={(open) => !open && handleMainClose()}>
-            {isOpen && <SheetOverlay className="bg-black/60 z-[60]" />}
+            {isOpen && <SheetOverlay className="bg-transparent z-[60]" />}
             <SheetContent side="right" className="p-0 border-l-0 w-full sm:w-[480px] z-[70] sm:max-w-[480px] flex flex-col bg-white">
                 {/* Header */}
                 <div className="flex items-center justify-between p-5 border-b border-gray-100 shrink-0">
                     <SheetTitle className="font-semibold text-gray-900 text-lg">User Profile</SheetTitle>
-                    <SheetClose className="text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 p-2 transition">
-                        <X className="w-5 h-5" />
-                    </SheetClose>
                 </div>
 
                 <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar pb-10">

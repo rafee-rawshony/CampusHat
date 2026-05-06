@@ -18,6 +18,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
             api.post('/auth/token/refresh/')
                 .then(res => {
                     store.setAccessToken(res.data.data?.access_token || res.data.access_token)
+                    // Fetch latest user data to sync role and verification status
+                    api.get('/auth/me/').then(userRes => {
+                        store.setUser(userRes.data.data || userRes.data)
+                    }).catch(() => {})
                 })
                 .catch(() => {
                     // Refresh failed - user needs to login again

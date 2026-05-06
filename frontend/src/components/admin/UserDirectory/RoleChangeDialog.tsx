@@ -69,7 +69,7 @@ export function RoleChangeDialog({ isOpen, onClose, user }: RoleChangeDialogProp
 
     return (
         <Dialog open={isOpen} onOpenChange={isPending ? undefined : onClose}>
-            <DialogContent className="max-w-sm rounded-2xl p-6 shadow-xl border-0">
+            <DialogContent overlayClassName="bg-transparent" className="max-w-sm rounded-2xl p-6 shadow-xl border-0">
                 <DialogTitle className="font-bold text-gray-900 text-lg">Change User Role</DialogTitle>
                 <div className="mt-1">
                     <p className="text-sm text-gray-500">Changing: <span className="font-semibold text-gray-800">{user.full_name}</span></p>
@@ -81,7 +81,7 @@ export function RoleChangeDialog({ isOpen, onClose, user }: RoleChangeDialogProp
                         <SelectTrigger className="w-full bg-gray-50 border-gray-200 focus-visible:ring-[#4C3B8A]">
                             <SelectValue placeholder="Select new role..." />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="z-[120]">
                             {availableRoles.map(role => (
                                 <SelectItem key={role.value} value={role.value}>{role.label}</SelectItem>
                             ))}

@@ -162,14 +162,24 @@ class VerificationUserSerializer(serializers.ModelSerializer):
     """Minimal user info returned inside each verification record."""
 
     university_short_code = serializers.SerializerMethodField()
+    university_name = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'full_name', 'profile_picture', 'university_email', 'university_short_code']
+        fields = [
+            'id', 'full_name', 'email', 'phone', 
+            'profile_picture', 'university_email', 
+            'university_short_code', 'university_name'
+        ]
 
     def get_university_short_code(self, obj):
         if obj.university:
             return obj.university.short_name
+        return None
+        
+    def get_university_name(self, obj):
+        if obj.university:
+            return obj.university.name
         return None
 
 

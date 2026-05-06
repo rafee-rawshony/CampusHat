@@ -49,7 +49,7 @@ export function SuspendUserDialog({ isOpen, onClose, user }: SuspendUserDialogPr
 
     return (
         <Dialog open={isOpen} onOpenChange={isPending ? undefined : onClose}>
-            <DialogContent className="max-w-sm rounded-2xl p-6 shadow-xl border-0">
+            <DialogContent overlayClassName="bg-transparent" className="max-w-sm rounded-2xl p-6 shadow-xl border-0">
                 <DialogTitle className="font-bold text-gray-900 text-lg">Suspend User Account</DialogTitle>
                 <p className="text-sm text-gray-500 mt-1 leading-relaxed">
                     Suspending <span className="font-semibold text-gray-700">{user.full_name}</span> will prevent them from logging in and accessing the platform.

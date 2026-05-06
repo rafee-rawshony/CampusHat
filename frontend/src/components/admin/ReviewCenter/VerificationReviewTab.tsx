@@ -10,6 +10,7 @@ import Image from 'next/image'
 import { ReviewItemCard } from './ReviewItemCard'
 import { RejectDialog } from './RejectDialog'
 import { ApproveConfirmDialog } from './ApproveConfirmDialog'
+import { VerificationDetailsModal } from './VerificationDetailsModal'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { getInitials } from '@/lib/utils'
 
@@ -22,6 +23,7 @@ export function VerificationReviewTab() {
     // Modal States
     const [rejectItem, setRejectItem] = useState<any | null>(null)
     const [approveItem, setApproveItem] = useState<any | null>(null)
+    const [detailsItem, setDetailsItem] = useState<any | null>(null)
 
     // Data Fetch
     const { data: verifications = [], isLoading } = useQuery({
@@ -57,8 +59,8 @@ export function VerificationReviewTab() {
 
     const handleReject = async (reason: string, _notes: string) => {
         if (!rejectItem) return
-        void _notes
-        await reviewMutation.mutateAsync({ id: rejectItem.id, status: 'rejected', rejection_reason: reason })
+        const fullReason = _notes ? `${reason} - ${_notes}` : reason
+        await reviewMutation.mutateAsync({ id: rejectItem.id, status: 'rejected', rejection_reason: fullReason })
     }
 
     const handleApprove = async () => {
@@ -147,7 +149,17 @@ export function VerificationReviewTab() {
                                 </div>
 
                                 {/* ACTION BUTTONS */}
-                                <div className="mt-4 flex gap-2">
+                                <div className="mt-auto pt-4 border-t border-gray-100">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <div />
+                                        <button 
+                                            onClick={() => setDetailsItem(item)}
+                                            className="text-xs font-bold text-[#4C3B8A] hover:underline"
+                                        >
+                                            View Full Details →
+                                        </button>
+                                    </div>
+                                    <div className="flex gap-2">
                                     <Button 
                                         variant="outline" 
                                         className="flex-1 border-red-300 text-red-500 hover:bg-red-50 font-semibold h-10 rounded-lg gap-1.5"
@@ -161,6 +173,7 @@ export function VerificationReviewTab() {
                                     >
                                         <CheckCircle className="w-4 h-4" /> Approve
                                     </Button>
+                                </div>
                                 </div>
                             </div>
                         </ReviewItemCard>
@@ -220,6 +233,11 @@ export function VerificationReviewTab() {
                     </div>
                 </div>
             )}
+                    <VerificationDetailsModal
+                isOpen={!!detailsItem}
+                onClose={() => setDetailsItem(null)}
+                verification={detailsItem}
+            />
         </>
     )
 }

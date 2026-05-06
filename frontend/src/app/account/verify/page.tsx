@@ -11,6 +11,7 @@ import { VerificationStep1 } from '@/components/account/VerificationStep1'
 import { VerificationStep2 } from '@/components/account/VerificationStep2'
 import { VerificationStep3 } from '@/components/account/VerificationStep3'
 import { VerificationPendingCard } from '@/components/account/VerificationPendingCard'
+import { VerificationApprovedCard } from '@/components/account/VerificationApprovedCard'
 import { VerificationRejectedBanner } from '@/components/account/VerificationRejectedBanner'
 import { ProfileGate } from '@/components/account/ProfileGate'
 
@@ -31,21 +32,21 @@ export default function VerifyAccountPage() {
     const [step1Data, setStep1Data] = useState({ student_id_number: '', university_email: '' })
     const [step2Data, setStep2Data] = useState({ university_id: '' })
 
-    // Redirect if already verified (regardless of role)
-    useEffect(() => {
-        if (user?.verification_status === 'approved') {
-            toast.success('Your account is already verified!')
-            const timer = setTimeout(() => {
-                router.push('/account')
-            }, 2000)
-            return () => clearTimeout(timer)
-        }
-    }, [user?.verification_status, router])
+    // No need to auto-redirect. The user can stay and see the approved state.
+    // Removed the redirect logic below.
 
-    if (!user || user.verification_status === 'approved') {
+    if (!user) {
         return (
             <div className="flex items-center justify-center min-h-[50vh]">
                 <div className="w-8 h-8 rounded-full border-4 border-[#4C3B8A] border-t-transparent animate-spin" />
+            </div>
+        )
+    }
+
+    if (user.verification_status === 'approved') {
+        return (
+            <div className="py-8 px-4 sm:px-0">
+                <VerificationApprovedCard />
             </div>
         )
     }
