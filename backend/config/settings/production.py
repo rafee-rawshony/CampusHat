@@ -48,8 +48,12 @@ CSRF_COOKIE_SECURE = True
 X_FRAME_OPTIONS = 'DENY'
 
 # =============================================================================
-# FILE STORAGE — AWS S3
+# FILE STORAGE — AWS S3 or DigitalOcean Spaces (S3-compatible)
 # =============================================================================
+# Works with both AWS S3 and DigitalOcean Spaces.
+# For DigitalOcean Spaces, set AWS_S3_ENDPOINT_URL in your .env:
+#   AWS_S3_ENDPOINT_URL=https://sgp1.digitaloceanspaces.com   (use your region)
+#   AWS_S3_CUSTOM_DOMAIN=your-space-name.sgp1.digitaloceanspaces.com
 
 STORAGES = {
     'default': {
@@ -59,6 +63,9 @@ STORAGES = {
         'BACKEND': 'storages.backends.s3boto3.S3StaticStorage',
     },
 }
+
+# DigitalOcean Spaces endpoint (leave blank if using real AWS S3)
+AWS_S3_ENDPOINT_URL = config('AWS_S3_ENDPOINT_URL', default='')
 
 # =============================================================================
 # CACHES — Redis
