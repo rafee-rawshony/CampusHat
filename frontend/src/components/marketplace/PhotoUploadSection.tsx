@@ -10,7 +10,7 @@
  */
 
 import React from 'react'
-import { Plus, X, Upload, Loader2, Image as ImageIcon, Star } from 'lucide-react'
+import { X, Upload, Loader2, Image as ImageIcon, Star } from 'lucide-react'
 import { Control, useFieldArray, UseFormRegister } from 'react-hook-form'
 import { useState } from 'react'
 import toast from 'react-hot-toast'

@@ -13,11 +13,24 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { getInitials } from '@/lib/utils'
 import { timeAgo } from '@/lib/timeAgo'
 
-function getPostTypeColor(type: string) {
-    if (type === 'buy') return 'bg-purple-500'
-    if (type === 'rental') return 'bg-green-500'
-    if (type === 'service') return 'bg-blue-500'
-    if (type === 'food') return 'bg-amber-500'
+function normalizePostType(type?: string) {
+    if (type === 'sell') return 'buy'
+    if (type === 'rent') return 'rental'
+    return type || 'buy'
+}
+
+function getImageUrl(image: any) {
+    if (!image) return ''
+    if (typeof image === 'string') return image
+    return image.image_url || image.image || ''
+}
+
+function getPostTypeColor(type?: string) {
+    const normalized = normalizePostType(type)
+    if (normalized === 'buy') return 'bg-purple-500'
+    if (normalized === 'rental') return 'bg-green-500'
+    if (normalized === 'service') return 'bg-blue-500'
+    if (normalized === 'food') return 'bg-amber-500'
     return 'bg-gray-500'
 }
 
@@ -108,8 +121,11 @@ export function MarketplaceAdReviewTab() {
 
     const renderAdCard = (ad: any, isReported = false) => {
         const typeColor = getPostTypeColor(ad.post_type)
-        const imgSrc = ad.images?.[0]
+        const postType = normalizePostType(ad.post_type)
+        const imgSrc = getImageUrl(ad.images?.[0])
         const isApproving = approvingIds.includes(ad.id)
+        const sellerName = ad.user?.full_name || ad.user?.name || 'Unknown Seller'
+        const universityShort = ad.university?.short_code || ad.university?.short_name || ad.university_short || 'UNI'
 
         return (
             <ReviewItemCard key={ad.id}>
@@ -136,11 +152,11 @@ export function MarketplaceAdReviewTab() {
                     {/* Badges */}
                     <div className="absolute top-2 left-2 flex gap-1.5 flex-wrap">
                         <span className={`text-[10px] uppercase px-2 py-0.5 rounded text-white font-bold ${typeColor}`}>
-                            {ad.post_type === 'buy' ? 'SELL ITEM' : ad.post_type?.toUpperCase()}
+                            {postType === 'buy' ? 'SELL ITEM' : postType.toUpperCase()}
                         </span>
                     </div>
                     
-                    {ad.post_type === 'buy' && ad.condition && (
+                    {postType === 'buy' && ad.condition && (
                         <div className="absolute top-2 right-2">
                             <span className="bg-white/90 backdrop-blur text-gray-800 text-[10px] uppercase font-bold px-2 py-0.5 rounded shadow-sm border border-gray-100">
                                 {ad.condition?.replace(/_/g, ' ')}
@@ -150,7 +166,7 @@ export function MarketplaceAdReviewTab() {
                     
                     <div className="absolute bottom-2 left-2">
                         <span className="bg-black/60 text-white text-[10px] font-bold px-2 py-0.5 rounded">
-                            {ad.university?.short_code || 'UNI'}
+                            {universityShort}
                         </span>
                     </div>
                 </div>
@@ -161,8 +177,8 @@ export function MarketplaceAdReviewTab() {
                     
                     <div className="mt-1 flex items-baseline gap-1">
                         <span className="font-bold text-gray-900">৳{Number(ad.price).toLocaleString()}</span>
-                        {ad.post_type === 'rental' && <span className="text-sm text-gray-500">/ month</span>}
-                        {ad.post_type === 'service' && <span className="text-sm text-gray-500">/ hour</span>}
+                        {postType === 'rental' && <span className="text-sm text-gray-500">/ month</span>}
+                        {postType === 'service' && <span className="text-sm text-gray-500">/ hour</span>}
                     </div>
                     
                     <p className="text-xs uppercase text-gray-400 mt-1 font-semibold truncate">
@@ -179,9 +195,9 @@ export function MarketplaceAdReviewTab() {
                             <>
                                 <Avatar className="w-6 h-6 rounded-full shrink-0">
                                     <AvatarImage src={ad.user?.profile_picture} />
-                                    <AvatarFallback className="bg-gray-200 text-gray-600 text-[10px]">{getInitials(ad.user?.full_name)}</AvatarFallback>
+                                    <AvatarFallback className="bg-gray-200 text-gray-600 text-[10px]">{getInitials(sellerName)}</AvatarFallback>
                                 </Avatar>
-                                <span className="text-sm font-medium text-gray-600 truncate">{ad.user?.full_name}</span>
+                                <span className="text-sm font-medium text-gray-600 truncate">{sellerName}</span>
                                 {ad.user?.role && (
                                     <span className="bg-gray-100 text-gray-500 text-[9px] px-1.5 py-0.5 rounded-sm uppercase tracking-wider font-bold">
                                         {ad.user.role.replace('normal_user', 'student')}

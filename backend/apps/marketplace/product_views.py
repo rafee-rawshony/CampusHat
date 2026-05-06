@@ -46,23 +46,42 @@ class CategoryListView(APIView):
     """
     GET /api/v1/marketplace/categories/
     GET /api/v1/marketplace/categories/?ad_type=sell
+    GET /api/v1/marketplace/categories/?ad_type=sell&parent=<uuid>
 
-    Public list of active root categories with children.
+    Public list of active categories with children.
+    Query params:
+      - ad_type: filter by main category type (sell, rent, service, food)
+      - parent: filter by parent ID to get subcategories
+      - flat: if 'true', returns flat list without nested children
     """
 
     permission_classes = [AllowAny]
 
     def get(self, request):
+        ad_type = request.query_params.get('ad_type')
+        parent_id = request.query_params.get('parent')
+        flat_mode = request.query_params.get('flat') == 'true'
+
         qs = MarketplaceCategory.objects.filter(
-            parent__isnull=True,
             is_active=True,
             deleted_at__isnull=True,
         )
-        ad_type = request.query_params.get('ad_type')
+
         if ad_type:
             qs = qs.filter(ad_type=ad_type)
 
-        serializer = MarketplaceCategorySerializer(qs, many=True)
+        if parent_id:
+            qs = qs.filter(parent_id=parent_id)
+        else:
+            qs = qs.filter(parent__isnull=True)
+
+        qs = qs.order_by('sort_order', 'name')
+
+        if flat_mode:
+            serializer = MarketplaceCategoryFlatSerializer(qs, many=True)
+        else:
+            serializer = MarketplaceCategorySerializer(qs, many=True)
+
         return Response({
             'success': True,
             'message': 'Data retrieved successfully.',

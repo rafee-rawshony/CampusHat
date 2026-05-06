@@ -17,8 +17,21 @@ from .admin_views import (
     AdminReportedListView,
     AdminReportResolveView,
 )
+from .category_views import (
+    AdminCategoryListView,
+    AdminCategoryDetailView,
+    AdminCategoryToggleView,
+    AdminCategoryReorderView,
+)
 
 urlpatterns = [
+    # Category Management
+    path('categories/', AdminCategoryListView.as_view(), name='admin-categories'),
+    path('categories/reorder/', AdminCategoryReorderView.as_view(), name='admin-categories-reorder'),
+    path('categories/<uuid:pk>/', AdminCategoryDetailView.as_view(), name='admin-category-detail'),
+    path('categories/<uuid:pk>/toggle/', AdminCategoryToggleView.as_view(), name='admin-category-toggle'),
+
+    # Product Moderation
     path('pending/', AdminPendingListView.as_view(), name='pending'),
     path('reported/', AdminReportedListView.as_view(), name='reported'),
     path('<uuid:pk>/', AdminProductDetailView.as_view(), name='detail'),

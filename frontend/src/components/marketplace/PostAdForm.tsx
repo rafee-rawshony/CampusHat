@@ -1,12 +1,11 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useCallback } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Info, ArrowLeft, Loader2 } from 'lucide-react'
+import { Info, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -18,6 +17,7 @@ import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth.store'
 import { AdTypeSelector, AdType } from './AdTypeSelector'
 import { PhotoUploadSection } from './PhotoUploadSection'
+import { MarketplaceCategorySelector } from './MarketplaceCategorySelector'
 
 const postAdSchema = z.object({
     post_type: z.enum(['buy', 'rental', 'service', 'food']),
@@ -28,9 +28,10 @@ const postAdSchema = z.object({
         .min(20, 'Description must be at least 20 characters')
         .max(1000, 'Description too long'),
     category: z.string().min(1, 'Please select a category'),
+    subcategory: z.string().optional(),
     condition: z.string().optional(),
-    price: z.coerce.number().min(0, 'Price cannot be negative'),
-    duration_days: z.coerce.number().refine(v => [7, 15, 30].includes(v), 'Invalid duration'),
+    price: z.coerce.number().positive('Price must be greater than 0'),
+    duration_days: z.coerce.number().refine(v => [7, 15, 30, 90, 180].includes(v), 'Invalid duration'),
     is_anonymous: z.boolean().default(false),
     images: z.array(z.object({
         url: z.string().url('Must be a valid URL').or(z.literal(''))
@@ -43,6 +44,22 @@ const postAdSchema = z.object({
             path: ['condition']
         })
     }
+
+    if ((data.post_type === 'buy' || data.post_type === 'rental') && ![7, 15, 30].includes(data.duration_days)) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Sell and rental ads can run for 7, 15, or 30 days',
+            path: ['duration_days']
+        })
+    }
+
+    if ((data.post_type === 'service' || data.post_type === 'food') && ![30, 90, 180].includes(data.duration_days)) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Service and food ads can run for 30, 90, or 180 days',
+            path: ['duration_days']
+        })
+    }
 })
 
 type PostAdFormData = z.infer<typeof postAdSchema>
@@ -51,18 +68,19 @@ interface PostAdFormProps {
     editId?: string | null
 }
 
-const FALLBACK_CATEGORIES: Record<string, string[]> = {
-    buy: ['Textbooks', 'Electronics', 'Furniture', 'Clothing', 'Sports', 'Other'],
-    rental: ['Housing', 'Appliances', 'Vehicles', 'Tools', 'Other'],
-    service: ['Tutoring', 'Design', 'Labor', 'Tech Support', 'Other'],
-    food: ['Homemade Meals', 'Snacks', 'Bakery', 'Other'],
+// Maps frontend post_type values to backend ad_type values
+const POST_TYPE_TO_AD_TYPE: Record<string, string> = {
+    buy: 'sell',
+    rental: 'rent',
+    service: 'service',
+    food: 'food',
 }
 
 const CONDITIONS = [
-    { label: 'New', value: 'new' },
-    { label: 'Used - Like New', value: 'used_like_new' },
-    { label: 'Used - Good', value: 'used_good' },
-    { label: 'Used - Fair', value: 'used_fair' },
+    { label: 'Like New', value: 'like_new' },
+    { label: 'Good', value: 'good' },
+    { label: 'Fair', value: 'fair' },
+    { label: 'For Parts', value: 'for_parts' },
 ]
 
 export function PostAdForm({ editId }: PostAdFormProps) {
@@ -77,7 +95,8 @@ export function PostAdForm({ editId }: PostAdFormProps) {
             title: '',
             description: '',
             category: '',
-            condition: 'used_good',
+            subcategory: '',
+            condition: 'good',
             price: 0,
             duration_days: 15,
             is_anonymous: false,
@@ -88,38 +107,34 @@ export function PostAdForm({ editId }: PostAdFormProps) {
     const { control, register, handleSubmit, watch, setValue, reset, formState: { errors, isSubmitting } } = form
     const currentType = watch('post_type')
     const description = watch('description') || ''
+    const selectedCategory = watch('category')
+    const selectedSubcategory = watch('subcategory')
 
-    // Fetch Categories
-    const { data: categories = FALLBACK_CATEGORIES[currentType] } = useQuery({
-        queryKey: ['marketplace-categories', currentType],
-        queryFn: async () => {
-            try {
-                const res = await api.get('/marketplace/categories/', { params: { post_type: currentType } })
-                const items = res.data?.data?.results || res.data?.results || res.data?.data || res.data || []
-                return items.map((c: any) => c.id || c.slug)
-            } catch {
-                return FALLBACK_CATEGORIES[currentType]
-            }
-        }
-    })
+    // Map frontend post_type to backend ad_type for API calls
+    const adType = POST_TYPE_TO_AD_TYPE[currentType] || currentType
+
+    // Stable callbacks for category selector
+    const handleCategoryChange = useCallback((val: string) => setValue('category', val), [setValue])
+    const handleSubcategoryChange = useCallback((val: string) => setValue('subcategory', val), [setValue])
 
     // Edit Mode Loader
     useEffect(() => {
         if (editId) {
             api.get(`/marketplace/listings/${editId}/`)
                 .then(res => {
-                    const data = res.data
+                    const data = res.data?.data || res.data
                     reset({
-                        post_type: data.post_type as AdType,
+                        post_type: (data.post_type === 'sell' ? 'buy' : data.post_type === 'rent' ? 'rental' : data.post_type) as AdType,
                         title: data.title,
                         description: data.description,
-                        category: data.category?.id || data.category?.slug || data.category,
-                        condition: data.condition || 'used_good',
+                        category: data.category?.id || data.category?.slug || data.category || '',
+                        subcategory: '',
+                        condition: data.condition || 'good',
                         price: Number(data.price),
                         duration_days: 15,
                         is_anonymous: Boolean(data.is_anonymous),
                         images: Array.isArray(data.images) && data.images.length > 0
-                            ? data.images.map((img: any) => ({ url: typeof img === 'string' ? img : img.image }))
+                            ? data.images.map((img: any) => ({ url: typeof img === 'string' ? img : (img.image_url || img.image) }))
                             : [{ url: '' }]
                     })
                 })
@@ -129,14 +144,17 @@ export function PostAdForm({ editId }: PostAdFormProps) {
         }
     }, [editId, reset, toast])
 
-    // Update form when type changes
+    // Reset category selection when ad type changes
     useEffect(() => {
         if (!editId) {
             setValue('category', '')
+            setValue('subcategory', '')
             if (currentType === 'service' || currentType === 'food') {
                 setValue('condition', '')
+                setValue('duration_days', 30)
             } else {
-                setValue('condition', 'used_good')
+                setValue('condition', 'good')
+                setValue('duration_days', 15)
             }
         }
     }, [currentType, setValue, editId])
@@ -148,11 +166,14 @@ export function PostAdForm({ editId }: PostAdFormProps) {
                 .map(img => img.url)
                 .filter(url => url && url.trim().length > 0)
 
+            // Send subcategory as the category if selected, otherwise send the parent category
+            const finalCategory = data.subcategory || data.category
+
             const payload = {
-                post_type: data.post_type,
+                post_type: adType,
                 title: data.title,
                 description: data.description,
-                category: data.category,
+                category: finalCategory,
                 price: data.price,
                 duration_days: data.duration_days,
                 is_anonymous: data.is_anonymous,
@@ -193,6 +214,10 @@ export function PostAdForm({ editId }: PostAdFormProps) {
         : currentType === 'service'
             ? 'Rate per session/hour.'
             : 'Total price for the item.'
+
+    const durationOptions = currentType === 'service' || currentType === 'food'
+        ? [30, 90, 180]
+        : [7, 15, 30]
 
     return (
         <form onSubmit={handleSubmit(onSubmit)}>
@@ -240,51 +265,39 @@ export function PostAdForm({ editId }: PostAdFormProps) {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Cascading Category Selector */}
+                    <MarketplaceCategorySelector
+                        adType={adType}
+                        selectedCategoryId={selectedCategory}
+                        selectedSubcategoryId={selectedSubcategory || ''}
+                        onCategoryChange={handleCategoryChange}
+                        onSubcategoryChange={handleSubcategoryChange}
+                        error={errors.category?.message}
+                    />
+
+                    {/* Condition — only for Buy & Rental */}
+                    {(currentType === 'buy' || currentType === 'rental') && (
                         <div className="space-y-2">
-                            <Label className="font-semibold text-gray-800">Category</Label>
+                            <Label className="font-semibold text-gray-800">Condition</Label>
                             <Controller
-                                name="category"
+                                name="condition"
                                 control={control}
                                 render={({ field }) => (
                                     <Select value={field.value} onValueChange={field.onChange}>
-                                        <SelectTrigger className={`${errors.category ? 'border-red-500' : ''}`}>
-                                            <SelectValue placeholder="Select Category" />
+                                        <SelectTrigger className={`${errors.condition ? 'border-red-500' : ''}`}>
+                                            <SelectValue placeholder="Select Condition" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {categories.map((cat: any) => (
-                                                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                            {CONDITIONS.map(c => (
+                                                <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
                                 )}
                             />
-                            {errors.category && <p className="text-sm text-red-500">{errors.category.message}</p>}
+                            {errors.condition && <p className="text-sm text-red-500">{errors.condition.message}</p>}
                         </div>
-
-                        {(currentType === 'buy' || currentType === 'rental') && (
-                            <div className="space-y-2">
-                                <Label className="font-semibold text-gray-800">Condition</Label>
-                                <Controller
-                                    name="condition"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <Select value={field.value} onValueChange={field.onChange}>
-                                            <SelectTrigger className={`${errors.condition ? 'border-red-500' : ''}`}>
-                                                <SelectValue placeholder="Select Condition" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {CONDITIONS.map(c => (
-                                                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    )}
-                                />
-                                {errors.condition && <p className="text-sm text-red-500">{errors.condition.message}</p>}
-                            </div>
-                        )}
-                    </div>
+                    )}
                 </div>
             </div>
 
@@ -324,9 +337,9 @@ export function PostAdForm({ editId }: PostAdFormProps) {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="7">7 Days</SelectItem>
-                                        <SelectItem value="15">15 Days</SelectItem>
-                                        <SelectItem value="30">30 Days</SelectItem>
+                                        {durationOptions.map(days => (
+                                            <SelectItem key={days} value={String(days)}>{days} Days</SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             )}

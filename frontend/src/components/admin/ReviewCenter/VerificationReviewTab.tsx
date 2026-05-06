@@ -12,7 +12,6 @@ import { RejectDialog } from './RejectDialog'
 import { ApproveConfirmDialog } from './ApproveConfirmDialog'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { getInitials } from '@/lib/utils'
-import { timeAgo } from '@/lib/timeAgo'
 
 export function VerificationReviewTab() {
     const queryClient = useQueryClient()
@@ -58,6 +57,7 @@ export function VerificationReviewTab() {
 
     const handleReject = async (reason: string, _notes: string) => {
         if (!rejectItem) return
+        void _notes
         await reviewMutation.mutateAsync({ id: rejectItem.id, status: 'rejected', rejection_reason: reason })
     }
 

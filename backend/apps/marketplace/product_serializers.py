@@ -1,11 +1,9 @@
 """
 Product Serializers for the Marketplace.
 
-Handles category display, product creation (with image upload),
+Handles category display, product creation (with uploaded image URLs),
 public listing, verified detail, and owner views.
 """
-
-import uuid
 
 from rest_framework import serializers
 
@@ -60,8 +58,6 @@ class ProductImageSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-from core.validators import validate_image_file
-
 # =============================================================================
 # PRODUCT CREATE
 # =============================================================================
@@ -70,16 +66,16 @@ class MarketplaceProductCreateSerializer(serializers.ModelSerializer):
     """
     Serializer for creating a marketplace listing.
 
-    Validates duration_days per post_type, uploads images to S3/local,
-    sets university from request.user.
+    Validates duration_days per post_type and stores image URLs returned by the
+    universal upload endpoint. Sets university from request.user.
     """
 
     images = serializers.ListField(
-        child=serializers.ImageField(validators=[validate_image_file]),
+        child=serializers.URLField(max_length=500),
         max_length=8,
         required=False,
         write_only=True,
-        help_text='Upload up to 8 images (max 5MB each).',
+        help_text='Up to 8 image URLs returned by /api/v1/uploads/.',
     )
 
     class Meta:
@@ -98,6 +94,18 @@ class MarketplaceProductCreateSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         post_type = attrs.get('post_type')
         duration = attrs.get('duration_days')
+        category = attrs.get('category')
+
+        if category:
+            if not category.is_active or category.deleted_at is not None:
+                raise serializers.ValidationError({
+                    'category': 'Selected category is not available.',
+                })
+            if category.ad_type != post_type:
+                raise serializers.ValidationError({
+                    'category': f'Selected category is not valid for {post_type} ads.',
+                })
+
         if post_type in ('sell', 'rent') and duration not in SELL_RENT_DURATIONS:
             raise serializers.ValidationError({
                 'duration_days': f'For {post_type}, duration must be one of {SELL_RENT_DURATIONS}.',
@@ -108,57 +116,23 @@ class MarketplaceProductCreateSerializer(serializers.ModelSerializer):
             })
         return attrs
 
-    def _upload_image(self, file_obj, user_id):
-        """Upload image to S3 public or local fallback."""
-        import os
-        from django.conf import settings as s
-        ext = file_obj.name.rsplit('.', 1)[-1] if '.' in file_obj.name else 'jpg'
-        file_name = f'{uuid.uuid4().hex}.{ext}'
-        try:
-            aws_key = getattr(s, 'AWS_ACCESS_KEY_ID', '')
-            if not aws_key:
-                raise ValueError("S3 not configured")
-
-            import boto3
-            s3 = boto3.client(
-                's3',
-                aws_access_key_id=getattr(s, 'AWS_ACCESS_KEY_ID', ''),
-                aws_secret_access_key=getattr(s, 'AWS_SECRET_ACCESS_KEY', ''),
-                region_name=getattr(s, 'AWS_S3_REGION_NAME', 'ap-southeast-1'),
-            )
-            bucket = getattr(s, 'AWS_STORAGE_BUCKET_NAME', 'campushat-media')
-            key = f'marketplace/{user_id}/{file_name}'
-            s3.upload_fileobj(
-                file_obj, bucket, key,
-                ExtraArgs={'ContentType': file_obj.content_type},
-            )
-            domain = getattr(s, 'AWS_S3_CUSTOM_DOMAIN', '')
-            if domain:
-                return f'https://{domain}/{key}'
-            return f'https://{bucket}.s3.amazonaws.com/{key}'
-        except Exception:
-            upload_dir = os.path.join(s.BASE_DIR, 'mediafiles', 'marketplace', str(user_id))
-            os.makedirs(upload_dir, exist_ok=True)
-            path = os.path.join(upload_dir, file_name)
-            with open(path, 'wb+') as dest:
-                for chunk in file_obj.chunks():
-                    dest.write(chunk)
-            return f'/media/marketplace/{user_id}/{file_name}'
-
     def create(self, validated_data):
-        image_files = validated_data.pop('images', [])
+        image_urls = validated_data.pop('images', [])
         user = self.context['request'].user
+        if not getattr(user, 'university_id', None):
+            raise serializers.ValidationError({
+                'university': 'Your profile must be linked to a university before posting.',
+            })
         validated_data['user'] = user
         validated_data['university'] = user.university
         validated_data['status'] = 'pending'
 
         product = MarketplaceProduct.objects.create(**validated_data)
 
-        for idx, img_file in enumerate(image_files):
-            url = self._upload_image(img_file, str(user.id))
+        for idx, image_url in enumerate(image_urls):
             MarketplaceProductImage.objects.create(
                 product=product,
-                image_url=url,
+                image_url=image_url,
                 sort_order=idx,
                 is_primary=(idx == 0),
             )

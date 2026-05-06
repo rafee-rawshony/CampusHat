@@ -13,13 +13,17 @@ export function getDiscountPercentage(original: number, current: number): number
     return Math.round(((original - current) / original) * 100)
 }
 
-export function getInitials(name: string): string {
-    return name
-        .split(' ')
+export function getInitials(name?: string | null): string {
+    const safeName = typeof name === 'string' ? name.trim() : ''
+    if (!safeName) return 'U'
+
+    return safeName
+        .split(/\s+/)
         .map((n) => n[0])
+        .filter(Boolean)
         .join('')
         .toUpperCase()
-        .slice(0, 2)
+        .slice(0, 2) || 'U'
 }
 
 export function truncate(str: string, length: number): string {

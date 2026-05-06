@@ -1,8 +1,12 @@
-export const getInitials = (name: string): string => {
-    if (!name) return 'User'
-    return name.split(' ')
-               .map(n => n[0])
-               .join('')
-               .toUpperCase()
-               .slice(0, 2)
-  }
+export const getInitials = (name?: string | null): string => {
+    const safeName = typeof name === 'string' ? name.trim() : ''
+    if (!safeName) return 'U'
+
+    return safeName
+        .split(/\s+/)
+        .map(n => n[0])
+        .filter(Boolean)
+        .join('')
+        .toUpperCase()
+        .slice(0, 2) || 'U'
+}
