@@ -46,7 +46,7 @@ interface DetailListing {
 }
 
 export default function MarketplaceAdDetailPage({ params }: { params: { id: string } }) {
-    const { isAuthenticated, canAccessMarketplace } = useAuthStore()
+    const { isAuthenticated, canAccessMarketplace, user } = useAuthStore()
     const [listing, setListing] = useState<DetailListing | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
@@ -229,8 +229,8 @@ export default function MarketplaceAdDetailPage({ params }: { params: { id: stri
                 entityType="listing"
             />
 
-            {/* Mobile Sticky Bar - Only for verified users */}
-            {canAccessMarketplace() && (
+            {/* Mobile Sticky Bar - Only for verified users, not on own listing */}
+            {canAccessMarketplace() && String(user?.id) !== String(listing.user_info.id) && (
                 <div className='fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-white border-t px-4 py-3 flex gap-3 pb-[calc(12px+env(safe-area-inset-bottom))] shadow-[0_-4px_10px_rgba(0,0,0,0.05)]'>
                     <ChatButton
                         listingId={listing.id}

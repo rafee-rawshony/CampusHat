@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useToast } from '@/hooks/use-toast'
+import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
 
 interface ReportModalProps {
@@ -25,8 +25,6 @@ export function ReportListingModal({ isOpen, onClose, entityId, entityType }: Re
     const [reason, setReason] = useState('')
     const [details, setDetails] = useState('')
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const { toast } = useToast()
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!reason) return
@@ -40,19 +38,12 @@ export function ReportListingModal({ isOpen, onClose, entityId, entityType }: Re
                 reason,
                 details: details.trim()
             })
-            toast({
-                title: 'Report Submitted',
-                description: 'Thank you. Our moderation team will review this shortly.',
-            })
+            toast.success('Report submitted. Our moderation team will review this shortly.')
             onClose()
             setReason('')
             setDetails('')
         } catch (error: any) {
-            toast({
-                title: 'Failed to submit report',
-                description: error.response?.data?.detail || 'An unexpected error occurred.',
-                variant: 'destructive',
-            })
+            toast.error(error.response?.data?.detail || 'Failed to submit report. Please try again.')
         } finally {
             setIsSubmitting(false)
         }

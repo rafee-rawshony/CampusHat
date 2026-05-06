@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, Send, Paperclip } from 'lucide-react'
 import { format, isToday, isYesterday, isSameDay } from 'date-fns'
 import { useAuthStore } from '@/stores/auth.store'
-import { useToast } from '@/hooks/use-toast'
+import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
 import useWebSocket from '@/hooks/useWebSocket'
 import type { ChatMessage } from '@/hooks/useWebSocket'
@@ -48,7 +48,6 @@ function formatDateSeparator(dateStr: string): string {
 export function ChatWindow({ chatId, chatData }: ChatWindowProps) {
     const router = useRouter()
     const { user } = useAuthStore()
-    const { toast } = useToast()
     const { messages, setMessages, isConnected, isTyping, sendMessage, sendTyping, markRead } = useWebSocket(chatId)
     const [inputText, setInputText] = useState('')
     const [isLoadingHistory, setIsLoadingHistory] = useState(true)
@@ -145,11 +144,7 @@ export function ChatWindow({ chatId, chatData }: ChatWindowProps) {
         const sent = await sendMessage(text, 'text')
         if (!sent) {
             setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id))
-            toast({
-                title: 'Message not sent',
-                description: 'Please check your connection and verification status.',
-                variant: 'destructive',
-            })
+            toast.error('Message not sent. Please check your connection and verification status.')
             return
         }
 
@@ -177,9 +172,9 @@ export function ChatWindow({ chatId, chatData }: ChatWindowProps) {
                         : m
                 )
             )
-            toast({ title: 'Offer accepted!' })
+            toast.success('Offer accepted!')
         } catch {
-            toast({ title: 'Failed to accept offer', variant: 'destructive' })
+            toast.error('Failed to accept offer')
         }
     }
 
@@ -193,9 +188,9 @@ export function ChatWindow({ chatId, chatData }: ChatWindowProps) {
                         : m
                 )
             )
-            toast({ title: 'Offer declined.' })
+            toast.success('Offer declined.')
         } catch {
-            toast({ title: 'Failed to decline offer', variant: 'destructive' })
+            toast.error('Failed to decline offer')
         }
     }
 

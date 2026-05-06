@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
-import { useToast } from '@/hooks/use-toast'
+import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth.store'
 import { AdTypeSelector, AdType } from './AdTypeSelector'
@@ -85,7 +85,6 @@ const CONDITIONS = [
 
 export function PostAdForm({ editId }: PostAdFormProps) {
     const router = useRouter()
-    const { toast } = useToast()
     const { user } = useAuthStore()
 
     const form = useForm<PostAdFormData>({
@@ -139,7 +138,7 @@ export function PostAdForm({ editId }: PostAdFormProps) {
                     })
                 })
                 .catch(() => {
-                    toast({ title: "Error", description: "Failed to load listing data.", variant: "destructive" })
+                    toast.error('Failed to load listing data.')
                 })
         }
     }, [editId, reset, toast])
@@ -183,19 +182,15 @@ export function PostAdForm({ editId }: PostAdFormProps) {
 
             if (editId) {
                 await api.patch(`/marketplace/listings/${editId}/`, payload)
-                toast({ title: 'Ad updated', description: 'Your ad has been resubmitted for review.' })
+                toast.success('Ad updated! Your ad has been resubmitted for review.')
             } else {
                 await api.post('/marketplace/listings/', payload)
-                toast({ title: 'Success', description: "Ad submitted for review! We'll notify you when approved." })
+                toast.success("Ad submitted for review! We'll notify you when approved.")
             }
             router.push('/marketplace/my-ads')
 
         } catch (error: any) {
-            toast({
-                title: "Submission failed",
-                description: error.response?.data?.detail || "Please check your inputs and try again.",
-                variant: "destructive"
-            })
+            toast.error(error.response?.data?.detail || 'Submission failed. Please check your inputs and try again.')
 
             // Inline backend errors if available
             const errData = error.response?.data

@@ -11,7 +11,7 @@ import { format } from 'date-fns'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useToast } from '@/hooks/use-toast'
+import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth.store'
 
@@ -25,7 +25,6 @@ type TabType = 'all' | AdStatus
 
 export default function MyAdsPage() {
     const router = useRouter()
-    const { toast } = useToast()
     const queryClient = useQueryClient()
     const { isAuthenticated, canAccessMarketplace } = useAuthStore()
 
@@ -102,11 +101,10 @@ export default function MyAdsPage() {
             } else {
                 await api.post(`/marketplace/listings/${id}/${action}/`)
             }
-            toast({ title: 'Ad updated successfully' })
+            toast.success('Ad updated successfully')
         } catch (err) {
-            // Revert on error
             queryClient.setQueryData(['my-ads'], previousAds)
-            toast({ title: 'Update failed', description: 'Action could not be completed.', variant: 'destructive' })
+            toast.error('Action could not be completed.')
         }
     }
 

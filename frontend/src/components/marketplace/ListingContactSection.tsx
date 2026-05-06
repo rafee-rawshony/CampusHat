@@ -28,6 +28,7 @@ export function ListingContactSection({ listing, isAuthenticated, onOpenOfferMod
     const router = useRouter()
     const { user } = useAuthStore()
     const isContactVisible = listing.contact_visible
+    const isOwnListing = isAuthenticated && String(user?.id) === String(listing.user_info.id)
 
     // Role-aware messages and CTA for the locked contact section
     const getLockContent = () => {
@@ -110,19 +111,30 @@ export function ListingContactSection({ listing, isAuthenticated, onOpenOfferMod
                 )}
 
                 <div className="flex flex-col gap-3">
-                    <ChatButton
-                        listingId={listing.id}
-                        className="w-full bg-[#4C3B8A] hover:bg-[#2D1B69] text-white rounded-xl h-12 font-bold shadow-md gap-2"
-                    >
-                        Send Message
-                    </ChatButton>
-                    <Button
-                        onClick={onOpenOfferModal}
-                        variant="outline"
-                        className="w-full border-brand-primary text-brand-primary hover:bg-brand-primary/5 rounded-xl h-12 font-bold"
-                    >
-                        Make Offer
-                    </Button>
+                    {isOwnListing ? (
+                        <Button
+                            onClick={() => router.push(`/marketplace/my-ads/edit/${listing.id}`)}
+                            className="w-full bg-[#4C3B8A] hover:bg-[#2D1B69] text-white rounded-xl h-12 font-bold shadow-md gap-2"
+                        >
+                            Edit Listing
+                        </Button>
+                    ) : (
+                        <>
+                            <ChatButton
+                                listingId={listing.id}
+                                className="w-full bg-[#4C3B8A] hover:bg-[#2D1B69] text-white rounded-xl h-12 font-bold shadow-md gap-2"
+                            >
+                                Send Message
+                            </ChatButton>
+                            <Button
+                                onClick={onOpenOfferModal}
+                                variant="outline"
+                                className="w-full border-brand-primary text-brand-primary hover:bg-brand-primary/5 rounded-xl h-12 font-bold"
+                            >
+                                Make Offer
+                            </Button>
+                        </>
+                    )}
                 </div>
             </div>
         </div>

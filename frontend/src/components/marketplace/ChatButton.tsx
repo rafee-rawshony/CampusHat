@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { MessageCircle, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { api } from '@/lib/api'
-import { useToast } from '@/hooks/use-toast'
+import toast from 'react-hot-toast'
 import { cn } from '@/lib/utils'
 
 interface ChatButtonProps {
@@ -22,7 +22,6 @@ export function ChatButton({
     children = 'Send Message',
 }: ChatButtonProps) {
     const router = useRouter()
-    const { toast } = useToast()
     const [isStarting, setIsStarting] = useState(false)
 
     const handleStartChat = async () => {
@@ -36,7 +35,7 @@ export function ChatButton({
             router.push(`/marketplace/chat/${chatId}`)
         } catch (error: any) {
             const message = error?.response?.data?.message || 'Unable to start chat right now.'
-            toast({ title: 'Chat unavailable', description: message, variant: 'destructive' })
+            toast.error(message)
         } finally {
             setIsStarting(false)
         }

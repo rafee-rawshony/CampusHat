@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { useToast } from '@/hooks/use-toast'
+import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
 
 interface OfferModalProps {
@@ -26,8 +26,6 @@ export function MakeOfferModal({ isOpen, onClose, listingId, listingTitle, askin
     const [offerPrice, setOfferPrice] = useState('')
     const [message, setMessage] = useState('')
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const { toast } = useToast()
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!offerPrice) return
@@ -38,20 +36,12 @@ export function MakeOfferModal({ isOpen, onClose, listingId, listingTitle, askin
                 amount: parseFloat(offerPrice),
                 message: message.trim()
             })
-            toast({
-                title: 'Offer Sent!',
-                description: `Your offer of ৳${offerPrice} has been sent to the seller.`,
-                variant: 'default',
-            })
+            toast.success(`Your offer of ৳${offerPrice} has been sent to the seller.`)
             onClose()
             setOfferPrice('')
             setMessage('')
         } catch (error: any) {
-            toast({
-                title: 'Failed to send offer',
-                description: error.response?.data?.detail || 'An unexpected error occurred.',
-                variant: 'destructive',
-            })
+            toast.error(error.response?.data?.detail || 'Failed to send offer. Please try again.')
         } finally {
             setIsSubmitting(false)
         }

@@ -10,7 +10,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { useToast } from '@/hooks/use-toast'
+import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
 
 interface DeleteAdModalProps {
@@ -22,7 +22,6 @@ interface DeleteAdModalProps {
 }
 
 export function DeleteAdModal({ isOpen, onOpenChange, adId, adTitle, onSuccess }: DeleteAdModalProps) {
-    const { toast } = useToast()
     const [isDeleting, setIsDeleting] = useState(false)
 
     const handleDelete = async () => {
@@ -30,18 +29,11 @@ export function DeleteAdModal({ isOpen, onOpenChange, adId, adTitle, onSuccess }
         setIsDeleting(true)
         try {
             await api.delete(`/marketplace/listings/${adId}/`)
-            toast({
-                title: 'Ad deleted successfully.',
-                description: 'The listing has been permanently removed.'
-            })
+            toast.success('Ad deleted successfully.')
             onSuccess()
             onOpenChange(false)
         } catch (error: any) {
-            toast({
-                title: 'Failed to delete',
-                description: error.response?.data?.detail || 'Please try again later.',
-                variant: 'destructive',
-            })
+            toast.error(error.response?.data?.detail || 'Failed to delete. Please try again.')
         } finally {
             setIsDeleting(false)
         }

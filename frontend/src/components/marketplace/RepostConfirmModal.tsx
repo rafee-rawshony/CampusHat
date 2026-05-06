@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import { useToast } from '@/hooks/use-toast'
+import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
 
 interface RepostConfirmModalProps {
@@ -22,7 +22,6 @@ interface RepostConfirmModalProps {
 }
 
 export function RepostConfirmModal({ isOpen, onOpenChange, adId, adTitle, onSuccess }: RepostConfirmModalProps) {
-    const { toast } = useToast()
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [durationDays, setDurationDays] = useState("15")
 
@@ -30,23 +29,14 @@ export function RepostConfirmModal({ isOpen, onOpenChange, adId, adTitle, onSucc
         if (!adId) return
         setIsSubmitting(true)
         try {
-            // Backend endpoint for repost requires duration_days
             await api.post(`/marketplace/listings/${adId}/repost/`, {
                 duration_days: Number(durationDays)
             })
-
-            toast({
-                title: 'Ad resubmitted for review!',
-                description: 'Your listing will be activated once approved.'
-            })
+            toast.success('Ad resubmitted for review! Your listing will be activated once approved.')
             onSuccess()
             onOpenChange(false)
         } catch (error: any) {
-            toast({
-                title: 'Failed to repost ad',
-                description: error.response?.data?.message || error.response?.data?.detail || 'Please check your connection and try again.',
-                variant: 'destructive',
-            })
+            toast.error(error.response?.data?.message || error.response?.data?.detail || 'Failed to repost ad. Please try again.')
         } finally {
             setIsSubmitting(false)
         }
