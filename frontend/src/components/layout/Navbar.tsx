@@ -16,6 +16,7 @@ import {
     UserCircle,
     MapPin,
     CreditCard,
+    MessageSquare,
     Star,
     ShieldCheck,
 } from 'lucide-react'
@@ -203,6 +204,11 @@ export function Navbar() {
                                     <DropdownMenuItem asChild>
                                         <Link href="/account" className="gap-2">
                                             <UserCircle className="h-4 w-4" /> My Profile
+                                        </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
+                                        <Link href="/marketplace/chat" className="gap-2">
+                                            <MessageSquare className="h-4 w-4" /> Messages
                                         </Link>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem asChild>

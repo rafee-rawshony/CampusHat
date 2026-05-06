@@ -105,6 +105,10 @@ export function MobileDrawer() {
                 hover:bg-brand-primary/10 hover:text-brand-primary rounded-xl text-gray-700'>
                 My Profile
               </Link>
+              <Link href='/marketplace/chat' className='block px-3 py-2.5 font-bold transition-colors
+                hover:bg-brand-primary/10 hover:text-brand-primary rounded-xl text-gray-700'>
+                Messages
+              </Link>
               <Link href='/account/orders' className='block px-3 py-2.5 font-bold transition-colors
                 hover:bg-brand-primary/10 hover:text-brand-primary rounded-xl text-gray-700'>
                 My Orders

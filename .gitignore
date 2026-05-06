@@ -180,3 +180,6 @@ Thumbs.db
 
 campushat-demo/
 .claude/settings.json
+.claude/settings.local.json
+.claude/settings.local.json
+.claude/settings.local.json

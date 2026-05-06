@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { ArrowLeft, Send, Paperclip } from 'lucide-react'
 import { format, isToday, isYesterday, isSameDay } from 'date-fns'
 import { useAuthStore } from '@/stores/auth.store'
@@ -18,7 +17,7 @@ interface ChatWindowProps {
     chatId: string
     chatData?: {
         id: string
-        seller_id: string  // UUID of the listing owner — used to determine if current user is seller
+        seller_id: string
         listing: {
             id: string | number
             title: string
@@ -30,11 +29,12 @@ interface ChatWindowProps {
             profile_picture?: string | null
         }
     } | null
+    onBack?: () => void
 }
 
-function getListingImage(listing: ChatWindowProps['chatData']): string | null {
-    if (!listing?.listing?.images || listing.listing.images.length === 0) return null
-    const first = listing.listing.images[0]
+function getListingImage(chatData: ChatWindowProps['chatData']): string | null {
+    if (!chatData?.listing?.images || chatData.listing.images.length === 0) return null
+    const first = chatData.listing.images[0]
     return typeof first === 'string' ? first : first.image_url || first.image || null
 }
 
@@ -45,8 +45,7 @@ function formatDateSeparator(dateStr: string): string {
     return format(date, 'EEE, MMM d')
 }
 
-export function ChatWindow({ chatId, chatData }: ChatWindowProps) {
-    const router = useRouter()
+export function ChatWindow({ chatId, chatData, onBack }: ChatWindowProps) {
     const { user } = useAuthStore()
     const { messages, setMessages, isConnected, isTyping, sendMessage, sendTyping, markRead } = useWebSocket(chatId)
     const [inputText, setInputText] = useState('')
@@ -67,60 +66,45 @@ export function ChatWindow({ chatId, chatData }: ChatWindowProps) {
         .toUpperCase()
         .slice(0, 2) || '?'
 
-    // Load message history on mount
     useEffect(() => {
-        const loadHistory = async () => {
-            setIsLoadingHistory(true)
-            try {
-                const res = await api.get(`/marketplace/chats/${chatId}/messages/`)
+        setIsLoadingHistory(true)
+        setInputText('')
+        api.get(`/marketplace/chats/${chatId}/messages/`)
+            .then(res => {
                 const data = res.data?.data || res.data?.results || res.data || []
                 setMessages(data)
-            } catch {
-                // Will work with WebSocket messages
-            } finally {
-                setIsLoadingHistory(false)
-            }
-        }
-
-        loadHistory()
+            })
+            .catch(() => {})
+            .finally(() => setIsLoadingHistory(false))
     }, [chatId, setMessages])
 
-    // Mark as read when opening
-    useEffect(() => {
-        markRead()
-    }, [chatId, markRead])
+    useEffect(() => { markRead() }, [chatId, markRead])
 
-    // Track scroll position
     const handleScroll = useCallback(() => {
-        const container = messagesContainerRef.current
-        if (!container) return
-        const threshold = 100
-        isNearBottomRef.current =
-            container.scrollHeight - container.scrollTop - container.clientHeight < threshold
+        const el = messagesContainerRef.current
+        if (!el) return
+        isNearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 100
     }, [])
 
-    // Auto-scroll to bottom
     useEffect(() => {
         if (isNearBottomRef.current) {
             messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
         }
     }, [messages])
 
-    // Initial scroll to bottom
     useEffect(() => {
         if (!isLoadingHistory) {
-            setTimeout(() => {
+            requestAnimationFrame(() => {
                 messagesEndRef.current?.scrollIntoView({ behavior: 'auto' })
-            }, 100)
+            })
         }
     }, [isLoadingHistory])
 
-    // Auto-resize textarea + send typing indicator
     const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setInputText(e.target.value)
-        const textarea = e.target
-        textarea.style.height = 'auto'
-        textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px'
+        const ta = e.target
+        ta.style.height = 'auto'
+        ta.style.height = Math.min(ta.scrollHeight, 120) + 'px'
         sendTyping()
     }
 
@@ -128,7 +112,6 @@ export function ChatWindow({ chatId, chatData }: ChatWindowProps) {
         const text = inputText.trim()
         if (!text) return
 
-        // Optimistic UI: add message immediately
         const optimisticMsg: ChatMessage = {
             id: `temp-${Date.now()}`,
             sender: {
@@ -141,18 +124,16 @@ export function ChatWindow({ chatId, chatData }: ChatWindowProps) {
             created_at: new Date().toISOString(),
         }
         setMessages(prev => [...prev, optimisticMsg])
+        setInputText('')
+        if (textareaRef.current) textareaRef.current.style.height = 'auto'
+        isNearBottomRef.current = true
+
         const sent = await sendMessage(text, 'text')
         if (!sent) {
             setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id))
-            toast.error('Message not sent. Please check your connection and verification status.')
-            return
+            setInputText(text)
+            toast.error('Message not sent. Check your connection.')
         }
-
-        setInputText('')
-        if (textareaRef.current) {
-            textareaRef.current.style.height = 'auto'
-        }
-        isNearBottomRef.current = true
     }
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -167,15 +148,11 @@ export function ChatWindow({ chatId, chatData }: ChatWindowProps) {
             await api.patch(`/marketplace/offers/${offerId}/accept/`)
             setMessages(prev =>
                 prev.map(m =>
-                    m.offer?.id === offerId
-                        ? { ...m, offer: { ...m.offer!, status: 'accepted' as const } }
-                        : m
+                    m.offer?.id === offerId ? { ...m, offer: { ...m.offer!, status: 'accepted' as const } } : m
                 )
             )
             toast.success('Offer accepted!')
-        } catch {
-            toast.error('Failed to accept offer')
-        }
+        } catch { toast.error('Failed to accept offer') }
     }
 
     const handleDeclineOffer = async (offerId: string | number) => {
@@ -183,81 +160,55 @@ export function ChatWindow({ chatId, chatData }: ChatWindowProps) {
             await api.patch(`/marketplace/offers/${offerId}/reject/`)
             setMessages(prev =>
                 prev.map(m =>
-                    m.offer?.id === offerId
-                        ? { ...m, offer: { ...m.offer!, status: 'rejected' as const } }
-                        : m
+                    m.offer?.id === offerId ? { ...m, offer: { ...m.offer!, status: 'rejected' as const } } : m
                 )
             )
             toast.success('Offer declined.')
-        } catch {
-            toast.error('Failed to decline offer')
-        }
+        } catch { toast.error('Failed to decline offer') }
     }
 
-    // Current user is the seller if their ID matches the listing owner's ID
     const isSeller = chatData ? String(user?.id) === String(chatData.seller_id) : false
 
     return (
-        <div className="flex flex-col h-full" style={{ height: '100dvh' }}>
-            {/* ─── HEADER ─── */}
-            <div className="shrink-0 h-16 bg-white border-b border-gray-200 px-4 flex items-center gap-3 z-10">
-                {/* Back button — mobile only */}
+        <div className="flex flex-col h-full">
+            {/* Header */}
+            <div className="shrink-0 bg-white border-b border-gray-100 px-3 sm:px-4 flex items-center gap-3 h-[60px]">
                 <button
-                    onClick={() => router.push('/marketplace/chat')}
-                    className="md:hidden w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-900 -ml-1"
+                    onClick={onBack}
+                    className="md:hidden w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-900 rounded-lg hover:bg-gray-100 -ml-1"
                 >
                     <ArrowLeft className="w-5 h-5" />
                 </button>
 
-                {/* User info */}
-                <div className="w-9 h-9 rounded-full overflow-hidden shrink-0">
+                <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 ring-2 ring-gray-100">
                     {otherUser?.profile_picture ? (
-                        <Image
-                            src={otherUser.profile_picture}
-                            alt={otherUser.name || 'User'}
-                            width={36}
-                            height={36}
-                            className="object-cover w-full h-full"
-                        />
+                        <Image src={otherUser.profile_picture} alt={otherUser.name || 'User'} width={40} height={40} className="object-cover w-full h-full" />
                     ) : (
-                        <div className="w-full h-full bg-[#4C3B8A] text-white flex items-center justify-center font-bold text-xs">
+                        <div className="w-full h-full bg-gradient-to-br from-[#4C3B8A] to-[#6B5AAE] text-white flex items-center justify-center font-bold text-xs">
                             {initials}
                         </div>
                     )}
                 </div>
 
                 <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                        <h3 className="font-semibold text-sm text-gray-900 truncate">
+                    <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-sm text-gray-900 truncate">
                             {otherUser?.name || 'Chat'}
                         </h3>
-                        {/* Connection status */}
-                        <div className={`w-2 h-2 rounded-full shrink-0 ${isConnected ? 'bg-green-500' : 'bg-gray-400'}`} />
-                        <span className="text-xs text-gray-400 hidden sm:inline">
-                            {isConnected ? 'Online' : 'Offline'}
-                        </span>
+                        <div className={`w-2 h-2 rounded-full shrink-0 ${isConnected ? 'bg-green-500' : 'bg-gray-300'}`} />
                     </div>
                     {listing && (
-                        <p className="text-xs text-gray-400 truncate max-w-[200px]">
-                            {listing.title}
-                        </p>
+                        <p className="text-[11px] text-gray-400 truncate">{listing.title}</p>
                     )}
                 </div>
 
-                {/* Listing thumbnail */}
                 {listing && (
                     <Link
                         href={`/marketplace/listings/${listing.id}`}
                         className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 shrink-0 hidden sm:block hover:opacity-80 transition-opacity"
                     >
                         {listingImage ? (
-                            <Image
-                                src={listingImage}
-                                alt={listing.title}
-                                width={40}
-                                height={40}
-                                className="object-cover w-full h-full"
-                            />
+                            <Image src={listingImage} alt={listing.title} width={40} height={40} className="object-cover w-full h-full" />
                         ) : (
                             <div className="w-full h-full flex items-center justify-center bg-[#4C3B8A]/10">
                                 <span className="text-[8px] text-[#4C3B8A] font-bold">AD</span>
@@ -267,71 +218,45 @@ export function ChatWindow({ chatId, chatData }: ChatWindowProps) {
                 )}
             </div>
 
-            {/* ─── MESSAGES AREA ─── */}
+            {/* Messages */}
             <div
                 ref={messagesContainerRef}
                 onScroll={handleScroll}
-                className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#FAFAFA]"
+                className="flex-1 overflow-y-auto overscroll-contain px-3 sm:px-4 py-4 space-y-2 bg-[#FAFAFA]"
             >
                 {isLoadingHistory ? (
-                    <div className="flex flex-col items-center justify-center h-full">
-                        <div className="w-8 h-8 border-2 border-[#4C3B8A] border-t-transparent rounded-full animate-spin" />
-                        <p className="text-gray-400 text-sm mt-3">Loading messages...</p>
+                    <div className="flex flex-col items-center justify-center h-full gap-2">
+                        <div className="w-7 h-7 border-2 border-[#4C3B8A] border-t-transparent rounded-full animate-spin" />
+                        <p className="text-gray-400 text-xs">Loading messages...</p>
                     </div>
                 ) : messages.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-center">
-                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-3">
-                            <Send className="w-6 h-6 text-gray-300" />
+                    <div className="flex flex-col items-center justify-center h-full text-center px-6">
+                        <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+                            <Send className="w-5 h-5 text-gray-300" />
                         </div>
-                        <p className="text-gray-400 text-sm">
-                            No messages yet. Say hello!
-                        </p>
+                        <p className="text-gray-400 text-sm font-medium">No messages yet</p>
+                        <p className="text-gray-300 text-xs mt-1">Say hello to start the conversation!</p>
                     </div>
                 ) : (
                     <>
                         {messages.map((msg, idx) => {
                             const isMe = String(msg.sender?.id) === String(user?.id)
-                            const showAvatar =
-                                !isMe &&
-                                (idx === 0 || String(messages[idx - 1]?.sender?.id) !== String(msg.sender?.id))
-
-                            // Date separator
-                            const showDateSeparator =
-                                idx === 0 ||
-                                !isSameDay(
-                                    new Date(msg.created_at),
-                                    new Date(messages[idx - 1].created_at)
-                                )
+                            const showAvatar = !isMe && (idx === 0 || String(messages[idx - 1]?.sender?.id) !== String(msg.sender?.id))
+                            const showDateSeparator = idx === 0 || !isSameDay(new Date(msg.created_at), new Date(messages[idx - 1].created_at))
 
                             return (
                                 <React.Fragment key={msg.id}>
                                     {showDateSeparator && (
                                         <div className="flex items-center justify-center my-3">
-                                            <span className="text-xs text-gray-400 bg-white px-3 py-1 rounded-full border border-gray-100 shadow-sm">
+                                            <span className="text-[11px] text-gray-400 bg-white px-3 py-1 rounded-full border border-gray-100 shadow-sm font-medium">
                                                 {formatDateSeparator(msg.created_at)}
                                             </span>
                                         </div>
                                     )}
-
                                     {msg.message_type === 'offer' || msg.message_type === 'offer_ref' ? (
-                                        <OfferMessageCard
-                                            message={msg}
-                                            isMe={isMe}
-                                            isSeller={isSeller}
-                                            listingId={listing?.id || ''}
-                                            onAcceptOffer={handleAcceptOffer}
-                                            onDeclineOffer={handleDeclineOffer}
-                                        />
+                                        <OfferMessageCard message={msg} isMe={isMe} isSeller={isSeller} listingId={listing?.id || ''} onAcceptOffer={handleAcceptOffer} onDeclineOffer={handleDeclineOffer} />
                                     ) : (
-                                        <ChatMessageBubble
-                                            message={msg}
-                                            isMe={isMe}
-                                            showAvatar={showAvatar}
-                                            otherUser={otherUser ? {
-                                                full_name: otherUser.name,
-                                                profile_picture: otherUser.profile_picture,
-                                            } : undefined}
-                                        />
+                                        <ChatMessageBubble message={msg} isMe={isMe} showAvatar={showAvatar} otherUser={otherUser ? { full_name: otherUser.name, profile_picture: otherUser.profile_picture } : undefined} />
                                     )}
                                 </React.Fragment>
                             )
@@ -351,19 +276,17 @@ export function ChatWindow({ chatId, chatData }: ChatWindowProps) {
                 )}
             </div>
 
-            {/* ─── INPUT BAR ─── */}
-            <div className="shrink-0 bg-white border-t border-gray-200 px-4 py-3 pb-[max(12px,env(safe-area-inset-bottom))]">
+            {/* Input */}
+            <div className="shrink-0 bg-white border-t border-gray-100 px-3 sm:px-4 py-2.5 pb-[max(10px,env(safe-area-inset-bottom))]">
                 <div className="flex items-end gap-2">
-                    {/* Attachment placeholder */}
                     <button
-                        className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-[#4C3B8A] rounded-full hover:bg-gray-100 transition-colors shrink-0 opacity-50 cursor-not-allowed"
+                        className="w-9 h-9 flex items-center justify-center text-gray-300 rounded-full shrink-0 cursor-not-allowed"
                         disabled
                         title="Attachments coming soon"
                     >
-                        <Paperclip className="w-5 h-5" />
+                        <Paperclip className="w-[18px] h-[18px]" />
                     </button>
 
-                    {/* Textarea */}
                     <textarea
                         ref={textareaRef}
                         value={inputText}
@@ -371,18 +294,17 @@ export function ChatWindow({ chatId, chatData }: ChatWindowProps) {
                         onKeyDown={handleKeyDown}
                         placeholder="Type a message..."
                         rows={1}
-                        className="flex-1 bg-gray-100 rounded-2xl px-4 py-2.5 text-sm resize-none outline-none border-none max-h-[120px] placeholder:text-gray-400"
+                        className="flex-1 bg-gray-50 rounded-2xl px-4 py-2.5 text-sm resize-none outline-none border border-gray-200 focus:border-[#4C3B8A]/40 focus:ring-1 focus:ring-[#4C3B8A]/20 max-h-[120px] placeholder:text-gray-400 transition-colors"
                         style={{ minHeight: '40px' }}
                     />
 
-                    {/* Send button */}
                     <button
                         onClick={handleSend}
                         disabled={!inputText.trim()}
-                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shrink-0 ${
+                        className={`w-9 h-9 rounded-full flex items-center justify-center transition-all shrink-0 ${
                             inputText.trim()
-                                ? 'bg-[#4C3B8A] text-white hover:bg-[#3D2F6E] shadow-md'
-                                : 'bg-gray-200 text-gray-400 opacity-50 cursor-not-allowed'
+                                ? 'bg-[#4C3B8A] text-white hover:bg-[#3D2F6E] shadow-sm active:scale-95'
+                                : 'bg-gray-100 text-gray-300'
                         }`}
                     >
                         <Send className="w-4 h-4" />
