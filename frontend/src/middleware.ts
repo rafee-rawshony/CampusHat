@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server'
 
 const protectedRoutes = [
     '/seller',
+    '/dashboard/seller',
     '/admin',
     '/moderator',
     '/account',
@@ -26,6 +27,15 @@ export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
     const hasSession = !!request.cookies.get(SESSION_COOKIE)?.value
 
+    // Canonical seller dashboard URL:
+    // - user-facing path: /dashboard/seller/*
+    // - app route remains under /seller/* (rewritten internally)
+    if (pathname === '/seller' || pathname.startsWith('/seller/')) {
+        const target = request.nextUrl.clone()
+        target.pathname = pathname.replace(/^\/seller/, '/dashboard/seller')
+        return NextResponse.redirect(target)
+    }
+
     // Redirect unauthenticated users from protected routes
     const isProtected = protectedRoutes.some((route) =>
         pathname.startsWith(route)
@@ -39,12 +49,19 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(loginUrl)
     }
 
+    if (pathname === '/dashboard/seller' || pathname.startsWith('/dashboard/seller/')) {
+        const rewriteUrl = request.nextUrl.clone()
+        rewriteUrl.pathname = pathname.replace(/^\/dashboard\/seller/, '/seller')
+        return NextResponse.rewrite(rewriteUrl)
+    }
+
     return NextResponse.next()
 }
 
 export const config = {
     matcher: [
         '/seller/:path*',
+        '/dashboard/seller/:path*',
         '/admin/:path*',
         '/account/:path*',
         '/wallet',

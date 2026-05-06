@@ -10,6 +10,7 @@ import Image from 'next/image'
 import { ReviewItemCard } from './ReviewItemCard'
 import { RejectDialog } from './RejectDialog'
 import { ApproveConfirmDialog } from './ApproveConfirmDialog'
+import { SellerDetailsModal } from './SellerDetailsModal'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { getInitials } from '@/lib/utils'
 import { timeAgo } from '@/lib/timeAgo'
@@ -34,6 +35,7 @@ export function SellerApplicationTab() {
     // Modal States
     const [rejectItem, setRejectItem] = useState<any | null>(null)
     const [approveItem, setApproveItem] = useState<any | null>(null)
+    const [detailsItem, setDetailsItem] = useState<any | null>(null)
     const [badgeLabel, setBadgeLabel] = useState('')
 
     // Data Fetch
@@ -158,27 +160,35 @@ export function SellerApplicationTab() {
                                     </p>
                                 )}
 
-                                {/* Documents */}
+                                {/* Documents Quick Links */}
                                 <div className="mt-4 flex flex-wrap gap-2">
-                                    {item.nid_front && (
-                                        <a href={item.nid_front} target="_blank" rel="noreferrer" className="bg-gray-100/80 hover:bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded font-medium transition-colors">
+                                    {item.nid_front_url && (
+                                        <a href={item.nid_front_url} target="_blank" rel="noreferrer" className="bg-gray-100/80 hover:bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded font-medium transition-colors">
                                             NID Front ↗
                                         </a>
                                     )}
-                                    {item.nid_back && (
-                                        <a href={item.nid_back} target="_blank" rel="noreferrer" className="bg-gray-100/80 hover:bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded font-medium transition-colors">
+                                    {item.nid_back_url && (
+                                        <a href={item.nid_back_url} target="_blank" rel="noreferrer" className="bg-gray-100/80 hover:bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded font-medium transition-colors">
                                             NID Back ↗
                                         </a>
                                     )}
-                                    {item.trade_license && (
-                                        <a href={item.trade_license} target="_blank" rel="noreferrer" className="bg-gray-100/80 hover:bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded font-medium transition-colors">
+                                    {item.trade_license_url && (
+                                        <a href={item.trade_license_url} target="_blank" rel="noreferrer" className="bg-gray-100/80 hover:bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded font-medium transition-colors">
                                             Trade License ↗
                                         </a>
                                     )}
                                 </div>
 
                                 <div className="mt-auto pt-4">
-                                    <p className="text-xs text-gray-400 mb-3">Applied {item.created_at ? timeAgo(item.created_at) : 'recently'}</p>
+                                    <div className="flex items-center justify-between mb-3">
+                                        <p className="text-xs text-gray-400">Applied {item.created_at ? timeAgo(item.created_at) : 'recently'}</p>
+                                        <button 
+                                            onClick={() => setDetailsItem(item)}
+                                            className="text-xs font-bold text-[#4C3B8A] hover:underline"
+                                        >
+                                            View Full Details →
+                                        </button>
+                                    </div>
                                     
                                     {/* ACTION BUTTONS */}
                                     <div className="flex gap-2">
@@ -245,6 +255,12 @@ export function SellerApplicationTab() {
                     }
                 />
             )}
+
+            <SellerDetailsModal
+                isOpen={!!detailsItem}
+                onClose={() => setDetailsItem(null)}
+                seller={detailsItem}
+            />
         </>
     )
 }

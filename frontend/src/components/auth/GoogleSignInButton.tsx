@@ -29,7 +29,7 @@ function getRoleRedirect(
 ): string {
     if (redirectParam) return redirectParam
     if (['admin', 'moderator', 'seller_mod', 'marketplace_mod'].includes(user.role)) return '/admin'
-    if (user.seller_application_status === 'approved') return '/seller'
+    if (user.seller_application_status === 'approved') return '/dashboard/seller'
     return '/'
 }
 

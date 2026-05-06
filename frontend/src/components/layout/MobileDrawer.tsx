@@ -70,7 +70,7 @@ export function MobileDrawer() {
           ))}
           {isAuthenticated && (
             isSeller() ? (
-              <Link href='/seller'
+              <Link href='/dashboard/seller'
                 className='flex items-center gap-2 mx-3 mt-2 px-3 py-2.5 rounded-xl font-bold
                            bg-[#4C3B8A] text-white text-sm transition-colors hover:bg-[#2D1B69]'>
                 <LayoutDashboard className='w-4 h-4' /> Seller Dashboard

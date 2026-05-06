@@ -45,7 +45,15 @@ export function MainLayout({ children }: MainLayoutProps) {
     // Exclude global layout wrappers only for real admin/seller dashboard route
     // segments. This avoids accidental matches like "/sellers" (public mall page).
     const isAdminDashboardRoute = !!pathname && /^\/admin(?:\/|$)/.test(pathname)
-    const isSellerDashboardRoute = !!pathname && /^\/seller(?:\/|$)/.test(pathname)
+    const isSellerNamespaceRoute =
+        !!pathname &&
+        (/^\/seller(?:\/|$)/.test(pathname) || /^\/dashboard\/seller(?:\/|$)/.test(pathname))
+    const isSellerPublicRoute =
+        pathname === '/seller/register' ||
+        pathname === '/seller/apply' ||
+        pathname === '/dashboard/seller/register' ||
+        pathname === '/dashboard/seller/apply'
+    const isSellerDashboardRoute = isSellerNamespaceRoute && !isSellerPublicRoute
 
     // Admin and seller dashboards manage their own internal sidebar/top bar.
     if (isAdminDashboardRoute || isSellerDashboardRoute) {

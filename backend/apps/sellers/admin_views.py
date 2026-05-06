@@ -418,12 +418,15 @@ class AdminSellerReviewView(APIView):
             return Response({'success': True, 'message': 'Seller approved.'})
 
         reason = request.data.get('reason', '').strip()
+        notes = request.data.get('notes', '').strip()
         if not reason:
             return Response({
                 'success': False, 'message': 'Rejection reason is required.',
                 'code': 'MISSING_FIELD',
             }, status=status.HTTP_400_BAD_REQUEST)
+
+        full_reason = f"{reason} - {notes}" if notes else reason
         seller.status = 'rejected'
-        seller.rejection_reason = reason
+        seller.rejection_reason = full_reason
         seller.save(update_fields=['status', 'rejection_reason'])
         return Response({'success': True, 'message': 'Seller rejected.'})

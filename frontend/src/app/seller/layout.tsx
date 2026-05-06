@@ -15,7 +15,11 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
     const { isAuthenticated, isSeller, isAdmin, user, _hasHydrated } = useAuthStore()
 
     // These paths are accessible to non-sellers (registration flow)
-    const isPublicSellerPath = pathname === '/seller/register' || pathname === '/seller/apply'
+    const isPublicSellerPath =
+        pathname === '/seller/register' ||
+        pathname === '/seller/apply' ||
+        pathname === '/dashboard/seller/register' ||
+        pathname === '/dashboard/seller/apply'
 
     useEffect(() => {
         if (!_hasHydrated) return
@@ -24,7 +28,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
         if (isPublicSellerPath) return
 
         if (!isAuthenticated) {
-            router.push('/auth/login?redirect=/seller')
+            router.push('/auth/login?redirect=/dashboard/seller')
             return
         }
 
@@ -33,7 +37,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
             // If they are pending, we just let them stay to see the Under Review Card down below.
             // If rejected or null, kick to apply.
             if (user?.seller_application_status !== 'pending') {
-                router.push('/seller/apply')
+                router.push('/dashboard/seller/apply')
             }
         }
     }, [isAuthenticated, isSeller, isAdmin, user?.seller_application_status, _hasHydrated, router, isPublicSellerPath])

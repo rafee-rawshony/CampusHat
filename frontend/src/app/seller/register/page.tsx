@@ -254,10 +254,10 @@ export default function SellerRegisterPage() {
 
     return (
         <ProfileGate featureName="Seller Registration">
-            <div className="min-h-screen bg-surface-base py-10 px-4 sm:px-6 lg:px-8">
+            <div className="min-h-screen bg-surface-base pt-5 pb-10 px-4 sm:px-6 lg:px-8">
                 <div className="max-w-3xl mx-auto">
                     {/* Hero */}
-                    <div className="text-center mb-10">
+                    <div className="text-center mb-8">
                         <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-primary to-brand-dark mb-5 shadow-lg shadow-brand-primary/30">
                             <StoreIcon className="h-8 w-8 text-white" />
                         </div>
@@ -350,7 +350,7 @@ export default function SellerRegisterPage() {
 
                         {/* SECTION 2 — Student Verification */}
                         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 space-y-6">
-                            <SectionHeader n={2} title="Student Verification" subtitle="Get a lower commission rate (7%) if you're an active student." icon={GraduationCap} />
+                            <SectionHeader n={2} title="Student Verification" subtitle="Get extra banifit, if you're an active student." icon={GraduationCap} />
 
                             <Controller
                                 control={form.control}

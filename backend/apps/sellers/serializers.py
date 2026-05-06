@@ -381,8 +381,8 @@ class SellerProfileSerializer(serializers.ModelSerializer):
 class SellerProfileAdminSerializer(serializers.ModelSerializer):
     """Admin full view with presigned URLs for documents."""
 
-    user_email = serializers.CharField(source='user.email', read_only=True)
-    user_name = serializers.CharField(source='user.full_name', read_only=True)
+    user = serializers.SerializerMethodField()
+    store = serializers.SerializerMethodField()
     nid_number_decrypted = serializers.SerializerMethodField()
     bank_details_decrypted = serializers.SerializerMethodField()
     mobile_number_decrypted = serializers.SerializerMethodField()
@@ -390,7 +390,7 @@ class SellerProfileAdminSerializer(serializers.ModelSerializer):
     class Meta:
         model = SellerProfile
         fields = [
-            'id', 'user', 'user_email', 'user_name',
+            'id', 'user', 'store',
             'business_name', 'business_type', 'nid_number',
             'nid_number_decrypted',
             'nid_front_url', 'nid_back_url',
@@ -404,6 +404,27 @@ class SellerProfileAdminSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at',
         ]
         read_only_fields = fields
+
+    def get_user(self, obj):
+        if not obj.user: return None
+        return {
+            'full_name': obj.user.full_name,
+            'email': obj.user.email,
+            'phone': obj.user.phone,
+            'profile_picture': obj.user.profile_picture if hasattr(obj.user, 'profile_picture') else None,
+        }
+
+    def get_store(self, obj):
+        store = getattr(obj, 'store', None)
+        if not store: return None
+        return {
+            'name': store.name,
+            'description': store.description,
+            'store_category': store.store_category,
+            'store_type': store.store_type,
+            'logo': store.logo_url,
+            'banner': store.banner_url,
+        }
 
     def get_nid_number_decrypted(self, obj):
         from .models import decrypt_value

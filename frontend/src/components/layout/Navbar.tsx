@@ -251,7 +251,7 @@ export function Navbar() {
                                     )}
                                     {isSeller() && (
                                         <DropdownMenuItem asChild>
-                                            <Link href="/seller" className="gap-2">
+                                            <Link href="/dashboard/seller" className="gap-2">
                                                 <Store className="h-4 w-4" /> Seller Dashboard
                                             </Link>
                                         </DropdownMenuItem>

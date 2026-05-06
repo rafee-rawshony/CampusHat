@@ -7,19 +7,25 @@ const categories = [
         subtitle: 'Items & Goods',
         icon: ShoppingBasket,
         bg: 'bg-purple-50',
+        iconBg: 'bg-purple-100',
         text: 'text-purple-800',
-        border: 'border-purple-100',
-        hoverBg: 'hover:bg-purple-100',
+        iconColor: 'text-purple-600',
+        border: 'border-purple-100/80',
+        hoverBorder: 'hover:border-purple-200',
+        hoverShadow: 'hover:shadow-purple-100/60',
         href: '/marketplace/buy',
     },
     {
         title: 'Rental',
         subtitle: 'Housing & Tools',
         icon: Key,
-        bg: 'bg-green-50',
-        text: 'text-green-800',
-        border: 'border-green-100',
-        hoverBg: 'hover:bg-green-100',
+        bg: 'bg-emerald-50',
+        iconBg: 'bg-emerald-100',
+        text: 'text-emerald-800',
+        iconColor: 'text-emerald-600',
+        border: 'border-emerald-100/80',
+        hoverBorder: 'hover:border-emerald-200',
+        hoverShadow: 'hover:shadow-emerald-100/60',
         href: '/marketplace/rental',
     },
     {
@@ -27,9 +33,12 @@ const categories = [
         subtitle: 'Tutoring & Jobs',
         icon: Bell,
         bg: 'bg-blue-50',
+        iconBg: 'bg-blue-100',
         text: 'text-blue-800',
-        border: 'border-blue-100',
-        hoverBg: 'hover:bg-blue-100',
+        iconColor: 'text-blue-600',
+        border: 'border-blue-100/80',
+        hoverBorder: 'hover:border-blue-200',
+        hoverShadow: 'hover:shadow-blue-100/60',
         href: '/marketplace/services',
     },
     {
@@ -37,9 +46,12 @@ const categories = [
         subtitle: 'Homemade Meals',
         icon: Utensils,
         bg: 'bg-orange-50',
+        iconBg: 'bg-orange-100',
         text: 'text-orange-800',
-        border: 'border-orange-100',
-        hoverBg: 'hover:bg-orange-100',
+        iconColor: 'text-orange-600',
+        border: 'border-orange-100/80',
+        hoverBorder: 'hover:border-orange-200',
+        hoverShadow: 'hover:shadow-orange-100/60',
         href: '/marketplace/food',
     },
 ]
@@ -47,16 +59,18 @@ const categories = [
 export function CategoryCards() {
     return (
         <section>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 my-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 my-8">
                 {categories.map((cat) => (
                     <Link
                         key={cat.href}
                         href={cat.href}
-                        className={`p-4 md:p-8 ${cat.bg} ${cat.text} rounded-3xl text-center border ${cat.border} ${cat.hoverBg} hover:shadow-lg transition-all group`}
+                        className={`p-5 md:p-8 ${cat.bg} ${cat.text} rounded-2xl md:rounded-3xl text-center border ${cat.border} ${cat.hoverBorder} ${cat.hoverShadow} hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 group`}
                     >
-                        <cat.icon className="w-8 h-8 md:w-10 md:h-10 mx-auto group-hover:scale-110 transition-transform" />
+                        <div className={`w-12 h-12 md:w-14 md:h-14 ${cat.iconBg} rounded-2xl flex items-center justify-center mx-auto group-hover:scale-110 transition-transform duration-300`}>
+                            <cat.icon className={`w-6 h-6 md:w-7 md:h-7 ${cat.iconColor}`} />
+                        </div>
                         <h3 className="text-lg md:text-2xl font-bold mt-4">{cat.title}</h3>
-                        <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest mt-2 opacity-60">
+                        <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest mt-2 opacity-50">
                             {cat.subtitle}
                         </p>
                     </Link>

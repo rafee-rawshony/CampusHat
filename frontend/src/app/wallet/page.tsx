@@ -17,7 +17,7 @@ export default function WalletPage() {
     useEffect(() => {
         if (!_hasHydrated) return
         if (isSeller() || isAdmin() || isModerator()) {
-            router.replace('/seller/wallet')
+            router.replace('/dashboard/seller/wallet')
         }
     }, [_hasHydrated, isSeller, isAdmin, isModerator, router])
 

@@ -61,7 +61,7 @@ export function SecondaryNav() {
                             {isSeller() ? (
                                 // Approved → straight to Seller Dashboard
                                 <Link
-                                    href="/seller"
+                                    href="/dashboard/seller"
                                     className="flex items-center gap-1.5 bg-[#4C3B8A] text-white font-bold py-1.5 px-4 rounded-md hover:bg-[#2D1B69] transition-colors text-xs whitespace-nowrap"
                                 >
                                     <LayoutDashboard className="w-3.5 h-3.5" />
@@ -70,7 +70,7 @@ export function SecondaryNav() {
                             ) : sellerStatus === 'pending' ? (
                                 // Application submitted, waiting for admin
                                 <Link
-                                    href="/seller"
+                                    href="/dashboard/seller"
                                     className="flex items-center gap-1.5 bg-amber-100 text-amber-800 border border-amber-200 font-bold py-1.5 px-4 rounded-md hover:bg-amber-200 transition-colors text-xs whitespace-nowrap"
                                 >
                                     <Clock className="w-3.5 h-3.5" />

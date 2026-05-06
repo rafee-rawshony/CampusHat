@@ -52,7 +52,7 @@ export function VerificationStep1({ data, onUpdate, onNext }: VerificationStep1P
                     </Label>
                     <Input
                         id="student_id_number"
-                        placeholder="e.g. 211-15-3456"
+                        placeholder="e.g. 222-12-1234"
                         value={data.student_id_number}
                         onChange={(e) => onUpdate({ student_id_number: e.target.value })}
                         className={errors.student_id_number ? "border-red-500 focus-visible:ring-red-500" : ""}
