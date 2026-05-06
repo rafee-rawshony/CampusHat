@@ -74,7 +74,7 @@ export function AdStatusBadge({ status, rejectionReason, showReasonInline }: AdS
             {renderBadge()}
             {status === 'rejected' && showReasonInline && rejectionReason && (
                 <p className="text-[10px] sm:text-xs text-red-500 font-medium leading-snug">
-                    Reson: {rejectionReason}
+                    Reason: {rejectionReason}
                 </p>
             )}
         </div>

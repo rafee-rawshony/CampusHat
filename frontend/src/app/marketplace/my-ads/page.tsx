@@ -6,7 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, Edit2, EyeOff, Eye, Trash2, CheckCircle, RotateCcw, Search, Package } from 'lucide-react'
+import { Plus, Edit2, EyeOff, Eye, Trash2, CheckCircle, RotateCcw, Search, Package, AlertCircle } from 'lucide-react'
 import { format } from 'date-fns'
 
 import { Button } from '@/components/ui/button'
@@ -173,10 +173,10 @@ export default function MyAdsPage() {
 
                 {ad.status === 'expired' && (
                     <>
-                        <Button 
+                        <Button
                             onClick={() => { setRepostAdId(ad.id); setRepostAdTitle(ad.title) }}
-                            size="sm" 
-                            className="h-8 px-3 border border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center gap-1.5 rounded-lg text-xs shadow-none"
+                            variant="outline" size="sm"
+                            className="h-8 px-3 text-gray-700 border-gray-200 hover:bg-gray-50 flex items-center gap-1.5 rounded-lg text-xs"
                         >
                             <RotateCcw className="w-3.5 h-3.5" /> Repost
                         </Button>
@@ -192,16 +192,16 @@ export default function MyAdsPage() {
 
                 {ad.status === 'rejected' && (
                     <>
-                        <Button 
-                            onClick={() => { setRepostAdId(ad.id); setRepostAdTitle(ad.title) }}
-                            variant="outline" size="sm" 
-                            className="h-8 px-3 text-gray-600 border-gray-200 hover:bg-gray-50 flex items-center gap-1.5 rounded-lg text-xs"
+                        <Button
+                            onClick={() => router.push(`/marketplace/post?edit=${ad.id}`)}
+                            variant="outline" size="sm"
+                            className="h-8 px-3 text-[#4C3B8A] border-[#4C3B8A]/30 hover:bg-[#4C3B8A]/5 flex items-center gap-1.5 rounded-lg text-xs"
                         >
-                            <RotateCcw className="w-3.5 h-3.5" /> Resubmit
+                            <Edit2 className="w-3.5 h-3.5" /> Edit & Resubmit
                         </Button>
-                        <Button 
+                        <Button
                             onClick={() => { setDeleteAdId(ad.id); setDeleteAdTitle(ad.title) }}
-                            variant="outline" size="sm" 
+                            variant="outline" size="sm"
                             className="h-8 px-3 text-red-500 border-red-200 hover:bg-red-50 flex items-center gap-1.5 rounded-lg text-xs"
                         >
                             <Trash2 className="w-3.5 h-3.5" /> Delete
@@ -361,12 +361,18 @@ export default function MyAdsPage() {
                                         <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 leading-tight group-hover:text-[#4C3B8A] transition-colors">{ad.title}</h3>
                                         <div className="flex items-center gap-2 mt-1">
                                             <span className="text-[10px] font-extrabold uppercase text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{ad.post_type}</span>
-                                            <AdStatusBadge status={ad.status} />
+                                            <AdStatusBadge status={ad.status} rejectionReason={ad.rejection_reason} />
                                         </div>
                                         <p className="text-xs text-gray-400 mt-1">
-                                            Posted {format(new Date(ad.created_at || new Date().toISOString()), 'MMM d, yyyy')} · 
+                                            Posted {format(new Date(ad.created_at || new Date().toISOString()), 'MMM d, yyyy')} ·
                                             {ad.expires_at ? ` Expires ${format(new Date(ad.expires_at), 'MMM d, yyyy')}` : ''}
                                         </p>
+                                        {ad.status === 'rejected' && ad.rejection_reason && (
+                                            <div className="flex items-start gap-1.5 mt-2 bg-red-50 border border-red-100 rounded-lg px-2.5 py-1.5">
+                                                <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
+                                                <p className="text-xs text-red-600 font-medium leading-snug">{ad.rejection_reason}</p>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Center Right */}

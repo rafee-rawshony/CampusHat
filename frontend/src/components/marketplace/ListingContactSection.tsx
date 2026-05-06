@@ -26,8 +26,8 @@ interface ListingContactSectionProps {
 
 export function ListingContactSection({ listing, isAuthenticated, onOpenOfferModal }: ListingContactSectionProps) {
     const router = useRouter()
-    const { user } = useAuthStore()
-    const isContactVisible = listing.contact_visible
+    const { user, canAccessMarketplace } = useAuthStore()
+    const isContactVisible = listing.contact_visible || (isAuthenticated && canAccessMarketplace())
     const isOwnListing = isAuthenticated && String(user?.id) === String(listing.user_info.id)
 
     // Role-aware messages and CTA for the locked contact section

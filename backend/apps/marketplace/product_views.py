@@ -126,16 +126,18 @@ class MarketplaceListingViewSet(ModelViewSet):
 
     def get_object(self):
         """
-        Override get_object for owner actions.
+        Override get_object for owner and detail actions.
 
-        Actions like hide/unhide/repost/mark-sold need to find products
-        in any status (not just active), so we query all non-deleted
-        user products for those actions.
+        Owner actions (edit/hide/unhide/repost/mark-sold) need to find products
+        in any status. Retrieve also checks all non-deleted listings so owners
+        can view and edit their rejected/expired/pending ads.
         """
-        if self.action in ('partial_update', 'update', 'hide', 'unhide', 'repost', 'mark_sold'):
+        if self.action in ('retrieve', 'partial_update', 'update', 'hide', 'unhide', 'repost', 'mark_sold'):
             pk = self.kwargs.get('pk')
             try:
-                obj = MarketplaceProduct.objects.get(
+                obj = MarketplaceProduct.objects.select_related(
+                    'university', 'category', 'user'
+                ).prefetch_related('images').get(
                     pk=pk, deleted_at__isnull=True,
                 )
                 self.check_object_permissions(self.request, obj)

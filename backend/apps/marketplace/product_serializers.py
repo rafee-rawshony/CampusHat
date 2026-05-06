@@ -202,7 +202,7 @@ class MarketplaceProductDetailSerializer(serializers.ModelSerializer):
             'expires_at', 'view_count', 'safe_meetup_location',
             'university_name', 'university_short',
             'category_name', 'images', 'user_info',
-            'contact_visible',
+            'contact_visible', 'rejection_reason',
             'offers_count', 'reviews_count', 'average_rating',
             'created_at', 'updated_at',
         ]
@@ -303,11 +303,12 @@ class MarketplaceProductOwnerUpdateSerializer(serializers.ModelSerializer):
         return data
 
     def update(self, instance, validated_data):
-        # If title/description/price change on an ACTIVE ad →
-        # re-submit for admin approval (status back to pending).
         content_fields = {'title', 'description', 'price'}
         if instance.status == 'active' and (set(validated_data) & content_fields):
             validated_data['status'] = 'pending'
+        if instance.status == 'rejected':
+            validated_data['status'] = 'pending'
+            validated_data['rejection_reason'] = ''
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()

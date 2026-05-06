@@ -1,10 +1,10 @@
 'use client'
 
-import React, { useEffect, useCallback } from 'react'
+import React, { useEffect, useCallback, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Info, Loader2 } from 'lucide-react'
+import { AlertCircle, Info, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -86,6 +86,7 @@ const CONDITIONS = [
 export function PostAdForm({ editId }: PostAdFormProps) {
     const router = useRouter()
     const { user } = useAuthStore()
+    const [rejectionReason, setRejectionReason] = useState<string | null>(null)
 
     const form = useForm<PostAdFormData>({
         resolver: zodResolver(postAdSchema as any),
@@ -122,6 +123,9 @@ export function PostAdForm({ editId }: PostAdFormProps) {
             api.get(`/marketplace/listings/${editId}/`)
                 .then(res => {
                     const data = res.data?.data || res.data
+                    if (data.status === 'rejected' && data.rejection_reason) {
+                        setRejectionReason(data.rejection_reason)
+                    }
                     reset({
                         post_type: (data.post_type === 'sell' ? 'buy' : data.post_type === 'rent' ? 'rental' : data.post_type) as AdType,
                         title: data.title,
@@ -190,14 +194,16 @@ export function PostAdForm({ editId }: PostAdFormProps) {
             router.push('/marketplace/my-ads')
 
         } catch (error: any) {
-            toast.error(error.response?.data?.detail || 'Submission failed. Please check your inputs and try again.')
+            const resData = error.response?.data
+            toast.error(resData?.message || resData?.detail || 'Submission failed. Please check your inputs and try again.')
 
-            // Inline backend errors if available
-            const errData = error.response?.data
-            if (errData && typeof errData === 'object') {
-                Object.keys(errData).forEach(key => {
+            // Inline backend field errors (nested under "errors" in our API envelope)
+            const fieldErrors = resData?.errors || resData
+            if (fieldErrors && typeof fieldErrors === 'object') {
+                Object.keys(fieldErrors).forEach(key => {
                     if (key in data) {
-                        form.setError(key as any, { type: 'server', message: Array.isArray(errData[key]) ? errData[key][0] : errData[key] })
+                        const msg = Array.isArray(fieldErrors[key]) ? fieldErrors[key][0] : fieldErrors[key]
+                        form.setError(key as any, { type: 'server', message: typeof msg === 'string' ? msg : String(msg) })
                     }
                 })
             }
@@ -216,6 +222,16 @@ export function PostAdForm({ editId }: PostAdFormProps) {
 
     return (
         <form onSubmit={handleSubmit(onSubmit)}>
+            {rejectionReason && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                    <div>
+                        <h3 className="text-sm font-bold text-red-800">Your ad was rejected</h3>
+                        <p className="text-sm text-red-700 mt-1">{rejectionReason}</p>
+                        <p className="text-xs text-red-500 mt-2">Fix the issue and save changes to resubmit for review.</p>
+                    </div>
+                </div>
+            )}
             <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
                 <Controller
                     name="post_type"
