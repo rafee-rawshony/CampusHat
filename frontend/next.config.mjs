@@ -42,6 +42,10 @@ const nextConfig = {
         protocol: "https",
         hostname: "**",
       },
+      {
+        protocol: "http",
+        hostname: "localhost",
+      },
       { hostname: 'campushat.com' },
       { hostname: 's3.amazonaws.com' },
       { hostname: 'res.cloudinary.com' },

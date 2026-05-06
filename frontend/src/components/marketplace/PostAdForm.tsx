@@ -141,7 +141,7 @@ export function PostAdForm({ editId }: PostAdFormProps) {
                     toast.error('Failed to load listing data.')
                 })
         }
-    }, [editId, reset, toast])
+    }, [editId, reset])
 
     // Reset category selection when ad type changes
     useEffect(() => {
