@@ -4,8 +4,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { ShoppingCart } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useAuthStore } from '@/stores/auth.store'
 import { useCartStore } from '@/stores/cart.store'
+import { useAuthStore } from '@/stores/auth.store'
 import { DiscountBadge } from '@/components/shared/DiscountBadge'
 import { StarRating } from '@/components/shared/StarRating'
 import toast from 'react-hot-toast'
@@ -41,7 +41,7 @@ export function FlashSaleProductCard({ item }: FlashSaleProductCardProps) {
     const { product } = item
 
     const basePrice = typeof product.base_price === 'string' ? parseFloat(product.base_price) : product.base_price
-    const salePrice = item.override_price || (typeof item.sale_price === 'string' ? parseFloat(item.sale_price as string) : item.sale_price)
+    const salePrice = typeof item.sale_price === 'string' ? parseFloat(item.sale_price) : item.sale_price
     const discountPercent = basePrice > 0 ? Math.round((1 - salePrice / basePrice) * 100) : 0
     const imageUrl = product.primary_image_url || product.images?.[0]?.image_url || product.images?.[0]?.image || null
     const remaining = item.quantity_limit ? item.quantity_limit - item.sold_count : null
@@ -64,7 +64,7 @@ export function FlashSaleProductCard({ item }: FlashSaleProductCardProps) {
             name: product.name,
             slug: product.slug,
             price: salePrice.toString(),
-            image_url: imageUrl,
+            image_url: imageUrl || undefined,
             quantity: 1,
         })
         toast.success('Added to cart')

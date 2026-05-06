@@ -9,13 +9,20 @@ import {
 
 export interface CartItem {
     id: string
-    product_id: string
-    name: string
-    slug: string
-    price: string
-    image_url: string | null
+    product_id?: string
+    product?: string // backend product ID
+    product_name?: string // from backend
+    name?: string // fallback fallback
+    slug?: string
+    product_slug?: string // from backend
+    price?: string
+    unit_price_snapshot?: string // from backend
+    image_url?: string
+    primary_image_url?: string // from backend
     quantity: number
     variant_id?: string
+    variant?: string // backend variant ID
+    variant_name?: string
     variant_info?: Record<string, string>
 }
 
@@ -50,27 +57,17 @@ export const useCartStore = create<CartState>()(
 
             addItem: async (item: CartItem) => {
                 const previousItems = get().items
-                const existingItem = previousItems.find(
-                    (i) => i.product_id === item.product_id && i.variant_id === item.variant_id
-                )
-
-                if (existingItem) {
-                    set({
-                        items: previousItems.map((i) =>
-                            i.id === existingItem.id
-                                ? { ...i, quantity: i.quantity + item.quantity }
-                                : i
-                        ),
-                        isOpen: true,
-                    })
-                } else {
-                    set({ items: [...previousItems, item], isOpen: true })
-                }
+                set({ items: [...previousItems, item], isOpen: true })
 
                 try {
+                    const productId = item.product_id || item.product
+                    if (!productId) {
+                        throw new Error('Missing product id')
+                    }
+
                     set({ isLoading: true })
                     await addCartItem({
-                        product_id: item.product_id,
+                        product_id: productId,
                         quantity: item.quantity,
                         variant_id: item.variant_id,
                     })
@@ -131,7 +128,7 @@ export const useCartStore = create<CartState>()(
 
             getCartTotal: () => {
                 return get().items.reduce((total, item) => {
-                    const price = parseFloat(item.price)
+                    const price = Number(item.unit_price_snapshot || item.price || 0)
                     return total + (price * item.quantity)
                 }, 0)
             },
@@ -141,17 +138,20 @@ export const useCartStore = create<CartState>()(
             },
 
             syncCart: async () => {
+                // CRITICAL: Always fetch fresh cart data from backend.
+                // Frontend localStorage has product data (prices, names) that users could tamper with.
+                // Backend is the source of truth for all sensitive data (prices, stock, availability).
                 try {
                     set({ isLoading: true })
                     const data = await fetchCart()
                     // Map API response to our local state shape
                     // Backend returns { items: [...] } or sometimes { data: { items: [...] } }
                     const items = data?.items || data?.data?.items
-                    if (items) {
+                    if (items && Array.isArray(items)) {
                         set({ items })
                     }
                 } catch (error) {
-                    console.error('Failed to fetch cart', error)
+                    console.error('Failed to fetch cart from backend', error)
                 } finally {
                     set({ isLoading: false })
                 }
@@ -159,7 +159,7 @@ export const useCartStore = create<CartState>()(
         }),
         {
             name: 'campushat-cart-storage',
-            partialize: (state) => ({ items: state.items }), // Only persist items
+            partialize: (state: CartState) => ({ items: state.items }),
         }
     )
 )

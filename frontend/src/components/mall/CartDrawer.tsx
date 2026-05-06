@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { ShoppingBag, X, Plus, Minus } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -18,9 +19,16 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 
 
 export function CartDrawer() {
-    const { items, isOpen, setIsOpen, removeItem, updateQuantity, getCartTotal, getItemCount } = useCartStore()
+    const { items, isOpen, setIsOpen, removeItem, updateQuantity, getCartTotal, getItemCount, syncCart } = useCartStore()
     const { isAuthenticated } = useAuthStore()
     const router = useRouter()
+
+    // Fetch fresh cart data from backend when drawer opens (ensures prices/data always from backend)
+    useEffect(() => {
+        if (isOpen && isAuthenticated) {
+            syncCart().catch(err => console.error('Failed to sync cart on open', err))
+        }
+    }, [isOpen, isAuthenticated, syncCart])
 
     const itemCount = getItemCount()
     const total = getCartTotal()
@@ -79,16 +87,16 @@ export function CartDrawer() {
 
                                         {/* Image */}
                                         <div className="h-20 w-20 shrink-0 bg-gray-100 rounded-xl overflow-hidden relative border border-gray-100">
-                                            {item.image_url ? (
+                                            {item.primary_image_url ? (
                                                 <Image
-                                                    src={item.image_url}
-                                                    alt={item.name}
+                                                    src={item.primary_image_url}
+                                                    alt={item.product_name || item.name}
                                                     fill
                                                     className="object-cover"
                                                 />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center bg-brand-light/20">
-                                                    <span className="text-xs font-bold text-brand-primary">{item.name.charAt(0)}</span>
+                                                    <span className="text-xs font-bold text-brand-primary">{(item.product_name || item.name || 'P').charAt(0)}</span>
                                                 </div>
                                             )}
                                         </div>
@@ -97,16 +105,19 @@ export function CartDrawer() {
                                         <div className="flex-1 flex flex-col justify-between py-0.5">
                                             <div className="pr-6">
                                                 <Link
-                                                    href={`/products/${item.slug}`}
+                                                    href={`/products/${item.product_slug || item.slug}`}
                                                     onClick={() => setIsOpen(false)}
                                                     className="font-bold text-gray-900 text-sm line-clamp-2 hover:text-brand-primary transition-colors"
                                                 >
-                                                    {item.name}
+                                                    {item.product_name || item.name}
                                                 </Link>
 
                                                 {item.variant_info && (
                                                     <div className="text-xs text-gray-500 mt-1 flex gap-2">
-                                                        {Object.entries(item.variant_info).map(([k, v]) => (
+                                                        {item.variant_name && (
+                                                            <span className="bg-gray-100 px-1.5 py-0.5 rounded">{item.variant_name}</span>
+                                                        )}
+                                                        {item.variant_info && Object.entries(item.variant_info).map(([k, v]) => (
                                                             <span key={k} className="bg-gray-100 px-1.5 py-0.5 rounded">{v}</span>
                                                         ))}
                                                     </div>
@@ -114,9 +125,9 @@ export function CartDrawer() {
                                             </div>
 
                                             <div className="flex items-center justify-between mt-3">
-                                                {/* Price */}
+                                                {/* Price — always from backend (backend is source of truth) */}
                                                 <span className="font-bold text-brand-primary">
-                                                    ৳{parseFloat(item.price).toLocaleString()}
+                                                    ৳{Number(item.unit_price_snapshot || item.price || 0).toLocaleString()}
                                                 </span>
 
                                                 {/* Stepper */}
