@@ -6,7 +6,6 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Send, Paperclip } from 'lucide-react'
 import { format, isToday, isYesterday, isSameDay } from 'date-fns'
-import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/auth.store'
 import { useToast } from '@/hooks/use-toast'
 import { api } from '@/lib/api'
@@ -23,7 +22,7 @@ interface ChatWindowProps {
         listing: {
             id: string | number
             title: string
-            images?: Array<{ image: string } | string>
+            images?: Array<{ image?: string; image_url?: string } | string>
         }
         other_user: {
             id: string | number
@@ -36,7 +35,7 @@ interface ChatWindowProps {
 function getListingImage(listing: ChatWindowProps['chatData']): string | null {
     if (!listing?.listing?.images || listing.listing.images.length === 0) return null
     const first = listing.listing.images[0]
-    return typeof first === 'string' ? first : first.image
+    return typeof first === 'string' ? first : first.image_url || first.image || null
 }
 
 function formatDateSeparator(dateStr: string): string {
@@ -126,7 +125,7 @@ export function ChatWindow({ chatId, chatData }: ChatWindowProps) {
         sendTyping()
     }
 
-    const handleSend = () => {
+    const handleSend = async () => {
         const text = inputText.trim()
         if (!text) return
 
@@ -143,7 +142,16 @@ export function ChatWindow({ chatId, chatData }: ChatWindowProps) {
             created_at: new Date().toISOString(),
         }
         setMessages(prev => [...prev, optimisticMsg])
-        sendMessage(text, 'text')
+        const sent = await sendMessage(text, 'text')
+        if (!sent) {
+            setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id))
+            toast({
+                title: 'Message not sent',
+                description: 'Please check your connection and verification status.',
+                variant: 'destructive',
+            })
+            return
+        }
 
         setInputText('')
         if (textareaRef.current) {
@@ -161,10 +169,7 @@ export function ChatWindow({ chatId, chatData }: ChatWindowProps) {
 
     const handleAcceptOffer = async (offerId: string | number) => {
         try {
-            await api.patch(`/marketplace/listings/${listing?.id}/offers/${offerId}/`, {
-                status: 'accepted',
-            })
-            // Update offer status in messages
+            await api.patch(`/marketplace/offers/${offerId}/accept/`)
             setMessages(prev =>
                 prev.map(m =>
                     m.offer?.id === offerId
@@ -180,9 +185,7 @@ export function ChatWindow({ chatId, chatData }: ChatWindowProps) {
 
     const handleDeclineOffer = async (offerId: string | number) => {
         try {
-            await api.patch(`/marketplace/listings/${listing?.id}/offers/${offerId}/`, {
-                status: 'rejected',
-            })
+            await api.patch(`/marketplace/offers/${offerId}/reject/`)
             setMessages(prev =>
                 prev.map(m =>
                     m.offer?.id === offerId
@@ -315,7 +318,7 @@ export function ChatWindow({ chatId, chatData }: ChatWindowProps) {
                                         </div>
                                     )}
 
-                                    {msg.message_type === 'offer' ? (
+                                    {msg.message_type === 'offer' || msg.message_type === 'offer_ref' ? (
                                         <OfferMessageCard
                                             message={msg}
                                             isMe={isMe}

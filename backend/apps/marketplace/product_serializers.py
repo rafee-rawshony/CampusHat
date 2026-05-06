@@ -216,13 +216,8 @@ class MarketplaceProductDetailSerializer(serializers.ModelSerializer):
             'profile_picture': getattr(obj.user, 'profile_picture', None),
             'reputation_score': float(obj.user.reputation_score),
         }
-        # Only show contact if requester is marketplace-verified
-        if request and hasattr(request, 'user') and request.user.is_authenticated:
-            from core.permissions import IsVerifiedForMarketplace
-            perm = IsVerifiedForMarketplace()
-            if perm.has_permission(request, None):
-                base['phone'] = obj.user.phone
-                base['email'] = obj.user.email
+        # Keep direct phone/email private. Verified users can contact sellers
+        # through Marketplace Chat instead of receiving personal contact data.
         return base
 
     def get_contact_visible(self, obj):

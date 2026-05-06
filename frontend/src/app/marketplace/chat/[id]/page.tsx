@@ -3,7 +3,6 @@ export const dynamic = 'force-dynamic'
 
 import React, { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { MessageCircle } from 'lucide-react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth.store'
@@ -12,6 +11,7 @@ import { UpgradePrompt } from '@/components/marketplace/UpgradePrompt'
 import { ChatConversationList } from '@/components/marketplace/ChatConversationList'
 import { ChatWindow } from '@/components/marketplace/ChatWindow'
 import type { ChatThread } from '@/components/marketplace/ChatConversationList'
+import { useMarketplaceChatInbox } from '@/hooks/useMarketplaceChatInbox'
 
 export default function ChatDetailPage() {
     const router = useRouter()
@@ -19,6 +19,9 @@ export default function ChatDetailPage() {
     const chatId = params?.id as string
     const { isAuthenticated, canAccessMarketplace } = useAuthStore()
     const [searchQuery, setSearchQuery] = useState('')
+    const hasChatAccess = isAuthenticated && canAccessMarketplace()
+
+    useMarketplaceChatInbox(hasChatAccess)
 
     // Auth guard
     useEffect(() => {
@@ -34,7 +37,7 @@ export default function ChatDetailPage() {
             const res = await api.get('/marketplace/chats/')
             return res.data?.data || res.data?.results || res.data || []
         },
-        enabled: isAuthenticated && canAccessMarketplace(),
+        enabled: hasChatAccess,
         refetchInterval: 15000,
     })
 
@@ -45,7 +48,7 @@ export default function ChatDetailPage() {
             const res = await api.get(`/marketplace/chats/${chatId}/`)
             return res.data?.data || res.data
         },
-        enabled: !!chatId && isAuthenticated && canAccessMarketplace(),
+        enabled: !!chatId && hasChatAccess,
     })
 
     // Build chatData object for ChatWindow

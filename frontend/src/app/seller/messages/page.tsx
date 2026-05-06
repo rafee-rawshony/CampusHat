@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { api } from '@/lib/api'
 import { normalizeListResponse } from '@/lib/response'
 import { formatDistanceToNow } from 'date-fns'
+import { useMarketplaceChatInbox } from '@/hooks/useMarketplaceChatInbox'
 
 // Types for chat data
 interface ChatItem {
@@ -23,6 +24,8 @@ function getInitials(name: string) {
 }
 
 export default function SellerMessagesPage() {
+    useMarketplaceChatInbox(true)
+
     // Fetch all chats where this seller is a participant (mall store chats)
     const { data: chatsData, isLoading } = useQuery({
         queryKey: ['seller-chats'],
@@ -71,6 +74,7 @@ export default function SellerMessagesPage() {
                         const buyer = chat.other_user
                         const listing = chat.listing
                         const lastMsg = chat.last_message
+                        const href = listing ? `/marketplace/chat/${chat.id}` : `/account/messages/mall/${chat.id}`
                         const timeAgo = lastMsg?.created_at
                             ? formatDistanceToNow(new Date(lastMsg.created_at), { addSuffix: true })
                             : ''
@@ -78,7 +82,7 @@ export default function SellerMessagesPage() {
                         return (
                             <Link
                                 key={chat.id}
-                                href={`/account/messages/mall/${chat.id}`}
+                                href={href}
                                 className="flex items-center gap-3 bg-white border border-gray-100 rounded-xl p-4 hover:border-[#4C3B8A]/30 hover:shadow-sm transition-all group"
                             >
                                 {/* Buyer avatar */}

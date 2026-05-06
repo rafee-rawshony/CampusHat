@@ -10,7 +10,7 @@ export interface ChatMessage {
         profile_picture?: string | null
     }
     content: string
-    message_type: 'text' | 'image' | 'offer'
+    message_type: 'text' | 'image' | 'offer' | 'offer_ref'
     offer?: {
         id: string | number
         amount: string
@@ -18,6 +18,22 @@ export interface ChatMessage {
         status: 'pending' | 'accepted' | 'rejected'
     }
     created_at: string
+}
+
+function getWebSocketBaseUrl() {
+    if (process.env.NEXT_PUBLIC_WS_URL) return process.env.NEXT_PUBLIC_WS_URL
+
+    if (typeof window !== 'undefined') {
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || '/api/v1'
+        if (apiBase.startsWith('http://') || apiBase.startsWith('https://')) {
+            const url = new URL(apiBase)
+            url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+            return url.origin
+        }
+        return `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`
+    }
+
+    return 'ws://localhost:8000'
 }
 
 export default function useWebSocket(chatId: string) {
@@ -34,7 +50,7 @@ export default function useWebSocket(chatId: string) {
     const connect = useCallback(() => {
         if (!chatId || !accessToken) return
 
-        const wsBase = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000'
+        const wsBase = getWebSocketBaseUrl()
         const wsUrl = `${wsBase}/ws/marketplace/chat/${chatId}/?token=${accessToken}`
 
         try {
@@ -54,9 +70,15 @@ export default function useWebSocket(chatId: string) {
                         const newMsg: ChatMessage = data.data
                         setMessages(prev => {
                             if (prev.some(m => m.id === newMsg.id)) return prev
-                            // Replace optimistic message if it exists
-                            const filtered = prev.filter(m => !m.id.startsWith('temp-'))
-                            return [...filtered, newMsg]
+                            const tempIdx = prev.findIndex(
+                                m => m.id.startsWith('temp-') && m.content === newMsg.content
+                            )
+                            if (tempIdx !== -1) {
+                                const updated = [...prev]
+                                updated[tempIdx] = newMsg
+                                return updated
+                            }
+                            return [...prev, newMsg]
                         })
                     } else if (data.type === 'chat.typing') {
                         setIsTyping(true)
@@ -110,16 +132,17 @@ export default function useWebSocket(chatId: string) {
         }
     }, [connect])
 
-    const sendMessage = useCallback((content: string, messageType = 'text') => {
+    const sendMessage = useCallback(async (content: string, messageType = 'text') => {
         if (wsRef.current?.readyState === WebSocket.OPEN) {
             wsRef.current.send(JSON.stringify({
                 type: 'chat.message',
                 content,
                 message_type: messageType,
             }))
+            return true
         } else {
             // Fallback: REST API if WebSocket not connected
-            api.post(`/marketplace/chats/${chatId}/send/`, {
+            return api.post(`/marketplace/chats/${chatId}/send/`, {
                 content,
                 message_type: messageType,
             }).then(res => {
@@ -130,7 +153,8 @@ export default function useWebSocket(chatId: string) {
                         return [...prev, msg]
                     })
                 }
-            }).catch(() => {})
+                return true
+            }).catch(() => false)
         }
     }, [chatId])
 

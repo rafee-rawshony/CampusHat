@@ -11,11 +11,15 @@ import { api } from '@/lib/api'
 import { UpgradePrompt } from '@/components/marketplace/UpgradePrompt'
 import { ChatConversationList } from '@/components/marketplace/ChatConversationList'
 import type { ChatThread } from '@/components/marketplace/ChatConversationList'
+import { useMarketplaceChatInbox } from '@/hooks/useMarketplaceChatInbox'
 
 export default function ChatListPage() {
     const router = useRouter()
     const { isAuthenticated, canAccessMarketplace } = useAuthStore()
     const [searchQuery, setSearchQuery] = useState('')
+    const hasChatAccess = isAuthenticated && canAccessMarketplace()
+
+    useMarketplaceChatInbox(hasChatAccess)
 
     // Auth guard
     useEffect(() => {
@@ -31,7 +35,7 @@ export default function ChatListPage() {
             const res = await api.get('/marketplace/chats/')
             return res.data?.data || res.data?.results || res.data || []
         },
-        enabled: isAuthenticated && canAccessMarketplace(),
+        enabled: hasChatAccess,
         refetchInterval: 15000, // Poll every 15 seconds for new conversations
     })
 

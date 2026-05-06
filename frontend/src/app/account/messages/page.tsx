@@ -1,11 +1,13 @@
 'use client'
 
-import React, { useState } from 'react'
+import React from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { MessageSquare, Store, ShoppingBag } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Skeleton } from '@/components/ui/skeleton'
 import Link from 'next/link'
+import Image from 'next/image'
+import { useMarketplaceChatInbox } from '@/hooks/useMarketplaceChatInbox'
 
 interface BaseChat {
     id: string
@@ -23,6 +25,8 @@ interface BaseChat {
 }
 
 export default function UnifiedMessagesPage() {
+    useMarketplaceChatInbox(true)
+
     // 1. Fetch Mall Chats
     const { data: mallChatsData, isLoading: loadingMall } = useQuery({
         queryKey: ['mall-buyer-chats'],
@@ -66,12 +70,8 @@ export default function UnifiedMessagesPage() {
     }
 
     if (mkpChatsData) {
-        // Find current user id from any chat's messages to know unread?
-        // Wait, marketplace chat doesn't return unread_count directly. We'll use 0 for now.
         mkpChatsData.forEach((c: any) => {
-            // we need to know the 'other' user. 
-            // the API returns `other_user` if we added it, but let's assume `seller_name` or similar
-            const otherName = c.other_user?.full_name || 'Marketplace User'
+            const otherName = c.other_user?.name || c.other_user?.full_name || 'Marketplace User'
             const otherAvatar = c.other_user?.profile_picture || null
 
             mergedChats.push({
@@ -82,10 +82,10 @@ export default function UnifiedMessagesPage() {
                 lastMessage: c.last_message ? {
                     content: c.last_message.message_type === 'image' ? '[Image]' : c.last_message.content,
                     created_at: c.last_message.created_at,
-                    is_read: c.last_message.is_read,
-                    sender_id: c.last_message.sender
+                    is_read: c.last_message.is_read || false,
+                    sender_id: c.last_message.sender || ''
                 } : null,
-                unreadCount: 0, // Need to implement in backend
+                unreadCount: c.unread_count || 0,
                 updatedAt: c.last_message_at || c.created_at || new Date().toISOString()
             })
         })
@@ -133,10 +133,16 @@ export default function UnifiedMessagesPage() {
                             >
                                 <div className="relative">
                                     {chat.avatar ? (
-                                        <img src={chat.avatar} alt={chat.name} className="w-12 h-12 rounded-full object-cover border border-gray-200" />
+                                        <Image
+                                            src={chat.avatar}
+                                            alt={chat.name}
+                                            width={48}
+                                            height={48}
+                                            className="w-12 h-12 rounded-full object-cover border border-gray-200"
+                                        />
                                     ) : (
                                         <div className="w-12 h-12 rounded-full bg-brand-light flex items-center justify-center text-brand-primary font-bold">
-                                            {chat.name.charAt(0)}
+                                            {(chat.name || 'U').charAt(0)}
                                         </div>
                                     )}
                                     <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5">

@@ -390,6 +390,7 @@ class MarketplaceChat(BaseModel):
         on_delete=models.CASCADE,
         related_name='seller_chats',
     )
+    is_active = models.BooleanField(default=True, db_index=True)
     is_blocked = models.BooleanField(default=False)
     last_message_at = models.DateTimeField(null=True, blank=True, db_index=True)
 

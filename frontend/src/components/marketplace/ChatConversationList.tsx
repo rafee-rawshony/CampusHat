@@ -5,14 +5,14 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
-import { differenceInMinutes, differenceInHours, differenceInDays, format, isToday, isYesterday } from 'date-fns'
+import { differenceInMinutes, differenceInHours, differenceInDays, format, isYesterday } from 'date-fns'
 
 export interface ChatThread {
     id: string
     listing: {
         id: string | number
         title: string
-        images?: Array<{ image: string } | string>
+        images?: Array<{ image?: string; image_url?: string } | string>
     }
     other_user: {
         id: string | number
@@ -22,7 +22,7 @@ export interface ChatThread {
     last_message?: {
         content: string
         created_at: string
-        message_type: 'text' | 'image' | 'offer'
+        message_type: 'text' | 'image' | 'offer' | 'offer_ref'
         offer_amount?: string
     } | null
     unread_count: number
@@ -34,6 +34,7 @@ interface ChatConversationListProps {
     isLoading: boolean
     activeChatId?: string | null
     searchQuery: string
+    // eslint-disable-next-line no-unused-vars
     onSearchChange: (query: string) => void
 }
 
@@ -54,7 +55,7 @@ function formatRelativeTime(dateStr: string): string {
 function getListingThumbnail(listing: ChatThread['listing']): string | null {
     if (!listing.images || listing.images.length === 0) return null
     const first = listing.images[0]
-    return typeof first === 'string' ? first : first.image
+    return typeof first === 'string' ? first : first.image_url || first.image || null
 }
 
 export function ChatConversationList({
@@ -65,17 +66,18 @@ export function ChatConversationList({
     onSearchChange,
 }: ChatConversationListProps) {
     const filteredThreads = threads.filter(t =>
-        t.other_user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.listing.title.toLowerCase().includes(searchQuery.toLowerCase())
+        (t.other_user?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (t.listing?.title || '').toLowerCase().includes(searchQuery.toLowerCase())
     )
 
-    const initials = (name: string) =>
-        name
-            .split(' ')
+    const initials = (name?: string) =>
+        (name || 'User')
+            .trim()
+            .split(/\s+/)
             .map(n => n[0])
             .join('')
             .toUpperCase()
-            .slice(0, 2)
+            .slice(0, 2) || 'U'
 
     return (
         <div className="flex flex-col h-full">
@@ -126,7 +128,7 @@ export function ChatConversationList({
                         // Format last message preview
                         let lastMessagePreview = ''
                         if (thread.last_message) {
-                            if (thread.last_message.message_type === 'offer') {
+                            if (thread.last_message.message_type === 'offer' || thread.last_message.message_type === 'offer_ref') {
                                 lastMessagePreview = `💰 Offer: ৳${Number(thread.last_message.offer_amount || 0).toLocaleString()}`
                             } else if (thread.last_message.message_type === 'image') {
                                 lastMessagePreview = '📷 Image'

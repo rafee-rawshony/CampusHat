@@ -1,10 +1,10 @@
 import React from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { Phone, MessageCircle, MapPin, ShieldCheck, User } from 'lucide-react'
+import { MapPin, ShieldCheck, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth.store'
+import { ChatButton } from './ChatButton'
 
 interface ListingContactSectionProps {
     listing: {
@@ -28,16 +28,6 @@ export function ListingContactSection({ listing, isAuthenticated, onOpenOfferMod
     const router = useRouter()
     const { user } = useAuthStore()
     const isContactVisible = listing.contact_visible
-
-    const handleSendMessage = async () => {
-        try {
-            const res = await api.post('/marketplace/chats/start/', { product_id: listing.id })
-            const chatData = res.data?.data || res.data
-            router.push(`/marketplace/chat/${chatData?.id || chatData?.chat_id}`)
-        } catch {
-            router.push(`/marketplace/chat?user=${listing.user_info.id}&listing=${listing.id}`)
-        }
-    }
 
     // Role-aware messages and CTA for the locked contact section
     const getLockContent = () => {
@@ -109,16 +99,6 @@ export function ListingContactSection({ listing, isAuthenticated, onOpenOfferMod
                     </div>
                 </div>
 
-                {listing.contact_phone && (
-                    <div className="flex flex-col gap-1 mb-6 p-3 bg-gray-50 rounded-xl border border-gray-100">
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Contact Number</span>
-                        <a href={`tel:${listing.contact_phone}`} className="flex items-center gap-2 text-brand-primary font-bold hover:underline">
-                            <Phone className="w-4 h-4" />
-                            {listing.contact_phone}
-                        </a>
-                    </div>
-                )}
-
                 {listing.meetup_location && (
                     <div className="flex flex-col gap-1 mb-6 p-3 bg-gray-50 rounded-xl border border-gray-100">
                         <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Safe Meetup Area</span>
@@ -130,13 +110,12 @@ export function ListingContactSection({ listing, isAuthenticated, onOpenOfferMod
                 )}
 
                 <div className="flex flex-col gap-3">
-                    <Button
-                        onClick={handleSendMessage}
+                    <ChatButton
+                        listingId={listing.id}
                         className="w-full bg-[#4C3B8A] hover:bg-[#2D1B69] text-white rounded-xl h-12 font-bold shadow-md gap-2"
                     >
-                        <MessageCircle className="w-5 h-5" />
                         Send Message
-                    </Button>
+                    </ChatButton>
                     <Button
                         onClick={onOpenOfferModal}
                         variant="outline"

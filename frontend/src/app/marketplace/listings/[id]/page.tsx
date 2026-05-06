@@ -1,13 +1,10 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import {
     MapPin,
     Clock,
-    MessageCircle,
     Flag,
     ChevronDown,
     ChevronUp,
@@ -21,6 +18,7 @@ import { MakeOfferModal } from '@/components/marketplace/MakeOfferModal'
 import { ReportListingModal } from '@/components/marketplace/ReportListingModal'
 import { ListingImageGallery } from '@/components/marketplace/ListingImageGallery'
 import { ListingContactSection } from '@/components/marketplace/ListingContactSection'
+import { ChatButton } from '@/components/marketplace/ChatButton'
 import { formatDistanceToNow, format } from 'date-fns'
 
 interface DetailListing {
@@ -48,12 +46,10 @@ interface DetailListing {
 }
 
 export default function MarketplaceAdDetailPage({ params }: { params: { id: string } }) {
-    const router = useRouter()
     const { isAuthenticated, canAccessMarketplace } = useAuthStore()
     const [listing, setListing] = useState<DetailListing | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
-    const [activeImage, setActiveImage] = useState(0)
     const [descExpanded, setDescExpanded] = useState(false)
 
     const [isOfferModalOpen, setOfferModalOpen] = useState(false)
@@ -104,8 +100,6 @@ export default function MarketplaceAdDetailPage({ params }: { params: { id: stri
     )
 
     const categoryName = typeof listing.category === 'string' ? listing.category : listing.category?.name || 'Various'
-    const isContactVisible = listing.contact_visible
-
     return (
         <div className="bg-[#F5F5F5] min-h-screen pb-20 pt-6">
             <div className="container mx-auto px-4 max-w-6xl">
@@ -238,18 +232,13 @@ export default function MarketplaceAdDetailPage({ params }: { params: { id: stri
             {/* Mobile Sticky Bar - Only for verified users */}
             {canAccessMarketplace() && (
                 <div className='fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-white border-t px-4 py-3 flex gap-3 pb-[calc(12px+env(safe-area-inset-bottom))] shadow-[0_-4px_10px_rgba(0,0,0,0.05)]'>
-                    <button onClick={async () => {
-                            try {
-                                const res = await api.post('/marketplace/chats/start/', { product_id: listing.id })
-                                const chatData = res.data?.data || res.data
-                                router.push(`/marketplace/chat/${chatData?.id || chatData?.chat_id}`)
-                            } catch {
-                                router.push(`/marketplace/chat?user=${listing.user_info.id}&listing=${listing.id}`)
-                            }
-                        }}
-                        className='flex-1 border-2 border-brand-primary text-brand-primary font-bold py-2.5 rounded-xl text-sm'>
+                    <ChatButton
+                        listingId={listing.id}
+                        variant="outline"
+                        className='flex-1 border-2 border-brand-primary text-brand-primary font-bold py-2.5 rounded-xl text-sm h-auto bg-white hover:bg-brand-primary/5'
+                    >
                         Message
-                    </button>
+                    </ChatButton>
                     <button onClick={() => setOfferModalOpen(true)}
                         className='flex-1 bg-brand-primary text-white font-bold py-2.5 rounded-xl text-sm shadow-md'>
                         Make Offer
