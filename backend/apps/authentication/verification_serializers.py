@@ -80,6 +80,9 @@ class SubmitVerificationSerializer(serializers.Serializer):
     def _upload_to_s3(self, file_obj, user_id, doc_type):
         """Upload a file to the S3 private bucket and return the key."""
         try:
+            if getattr(settings, 'DEBUG', False):
+                raise ValueError("Development mode: skipping S3")
+
             aws_key = getattr(settings, 'AWS_ACCESS_KEY_ID', '')
             if not aws_key:
                 raise ValueError("S3 not configured")
@@ -105,7 +108,7 @@ class SubmitVerificationSerializer(serializers.Serializer):
             # In development, store locally if S3 is not configured
             import os
             upload_dir = os.path.join(
-                settings.BASE_DIR, 'mediafiles', 'verifications',
+                str(settings.BASE_DIR), 'mediafiles', 'verifications',
                 str(user_id), doc_type,
             )
             os.makedirs(upload_dir, exist_ok=True)

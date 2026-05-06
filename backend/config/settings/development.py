@@ -193,3 +193,10 @@ LOGGING = {
         },
     },
 }
+
+# =============================================================================
+# CELERY — Run tasks locally for testing without Redis/Worker
+# =============================================================================
+
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_EAGER_PROPAGATES = True

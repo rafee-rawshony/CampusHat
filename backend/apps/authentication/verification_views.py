@@ -47,30 +47,45 @@ class SubmitVerificationView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        serializer = SubmitVerificationSerializer(
-            data=request.data,
-            context={'request': request},
-        )
-        serializer.is_valid(raise_exception=True)
-        verification = serializer.save()
+        try:
+            serializer = SubmitVerificationSerializer(
+                data=request.data,
+                context={'request': request},
+            )
+            serializer.is_valid(raise_exception=True)
+            verification = serializer.save()
 
-        # Queue Celery task to notify admin
-        from .tasks import notify_admin_new_verification
-        notify_admin_new_verification.delay(str(verification.id))
+            # Queue Celery task to notify admin
+            try:
+                from .tasks import notify_admin_new_verification
+                notify_admin_new_verification.delay(str(verification.id))
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(f"Failed to queue verification notification: {e}")
 
-        output_serializer = VerificationStatusSerializer(
-            verification,
-            context={'request': request},
-        )
-        return Response(
-            {
-                'success': True,
-                'message': 'Verification submitted successfully. '
-                           'An admin will review your documents.',
-                'data': output_serializer.data,
-            },
-            status=status.HTTP_201_CREATED,
-        )
+            output_serializer = VerificationStatusSerializer(
+                verification,
+                context={'request': request},
+            )
+            return Response(
+                {
+                    'success': True,
+                    'message': 'Verification submitted successfully. '
+                               'An admin will review your documents.',
+                    'data': output_serializer.data,
+                },
+                status=status.HTTP_201_CREATED,
+            )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Verification submit error: {e}", exc_info=True)
+            return Response(
+                {
+                    'success': False,
+                    'message': 'An unexpected error occurred while processing your request.',
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class MyVerificationStatusView(APIView):
