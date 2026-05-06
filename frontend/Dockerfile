@@ -22,10 +22,13 @@ COPY . .
 # Next.js collects completely anonymous telemetry data about general usage.
 ENV NEXT_TELEMETRY_DISABLED 1
 
-# NEXT_PUBLIC_API_URL gets baked into the JS bundle at build time,
-# so it MUST be set before `next build` runs. Pass via docker-compose build args.
+# These env vars are baked into the JS bundle at build time.
+# They MUST be set before `next build` runs — pass via docker-compose build args.
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
+ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID
+ENV NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID
 
 RUN npm run build
 

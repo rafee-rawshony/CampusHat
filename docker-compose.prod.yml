@@ -58,13 +58,10 @@ services:
     image: campushat-backend:prod
     container_name: campushat_backend
     restart: unless-stopped
-    # Single-line command — YAML folded blocks (`>`) preserve indentation as
-    # newlines, which would break sh's argument parsing for gunicorn.
-    command: ["sh", "-c", "python manage.py collectstatic --noinput && python manage.py migrate --noinput && python manage.py seed_universities && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers ${GUNICORN_WORKERS:-4} --threads 2 --worker-class gthread --timeout 120 --access-logfile - --error-logfile -"]
+    # Daphne (ASGI) handles both HTTP and WebSocket — Gunicorn (WSGI) cannot do WebSocket.
+    command: ["sh", "-c", "python manage.py collectstatic --noinput && python manage.py migrate --noinput && python manage.py seed_universities && daphne -b 0.0.0.0 -p 8000 --proxy-headers config.asgi:application"]
     environment:
-      # Local "production-mode" testing uses development settings + gunicorn.
-      # On a real server with a domain + SSL, change this to config.settings.production.
-      - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-config.settings.development}
+      - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-config.settings.production}
       - DB_HOST=db
       - DB_PORT=5432
       - REDIS_URL=redis://redis:6379/0
@@ -91,9 +88,7 @@ services:
     restart: unless-stopped
     command: celery -A config worker --loglevel=warning --concurrency=${CELERY_CONCURRENCY:-2}
     environment:
-      # Local "production-mode" testing uses development settings + gunicorn.
-      # On a real server with a domain + SSL, change this to config.settings.production.
-      - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-config.settings.development}
+      - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-config.settings.production}
       - DB_HOST=db
       - DB_PORT=5432
       - REDIS_URL=redis://redis:6379/0
@@ -117,9 +112,7 @@ services:
     restart: unless-stopped
     command: celery -A config beat --loglevel=warning --scheduler django_celery_beat.schedulers:DatabaseScheduler
     environment:
-      # Local "production-mode" testing uses development settings + gunicorn.
-      # On a real server with a domain + SSL, change this to config.settings.production.
-      - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-config.settings.development}
+      - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-config.settings.production}
       - DB_HOST=db
       - DB_PORT=5432
       - REDIS_URL=redis://redis:6379/0
@@ -145,9 +138,10 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        # The frontend bakes this into the JS bundle at build time.
-        # Override via docker-compose --build-arg or .env file.
+        # These are baked into the JS bundle at build time — must be set before `docker-compose up --build`.
+        # Set them in the root-level .env file (see .env.example at project root).
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost/api/v1}
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
     image: campushat-frontend:prod
     container_name: campushat_frontend
     restart: unless-stopped

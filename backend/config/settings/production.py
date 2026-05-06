@@ -34,7 +34,9 @@ ALLOWED_HOSTS = config('DJANGO_ALLOWED_HOSTS', cast=Csv())  # noqa: F405
 # SECURITY
 # =============================================================================
 
-SECURE_SSL_REDIRECT = True
+# Set to False during initial deployment (before SSL is set up).
+# After Certbot issues the cert and Nginx handles HTTPS, set back to True.
+SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
 SECURE_HSTS_SECONDS = 31536000  # 1 year
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
