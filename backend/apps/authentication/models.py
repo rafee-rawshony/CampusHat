@@ -49,9 +49,19 @@ class UserManager(BaseUserManager):
         extra_fields.setdefault('is_staff', False)
         extra_fields.setdefault('is_superuser', False)
 
+        first_name = extra_fields.pop('first_name', None)
+        last_name = extra_fields.pop('last_name', None)
+        
+        if not first_name and not last_name and full_name:
+            parts = full_name.strip().split(' ', 1)
+            first_name = parts[0]
+            last_name = parts[1] if len(parts) > 1 else ''
+
         user = self.model(
             email=email,
             full_name=full_name,
+            first_name=first_name,
+            last_name=last_name,
             university=university,
             **extra_fields,
         )

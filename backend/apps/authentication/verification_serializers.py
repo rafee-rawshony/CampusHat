@@ -125,12 +125,18 @@ class SubmitVerificationSerializer(serializers.Serializer):
         doc_file = validated_data.pop('submitted_document')
         cert_file = validated_data.pop('enrollment_cert', None)
         university_email = validated_data.pop('university_email', None)
-        validated_data.pop('university_id', None)  # already set on user
+        university_id = validated_data.pop('university_id', None)
 
-        # Save university email onto the user profile if provided and not already set
+        update_fields = []
         if university_email and not user.university_email:
             user.university_email = university_email
-            user.save(update_fields=['university_email'])
+            update_fields.append('university_email')
+        if university_id and not user.university_id:
+            user.university_id = university_id
+            update_fields.append('university_id')
+            
+        if update_fields:
+            user.save(update_fields=update_fields)
 
         # Upload main document
         doc_url = self._upload_to_s3(doc_file, str(user.id), 'document')

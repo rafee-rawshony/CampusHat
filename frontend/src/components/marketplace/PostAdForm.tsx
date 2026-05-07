@@ -195,17 +195,31 @@ export function PostAdForm({ editId }: PostAdFormProps) {
 
         } catch (error: any) {
             const resData = error.response?.data
-            toast.error(resData?.message || resData?.detail || 'Submission failed. Please check your inputs and try again.')
-
             // Inline backend field errors (nested under "errors" in our API envelope)
             const fieldErrors = resData?.errors || resData
             if (fieldErrors && typeof fieldErrors === 'object') {
+                let hasMappedError = false
+                const unmappedErrors: string[] = []
                 Object.keys(fieldErrors).forEach(key => {
+                    const msg = Array.isArray(fieldErrors[key]) ? fieldErrors[key][0] : fieldErrors[key]
+                    const errorStr = typeof msg === 'string' ? msg : String(msg)
                     if (key in data) {
-                        const msg = Array.isArray(fieldErrors[key]) ? fieldErrors[key][0] : fieldErrors[key]
-                        form.setError(key as any, { type: 'server', message: typeof msg === 'string' ? msg : String(msg) })
+                        form.setError(key as any, { type: 'server', message: errorStr })
+                        hasMappedError = true
+                    } else if (key !== 'message' && key !== 'success') {
+                        unmappedErrors.push(errorStr)
                     }
                 })
+                
+                if (unmappedErrors.length > 0) {
+                    toast.error(`Error: ${unmappedErrors.join(', ')}`, { duration: 5000 })
+                } else if (!hasMappedError) {
+                    toast.error(resData?.message || resData?.detail || 'Submission failed. Please check your inputs and try again.')
+                } else {
+                    toast.error('Validation failed. Please check the errors below.')
+                }
+            } else {
+                toast.error(resData?.message || resData?.detail || 'Submission failed. Please check your inputs and try again.')
             }
         }
     }

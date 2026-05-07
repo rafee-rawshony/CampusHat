@@ -12,7 +12,7 @@ import { RejectDialog } from './RejectDialog'
 import { ApproveConfirmDialog } from './ApproveConfirmDialog'
 import { VerificationDetailsModal } from './VerificationDetailsModal'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { getInitials } from '@/lib/utils'
+import { getInitials, getMediaUrl } from '@/lib/utils'
 
 export function VerificationReviewTab() {
     const queryClient = useQueryClient()
@@ -92,7 +92,7 @@ export function VerificationReviewTab() {
         <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {verifications.map((item: any) => {
-                    const docUrl = item.admin_presigned_url as string | undefined
+                    const docUrl = getMediaUrl(item.admin_presigned_url as string | undefined)
                     const isPdf = docUrl?.toLowerCase().endsWith('.pdf') ?? false
                     const createdDate = item.created_at ? new Date(item.created_at).toLocaleDateString('en-BD') : 'N/A'
 

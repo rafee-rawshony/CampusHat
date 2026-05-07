@@ -107,7 +107,9 @@ export function NotificationBell() {
 
         const connectWS = () => {
             try {
-                const token = localStorage.getItem('access_token') || ''
+                const token = useAuthStore.getState().accessToken || ''
+                if (!token) return // Don't try to connect if we don't have a token
+
                 const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
                 const wsHost = process.env.NEXT_PUBLIC_WS_HOST || window.location.host
                 const wsUrl = `${wsProtocol}//${wsHost}/ws/notifications/?token=${token}`
