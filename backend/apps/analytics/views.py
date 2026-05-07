@@ -1,0 +1,511 @@
+"""
+Analytics Views.
+
+Seller dashboard stats, revenue breakdown, top products.
+Admin platform-wide analytics.
+"""
+
+from datetime import timedelta
+from decimal import Decimal
+
+from django.db.models import Avg, Count, Sum
+from django.utils import timezone
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from core.permissions import IsAdminOrModerator, IsApprovedSeller
+
+from .models import SearchLog, SellerDashboardStats
+from .serializers import SellerDashboardStatsSerializer
+
+
+# ═══════════════════════════════════════════════════════════════════
+# SELLER ANALYTICS
+# ═══════════════════════════════════════════════════════════════════
+
+class SellerOverviewView(APIView):
+    """GET /api/v1/analytics/seller/overview/"""
+
+    permission_classes = [IsAuthenticated, IsApprovedSeller]
+
+    def get(self, request):
+        from apps.orders.models import Order, OrderItem
+        from apps.wallet.models import WalletTransaction
+
+        seller = request.user.seller_profile
+        store = seller.store
+
+        # Get or create stats
+        stats, _ = SellerDashboardStats.objects.get_or_create(seller=seller)
+
+        # Revenue chart: last 30 days
+        thirty_days_ago = timezone.now() - timedelta(days=30)
+        daily_revenue = (
+            Order.objects.filter(
+                store=store, payment_status='paid',
+                created_at__gte=thirty_days_ago,
+            )
+            .extra(select={'day': "DATE(created_at)"})
+            .values('day')
+            .annotate(revenue=Sum('total_amount'), count=Count('id'))
+            .order_by('day')
+        )
+
+        # Order status breakdown
+        status_breakdown = (
+            Order.objects.filter(store=store)
+            .values('status')
+            .annotate(count=Count('id'))
+        )
+
+        # Top 5 products by sold count
+        top_products = (
+            OrderItem.objects.filter(
+                order__store=store, order__payment_status='paid',
+            )
+            .values('product__name', 'product__id')
+            .annotate(
+                sold=Sum('quantity'),
+                revenue=Sum('total_price'),
+            )
+            .order_by('-sold')[:5]
+        )
+
+        # Recent transactions
+        try:
+            wallet = seller.wallet
+            recent_txns = WalletTransaction.objects.filter(
+                wallet=wallet,
+            ).order_by('-created_at')[:10]
+            txn_data = [
+                {
+                    'type': t.transaction_type,
+                    'amount': str(t.amount),
+                    'description': t.description,
+                    'created_at': t.created_at,
+                }
+                for t in recent_txns
+            ]
+        except Exception:
+            txn_data = []
+
+        return Response({
+            'success': True,
+            'data': {
+                'stats': SellerDashboardStatsSerializer(stats).data,
+                'revenue_chart': list(daily_revenue),
+                'status_breakdown': list(status_breakdown),
+                'top_products': list(top_products),
+                'recent_transactions': txn_data,
+            },
+        })
+
+
+class SellerRevenueView(APIView):
+    """GET /api/v1/analytics/seller/revenue/?period=30d|7d|90d"""
+
+    permission_classes = [IsAuthenticated, IsApprovedSeller]
+
+    def get(self, request):
+        from apps.orders.models import Order
+
+        store = request.user.seller_profile.store
+        period = request.query_params.get('period', '30d')
+        days = {'7d': 7, '30d': 30, '90d': 90}.get(period, 30)
+        since = timezone.now() - timedelta(days=days)
+
+        daily = (
+            Order.objects.filter(
+                store=store, payment_status='paid',
+                created_at__gte=since,
+            )
+            .extra(select={'day': "DATE(created_at)"})
+            .values('day')
+            .annotate(revenue=Sum('total_amount'), orders=Count('id'))
+            .order_by('day')
+        )
+
+        return Response({
+            'success': True,
+            'data': {
+                'period': period,
+                'daily_revenue': list(daily),
+            },
+        })
+
+
+class SellerTopProductsView(APIView):
+    """
+    GET /api/v1/analytics/seller/products/top/?type=best|slow
+
+    Top 10 best-selling or slowest-moving products for the seller's store.
+    """
+
+    permission_classes = [IsAuthenticated, IsApprovedSeller]
+
+    def get(self, request):
+        from apps.orders.models import OrderItem
+        from apps.mall.models import StoreProduct
+
+        store = request.user.seller_profile.store
+        report_type = request.query_params.get('type', 'best')
+
+        if report_type == 'slow':
+            # Products with fewest sales (including zero-sale products)
+            all_products = StoreProduct.objects.filter(
+                store=store, deleted_at__isnull=True, is_active=True,
+            ).values('id', 'name', 'slug', 'base_price', 'stock_quantity')
+
+            # Get sold counts
+            sold_map = dict(
+                OrderItem.objects.filter(
+                    order__store=store, order__payment_status='paid',
+                )
+                .values_list('product__id')
+                .annotate(sold=Sum('quantity'))
+                .values_list('product__id', 'sold')
+            )
+
+            products = []
+            for p in all_products:
+                products.append({
+                    'product__id': str(p['id']),
+                    'product__name': p['name'],
+                    'product__slug': p['slug'],
+                    'base_price': str(p['base_price']),
+                    'stock_quantity': p['stock_quantity'],
+                    'sold_count': sold_map.get(p['id'], 0),
+                    'total_revenue': '0.00',
+                })
+
+            products.sort(key=lambda x: x['sold_count'])
+            return Response({'success': True, 'data': products[:10]})
+
+        # Default: best sellers
+        top_products = (
+            OrderItem.objects.filter(
+                order__store=store, order__payment_status='paid',
+            )
+            .values('product__id', 'product__name', 'product__slug')
+            .annotate(
+                sold_count=Sum('quantity'),
+                total_revenue=Sum('line_total'),
+            )
+            .order_by('-sold_count')[:10]
+        )
+
+        return Response({
+            'success': True,
+            'data': list(top_products),
+        })
+
+
+class SellerCustomerInsightsView(APIView):
+    """
+    GET /api/v1/analytics/seller/customers/
+
+    Customer demographics, repeat buyers, and lifetime value for the seller.
+    """
+
+    permission_classes = [IsAuthenticated, IsApprovedSeller]
+
+    def get(self, request):
+        from apps.orders.models import Order
+        from apps.authentication.models import User
+
+        store = request.user.seller_profile.store
+
+        # All paid orders for this store
+        orders = Order.objects.filter(
+            store=store, payment_status='paid', deleted_at__isnull=True,
+        )
+
+        total_customers = orders.values('buyer').distinct().count()
+
+        # Repeat buyers: ordered more than once
+        buyer_counts = (
+            orders.values('buyer')
+            .annotate(order_count=Count('id'))
+        )
+        repeat_buyers = sum(1 for b in buyer_counts if b['order_count'] > 1)
+        one_time_buyers = total_customers - repeat_buyers
+
+        # Top 10 customers by lifetime value
+        top_customers = (
+            orders.values('buyer__id', 'buyer__email', 'buyer__first_name', 'buyer__last_name')
+            .annotate(
+                total_spent=Sum('total_amount'),
+                order_count=Count('id'),
+            )
+            .order_by('-total_spent')[:10]
+        )
+
+        # University distribution (demographics)
+        university_dist = (
+            orders.values('buyer__university__name')
+            .annotate(count=Count('buyer', distinct=True))
+            .order_by('-count')[:10]
+        )
+
+        # Monthly order trend (last 6 months)
+        six_months_ago = timezone.now() - timedelta(days=180)
+        monthly_orders = (
+            orders.filter(created_at__gte=six_months_ago)
+            .extra(select={'month': "TO_CHAR(created_at, 'YYYY-MM')"})
+            .values('month')
+            .annotate(
+                customers=Count('buyer', distinct=True),
+                orders=Count('id'),
+                revenue=Sum('total_amount'),
+            )
+            .order_by('month')
+        )
+        avg_order_value = orders.aggregate(avg=Avg('total_amount'))['avg'] or Decimal('0')
+
+        return Response({
+            'success': True,
+            'data': {
+                'total_customers': total_customers,
+                'repeat_buyers': repeat_buyers,
+                'one_time_buyers': one_time_buyers,
+                'repeat_rate': round(repeat_buyers / max(total_customers, 1) * 100, 1),
+                'average_order_value': str(round(avg_order_value, 2)),
+                'top_customers': list(top_customers),
+                'university_distribution': list(university_dist),
+                'monthly_trend': list(monthly_orders),
+            },
+        })
+
+
+class SellerPerformanceView(APIView):
+    """
+    GET /api/v1/analytics/seller/performance/
+
+    Daraz-style seller performance scorecard. Returns:
+      - on_time_ship_rate: % of orders shipped within avg_dispatch_hours
+      - cancellation_rate: % of orders cancelled
+      - delivery_rate:     % of orders successfully delivered
+      - response_rate:     % of reviews replied to
+      - average_rating:    1-5 stars
+      - total_orders:      lifetime orders count
+      - seller_score:      composite 0-100 score derived from the above
+    """
+
+    permission_classes = [IsAuthenticated, IsApprovedSeller]
+
+    def get(self, request):
+        from apps.orders.models import Order
+        from apps.mall.models import ProductReview
+
+        seller = request.user.seller_profile
+        store = getattr(seller, 'store', None)
+        if not store:
+            return Response({'success': True, 'data': {}})
+
+        # Orders in the last 30 days for performance metrics — Daraz-style
+        # uses a rolling window so improvements show up.
+        period_days = int(request.query_params.get('days', 30))
+        since = timezone.now() - timedelta(days=period_days)
+
+        recent_orders = Order.objects.filter(
+            store=store, deleted_at__isnull=True, created_at__gte=since,
+        )
+
+        total_recent = recent_orders.count()
+        cancelled_recent = recent_orders.filter(order_status='cancelled').count()
+        delivered_recent = recent_orders.filter(order_status='delivered').count()
+        shipped_recent = recent_orders.filter(
+            order_status__in=['shipped', 'delivered'],
+        ).count()
+
+        # On-time ship: orders shipped within the store's avg_dispatch_hours.
+        # We approximate by looking at OrderStatusHistory for 'placed -> shipped'
+        # transition timestamps. Fallback: assume all shipped were on-time.
+        on_time_ship_count = shipped_recent  # MVP: assume on-time
+
+        cancellation_rate = (cancelled_recent / total_recent * 100) if total_recent else 0.0
+        delivery_rate = (delivered_recent / total_recent * 100) if total_recent else 0.0
+        on_time_ship_rate = (on_time_ship_count / max(shipped_recent, 1) * 100) if shipped_recent else 0.0
+
+        # Reviews & replies — overall, not period-windowed (long-tail metric).
+        all_reviews = ProductReview.objects.filter(
+            product__store=store, deleted_at__isnull=True,
+        )
+        total_reviews = all_reviews.count()
+        replied_reviews = all_reviews.exclude(
+            seller_response__isnull=True,
+        ).exclude(seller_response='').count()
+        response_rate = (replied_reviews / total_reviews * 100) if total_reviews else 0.0
+        avg_rating = float(store.rating_avg or 0)
+
+        # Composite seller score — weighted average of normalised metrics.
+        # Higher = better. Cancellations hurt; everything else helps.
+        score_components = {
+            'on_time': on_time_ship_rate * 0.25,
+            'delivery': delivery_rate * 0.20,
+            'response': response_rate * 0.15,
+            'rating': (avg_rating / 5 * 100) * 0.30,
+            'low_cancel': (100 - cancellation_rate) * 0.10,
+        }
+        seller_score = round(sum(score_components.values()), 1)
+
+        return Response({
+            'success': True,
+            'data': {
+                'period_days': period_days,
+                'total_orders': total_recent,
+                'cancelled_orders': cancelled_recent,
+                'delivered_orders': delivered_recent,
+                'shipped_orders': shipped_recent,
+                'on_time_ship_rate': round(on_time_ship_rate, 1),
+                'cancellation_rate': round(cancellation_rate, 1),
+                'delivery_rate': round(delivery_rate, 1),
+                'response_rate': round(response_rate, 1),
+                'average_rating': round(avg_rating, 2),
+                'review_count': total_reviews,
+                'seller_score': seller_score,
+                'avg_dispatch_hours': store.avg_dispatch_hours,
+            },
+        })
+
+
+# ═══════════════════════════════════════════════════════════════════
+# ADMIN PLATFORM ANALYTICS
+# ═══════════════════════════════════════════════════════════════════
+
+class AdminPlatformAnalyticsView(APIView):
+    """GET /api/v1/admin/analytics/platform/"""
+
+    permission_classes = [IsAuthenticated, IsAdminOrModerator]
+
+    def get(self, request):
+        from apps.authentication.models import User
+        from apps.mall.models import StoreProduct
+        from apps.marketplace.models import MarketplaceProduct
+        from apps.orders.models import Order, OrderItem
+
+        now = timezone.now()
+        today = now.date()
+        seven_days_ago = now - timedelta(days=7)
+        thirty_days_ago = now - timedelta(days=30)
+
+        # GMV (Gross Merchandise Value)
+        gmv_today = Order.objects.filter(
+            created_at__date=today, payment_status='paid',
+        ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+
+        gmv_7d = Order.objects.filter(
+            created_at__gte=seven_days_ago, payment_status='paid',
+        ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+
+        gmv_30d = Order.objects.filter(
+            created_at__gte=thirty_days_ago, payment_status='paid',
+        ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+
+        # New users
+        new_users_today = User.objects.filter(date_joined__date=today).count()
+        new_users_7d = User.objects.filter(date_joined__gte=seven_days_ago).count()
+
+        # Active listings
+        active_mall = StoreProduct.objects.filter(is_active=True).count()
+        active_marketplace = MarketplaceProduct.objects.filter(
+            status='approved',
+        ).count()
+
+        # Top selling products (platform-wide)
+        top_selling = (
+            OrderItem.objects.filter(order__payment_status='paid')
+            .values('product__id', 'product__name')
+            .annotate(sold=Sum('quantity'), revenue=Sum('total_price'))
+            .order_by('-sold')[:10]
+        )
+
+        # Revenue by campus
+        revenue_by_campus = (
+            Order.objects.filter(payment_status='paid')
+            .values('buyer__university__name')
+            .annotate(total=Sum('total_amount'), orders=Count('id'))
+            .order_by('-total')[:10]
+        )
+
+        # Top search queries (unfulfilled: result_count=0)
+        top_unfulfilled = (
+            SearchLog.objects.filter(result_count=0)
+            .values('query')
+            .annotate(count=Count('id'))
+            .order_by('-count')[:10]
+        )
+
+        # Platform commission today
+        commission_today = (
+            OrderItem.objects.filter(
+                order__created_at__date=today,
+                order__payment_status='paid',
+            ).aggregate(total=Sum('commission_amount'))['total']
+            or Decimal('0')
+        )
+
+        return Response({
+            'success': True,
+            'data': {
+                'gmv_today': gmv_today,
+                'gmv_7d': gmv_7d,
+                'gmv_30d': gmv_30d,
+                'new_users_today': new_users_today,
+                'new_users_7d': new_users_7d,
+                'active_listings_count': active_mall + active_marketplace,
+                'top_selling_products': list(top_selling),
+                'revenue_by_campus': list(revenue_by_campus),
+                'top_unfulfilled_searches': list(top_unfulfilled),
+                'platform_commission_today': commission_today,
+            },
+        })
+
+
+class AdminRevenueChartView(APIView):
+    """GET /api/v1/admin/analytics/revenue/?period=10d|1m"""
+
+    permission_classes = [IsAuthenticated, IsAdminOrModerator]
+
+    def get(self, request):
+        from apps.orders.models import Order
+        from datetime import date as date_type
+
+        period = request.query_params.get('period', '10d')
+        days = {'10d': 10, '1m': 30}.get(period, 10)
+        since = timezone.now() - timedelta(days=days)
+
+        daily = (
+            Order.objects.filter(payment_status='paid', created_at__gte=since)
+            .extra(select={'day': "DATE(created_at)"})
+            .values('day')
+            .annotate(revenue=Sum('total_amount'))
+            .order_by('day')
+        )
+
+        # Build a full date range with 0 as default so chart has no gaps
+        date_map = {}
+        for i in range(days):
+            d = (timezone.now() - timedelta(days=days - 1 - i)).date()
+            date_map[str(d)] = 0
+
+        for row in daily:
+            key = str(row['day'])
+            if key in date_map:
+                date_map[key] = float(row['revenue'] or 0)
+
+        labels = []
+        data = []
+        for date_str, amount in date_map.items():
+            d = date_type.fromisoformat(date_str)
+            labels.append(d.strftime('%b %d'))
+            data.append(amount)
+
+        return Response({
+            'success': True,
+            'data': {
+                'labels': labels,
+                'data': data,
+            },
+        })

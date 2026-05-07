@@ -1,0 +1,118 @@
+# Phase 01: CampusHat Backend — Project Setup & Configuration
+
+Build the complete Django 4.2 production-grade backend foundation inside `backend/` directory on the `backend` branch. This creates the project skeleton, Docker infrastructure, core mixins, and DRF configuration for the CampusHat e-commerce/marketplace platform.
+
+## Proposed Changes
+
+### .gitignore Update
+
+#### [MODIFY] [.gitignore](file:///c:/Parsonal%20Website/CampusHat/.gitignore)
+- Add Python/Django-specific ignore patterns (`.pyc`, `__pycache__`, `*.egg-info`, `db.sqlite3`, `venv/`, `staticfiles/`, `mediafiles/`)
+
+---
+
+### Requirements
+
+#### [NEW] [base.txt](file:///c:/Parsonal%20Website/CampusHat/backend/requirements/base.txt)
+All core dependencies pinned: Django 4.2, DRF 3.15, psycopg2-binary, redis, celery, django-filter, django-cors-headers, djangorestframework-simplejwt, django-storages, boto3, Pillow, python-decouple, drf-spectacular, gunicorn
+
+#### [NEW] [development.txt](file:///c:/Parsonal%20Website/CampusHat/backend/requirements/development.txt)
+Extends base. Adds: django-debug-toolbar, ipdb, black, flake8, isort
+
+#### [NEW] [production.txt](file:///c:/Parsonal%20Website/CampusHat/backend/requirements/production.txt)
+Extends base. Adds: sentry-sdk, django-redis
+
+---
+
+### Django Config (`backend/config/`)
+
+#### [NEW] [base.py](file:///c:/Parsonal%20Website/CampusHat/backend/config/settings/base.py)
+Modular base settings with `python-decouple`. PostgreSQL, Redis cache, Celery, REST_FRAMEWORK (JWT auth, custom pagination, custom exception handler), SIMPLE_JWT, CORS, S3 block, email block, drf-spectacular. `AUTH_USER_MODEL = 'authentication.User'`.
+
+#### [NEW] [development.py](file:///c:/Parsonal%20Website/CampusHat/backend/config/settings/development.py)
+DEBUG=True, ALLOWED_HOSTS=['*'], debug-toolbar, local file storage.
+
+#### [NEW] [production.py](file:///c:/Parsonal%20Website/CampusHat/backend/config/settings/production.py)
+DEBUG=False, ALLOWED_HOSTS from env, SSL/HSTS, S3 storage, Sentry init.
+
+#### [NEW] [celery.py](file:///c:/Parsonal%20Website/CampusHat/backend/config/celery.py)
+Standard Celery app for Django with autodiscover, beat schedule placeholder.
+
+#### [NEW] [urls.py](file:///c:/Parsonal%20Website/CampusHat/backend/config/urls.py)
+Project-level URLs: admin, api/v1/ namespace, spectacular schema/docs.
+
+#### [NEW] [wsgi.py](file:///c:/Parsonal%20Website/CampusHat/backend/config/wsgi.py) / [asgi.py](file:///c:/Parsonal%20Website/CampusHat/backend/config/asgi.py) / [__init__.py](file:///c:/Parsonal%20Website/CampusHat/backend/config/__init__.py)
+
+---
+
+### Core App (`backend/core/`)
+
+#### [NEW] [models.py](file:///c:/Parsonal%20Website/CampusHat/backend/core/models.py)
+UUIDMixin, TimestampMixin, SoftDeleteMixin (with SoftDeleteManager), BaseModel (combines all three, abstract).
+
+#### [NEW] [permissions.py](file:///c:/Parsonal%20Website/CampusHat/backend/core/permissions.py)
+IsVerifiedStudent, IsApprovedSeller, IsAdminOrModerator, IsOwnerOrAdmin, ReadOnly.
+
+#### [NEW] [pagination.py](file:///c:/Parsonal%20Website/CampusHat/backend/core/pagination.py)
+CampusHatPagination (page_size=20, max=100), CampusHatCursorPagination (feed-style).
+
+#### [NEW] [exceptions.py](file:///c:/Parsonal%20Website/CampusHat/backend/core/exceptions.py)
+CampusHatException base class, custom_exception_handler wrapping DRF default.
+
+#### [NEW] [renderers.py](file:///c:/Parsonal%20Website/CampusHat/backend/core/renderers.py)
+CampusHatJSONRenderer — consistent `{success, data/errors, message}` envelope.
+
+#### [NEW] [utils.py](file:///c:/Parsonal%20Website/CampusHat/backend/core/utils.py)
+generate_order_number, generate_invoice_number, generate_tracking_code, generate_store_system_id, get_file_upload_path, send_notification_email.
+
+---
+
+### Docker Infrastructure
+
+#### [NEW] [Dockerfile](file:///c:/Parsonal%20Website/CampusHat/backend/docker/Dockerfile)
+Python 3.11-slim, system deps, pip install, collectstatic + migrate + gunicorn.
+
+#### [NEW] [Dockerfile.prod](file:///c:/Parsonal%20Website/CampusHat/backend/docker/Dockerfile.prod)
+Multi-stage optimized production build.
+
+#### [NEW] [nginx.conf](file:///c:/Parsonal%20Website/CampusHat/backend/docker/nginx/nginx.conf)
+Reverse proxy to Django on port 8000, serve static/media.
+
+#### [NEW] [docker-compose.yml](file:///c:/Parsonal%20Website/CampusHat/backend/docker-compose.yml)
+Services: db (postgres:15), redis (redis:7-alpine), backend, celery, celerybeat, nginx.
+
+#### [NEW] [docker-compose.prod.yml](file:///c:/Parsonal%20Website/CampusHat/backend/docker-compose.prod.yml)
+Production overrides.
+
+---
+
+### Other
+
+#### [NEW] [.env.example](file:///c:/Parsonal%20Website/CampusHat/backend/.env.example)
+All env variables used across settings.
+
+#### [NEW] [manage.py](file:///c:/Parsonal%20Website/CampusHat/backend/manage.py)
+Django manage.py pointing to `config.settings.development`.
+
+#### [NEW] [README.md](file:///c:/Parsonal%20Website/CampusHat/backend/README.md)
+Project overview, quick start, dev commands, testing instructions.
+
+---
+
+## Git Workflow
+
+Per user request:
+1. After creating all files → `git add . && git commit`
+2. Push to `origin/backend`
+3. Then verify with Docker / manage.py check
+
+## Verification Plan
+
+### Automated Tests
+1. **Syntax check**: `python -m py_compile backend/config/settings/base.py` (and other key .py files) — ensures all Python files parse without syntax errors
+2. **Django system check**: `cd backend && python manage.py check --settings=config.settings.development` — validates settings are importable and consistent (requires Python + deps installed, or run via Docker)
+3. **Docker build**: `cd backend && docker-compose up --build` — all 6 services should start without errors
+
+### Manual Verification
+- User should verify `docker-compose up --build` starts all services successfully
+- User should run `docker-compose exec backend python manage.py check` and confirm "System check identified no issues"

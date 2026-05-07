@@ -1,0 +1,7 @@
+{
+  "extends": "next/core-web-vitals",
+  "rules": {
+    "no-explicit-any": "off",
+    "no-unused-vars": "warn"
+  }
+}

@@ -1,0 +1,166 @@
+# =================================================
+# CampusHat Backend — Standalone Docker Compose
+# =================================================
+# For running backend services independently.
+# Use root docker-compose.yml for full-stack.
+#
+# Usage: docker-compose up --build
+# =================================================
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: campushat_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-campushat_db}
+      POSTGRES_USER: ${DB_USER:-campushat_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-campushat_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Auto-init disabled — let Django migrations create schema from scratch
+      # - ./database_dump.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - campushat_network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-campushat_user} -d ${DB_NAME:-campushat_db}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: campushat_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - campushat_network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Build once, share across backend/celery/celerybeat
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: campushat-backend:latest
+    container_name: campushat_backend
+    restart: unless-stopped
+    command: >
+      sh -c "python manage.py collectstatic --noinput &&
+             python manage.py migrate --noinput &&
+             python manage.py setup_initial_roles &&
+             python manage.py seed_universities &&
+             python manage.py runserver 0.0.0.0:8000"
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.development
+      - DB_HOST=db
+      - DB_PORT=5432
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - media_data:/app/mediafiles
+      - static_data:/app/staticfiles
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - campushat_network
+
+  celery:
+    image: campushat-backend:latest
+    container_name: campushat_celery
+    restart: unless-stopped
+    command: celery -A config worker --loglevel=info --concurrency=2
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.development
+      - DB_HOST=db
+      - DB_PORT=5432
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    networks:
+      - campushat_network
+
+  celerybeat:
+    image: campushat-backend:latest
+    container_name: campushat_celerybeat
+    restart: unless-stopped
+    command: celery -A config beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.development
+      - DB_HOST=db
+      - DB_PORT=5432
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    networks:
+      - campushat_network
+
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: campushat_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - static_data:/app/staticfiles:ro
+      - media_data:/app/mediafiles:ro
+    depends_on:
+      - backend
+    networks:
+      - campushat_network
+
+volumes:
+  postgres_data:
+    name: campushat_postgres_data
+  redis_data:
+    name: campushat_redis_data
+  media_data:
+    name: campushat_media_data
+  static_data:
+    name: campushat_static_data
+
+networks:
+  campushat_network:
+    name: campushat_network
+    driver: bridge

@@ -1,0 +1,71 @@
+# =================================================
+# CampusHat Backend — Production Dockerfile
+# =================================================
+# Multi-stage build for optimized production image
+# =================================================
+
+# --- Stage 1: Build ---
+FROM python:3.11-slim AS builder
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    python3-dev \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements/ /app/requirements/
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements/production.txt
+
+# --- Stage 2: Runtime ---
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV DJANGO_SETTINGS_MODULE=config.settings.production
+
+WORKDIR /app
+
+# Install runtime system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-client \
+    libpq5 \
+    libmagic1 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy installed packages from builder stage
+COPY --from=builder /usr/local/lib/python3.11/site-packages/ /usr/local/lib/python3.11/site-packages/
+COPY --from=builder /usr/local/bin/ /usr/local/bin/
+
+# Create non-root user
+RUN addgroup --system campushat && \
+    adduser --system --ingroup campushat campushat
+
+# Copy project
+COPY . /app/
+
+# Create directories for static and media files
+RUN mkdir -p /app/staticfiles /app/mediafiles && \
+    chown -R campushat:campushat /app
+
+# Switch to non-root user
+USER campushat
+
+# Expose port
+EXPOSE 8000
+
+# Collect static files, run migrations, start Daphne (ASGI — handles HTTP + WebSocket)
+# Gunicorn (WSGI) cannot handle WebSocket connections — Daphne must be used.
+CMD ["sh", "-c", "\
+    python manage.py collectstatic --noinput && \
+    python manage.py migrate --noinput && \
+    daphne -b 0.0.0.0 -p 8000 --proxy-headers config.asgi:application \
+    "]
