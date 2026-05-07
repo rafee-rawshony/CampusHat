@@ -15,9 +15,11 @@ interface Campus {
 const DIVISIONS = ['Dhaka', 'Chittagong', 'Rajshahi', 'Khulna', 'Barisal', 'Sylhet', 'Rangpur', 'Mymensingh']
 
 export function CampusSwitcher() {
-    const { selectedCampusId, selectedCampusName, setCampus, clearCampus } = useCampusStore()
+    const { selectedCampusId, setCampus, clearCampus } = useCampusStore()
     const [searchQuery, setSearchQuery] = useState('')
     const [campuses, setCampuses] = useState<Campus[]>([])
+    const [isLoading, setIsLoading] = useState(true)
+    const [loadError, setLoadError] = useState('')
     const [open, setOpen] = useState(false)
     const [showRequestForm, setShowRequestForm] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -28,18 +30,37 @@ export function CampusSwitcher() {
     const dropdownRef = useRef<HTMLDivElement>(null)
     const searchRef = useRef<HTMLInputElement>(null)
 
-    useEffect(() => {
-        api.get('/universities/?page_size=1000').then(res => {
-            const raw = res.data?.data || res.data
-            const results = raw?.results || (Array.isArray(raw) ? raw : [])
-            if (Array.isArray(results) && results.length > 0) {
+    const fetchCampuses = async () => {
+        setIsLoading(true)
+        setLoadError('')
+        try {
+            const res = await api.get('/universities/?page_size=1000')
+            const raw = res.data?.data ?? res.data
+            const results = Array.isArray(raw)
+                ? raw
+                : Array.isArray(raw?.results)
+                    ? raw.results
+                        : Array.isArray(res.data?.results)
+                            ? res.data.results
+                            : []
+
+            if (Array.isArray(results)) {
                 setCampuses(results.map((u: any) => ({
                     id: String(u.id),
                     name: u.name,
                     short_name: u.short_name || u.short_code || u.name.substring(0, 5)
                 })))
             }
-        }).catch(() => {})
+        } catch (err: any) {
+            setCampuses([])
+            setLoadError(err?.response?.data?.message || 'Could not load universities.')
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        fetchCampuses()
     }, [])
 
     useEffect(() => {
@@ -216,15 +237,31 @@ export function CampusSwitcher() {
                                     )
                                 })}
 
-                                {filtered.length === 0 && campuses.length === 0 && (
+                                {isLoading && (
                                     <div className="px-4 py-6 text-center">
                                         <p className="text-gray-400 text-xs font-bold">Loading universities...</p>
                                     </div>
                                 )}
-                                {filtered.length === 0 && campuses.length > 0 && (
+                                {!isLoading && loadError && (
+                                    <div className="px-4 py-6 text-center">
+                                        <p className="text-red-500 text-xs font-bold">{loadError}</p>
+                                        <button
+                                            onClick={fetchCampuses}
+                                            className="mt-2 text-[11px] font-semibold text-[#4C3B8A] hover:underline"
+                                        >
+                                            Retry
+                                        </button>
+                                    </div>
+                                )}
+                                {!isLoading && !loadError && filtered.length === 0 && campuses.length > 0 && (
                                     <div className="px-4 py-6 text-center">
                                         <p className="text-gray-500 text-xs font-bold">No results found</p>
                                         <p className="text-gray-400 text-xs mt-1">Can&apos;t find your university?</p>
+                                    </div>
+                                )}
+                                {!isLoading && !loadError && campuses.length === 0 && (
+                                    <div className="px-4 py-6 text-center">
+                                        <p className="text-gray-500 text-xs font-bold">No universities available yet</p>
                                     </div>
                                 )}
                             </div>

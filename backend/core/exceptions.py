@@ -126,6 +126,14 @@ def custom_exception_handler(exc, context):
     response = exception_handler(exc, context)
 
     if response is None:
+        import traceback
+        try:
+            with open('/app/traceback.txt', 'a') as f:
+                f.write(f"CRITICAL UNHANDLED EXCEPTION: {exc}\n")
+                traceback.print_exc(file=f)
+        except Exception:
+            pass
+        
         # Unhandled exception — return a generic 500
         response_data = {
             'success': False,

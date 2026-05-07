@@ -434,7 +434,7 @@ class FeaturedStoresView(APIView):
         # for each store in the loop below.
         stores = Store.objects.filter(
             status='active', deleted_at__isnull=True,
-        ).select_related('seller').order_by('-rating', '-follower_count')[:limit]
+        ).select_related('seller').order_by('-rating_avg', '-follower_count')[:limit]
 
         data = []
         for store in stores:
@@ -444,11 +444,11 @@ class FeaturedStoresView(APIView):
                 'store': {
                     'slug': store.slug,
                     'name': store.name,
-                    'logo': store.logo.url if store.logo else None,
+                    'logo': store.logo_url,
                     'banner_color': '#4C3B8A',
-                    'badge_label': store.badge_label,
+                    'badge_label': getattr(store, 'badge_label', None),
                 },
-                'rating_avg': float(store.rating),
+                'rating_avg': float(store.rating_avg or 0),
                 'follower_count': store.follower_count,
             })
 
