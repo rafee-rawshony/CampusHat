@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
@@ -56,7 +56,7 @@ function getPasswordStrength(pw: string) {
     return { score: s, label: 'Very Strong', color: 'bg-emerald-500' }
 }
 
-export default function AuthPage() {
+function AuthPageContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const { user, isAuthenticated, _hasHydrated, setUser, setAccessToken } = useAuthStore()
@@ -361,5 +361,13 @@ export default function AuthPage() {
             {/* Right — Shared Hero Panel (fixed size) */}
             <AuthHeroPanel />
         </div>
+    )
+}
+
+export default function AuthPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+            <AuthPageContent />
+        </Suspense>
     )
 }
