@@ -30,10 +30,23 @@ from .models import (
 class MallCategorySerializer(serializers.ModelSerializer):
     """Flat category list serializer."""
 
+    icon = serializers.CharField(source='icon_url', read_only=True)
+    display_order = serializers.IntegerField(source='sort_order', read_only=True)
+    parent_id = serializers.UUIDField(read_only=True, allow_null=True)
+    parent_name = serializers.CharField(source='parent.name', read_only=True, default=None)
+    product_count = serializers.SerializerMethodField()
+
     class Meta:
         model = MallCategory
-        fields = ['id', 'name', 'slug', 'icon_url', 'level', 'parent', 'sort_order']
+        fields = [
+            'id', 'name', 'slug', 'icon_url', 'icon', 'level', 'parent',
+            'parent_id', 'parent_name', 'sort_order', 'display_order', 'is_active',
+            'product_count',
+        ]
         read_only_fields = fields
+
+    def get_product_count(self, obj):
+        return obj.products.filter(is_active=True, deleted_at__isnull=True).count()
 
 
 class MallCategoryTreeSerializer(serializers.Serializer):
@@ -43,8 +56,15 @@ class MallCategoryTreeSerializer(serializers.Serializer):
     name = serializers.CharField()
     slug = serializers.CharField()
     level = serializers.IntegerField()
+    parent = serializers.UUIDField(allow_null=True, required=False)
+    parent_id = serializers.UUIDField(allow_null=True, required=False)
+    parent_name = serializers.CharField(allow_null=True, required=False)
     icon_url = serializers.CharField(allow_null=True)
+    icon = serializers.CharField(allow_null=True, required=False)
     sort_order = serializers.IntegerField()
+    display_order = serializers.IntegerField(required=False)
+    is_active = serializers.BooleanField(required=False)
+    product_count = serializers.IntegerField(required=False)
     children = serializers.SerializerMethodField()
 
     def get_children(self, obj):
@@ -62,12 +82,13 @@ class MallCategoryDetailSerializer(serializers.ModelSerializer):
 
     children = serializers.SerializerMethodField()
     full_path = serializers.CharField(read_only=True)
+    parent_id = serializers.UUIDField(read_only=True, allow_null=True)
 
     class Meta:
         model = MallCategory
         fields = [
             'id', 'name', 'slug', 'icon_url', 'level',
-            'parent', 'sort_order', 'full_path', 'children',
+            'parent', 'parent_id', 'sort_order', 'full_path', 'children',
         ]
         read_only_fields = fields
 
@@ -81,10 +102,69 @@ class MallCategoryDetailSerializer(serializers.ModelSerializer):
 class MallCategoryCreateUpdateSerializer(serializers.ModelSerializer):
     """Admin-only CRUD serializer for categories."""
 
+    parent = serializers.PrimaryKeyRelatedField(
+        queryset=MallCategory.objects.filter(deleted_at__isnull=True),
+        required=False,
+        allow_null=True,
+    )
+    parent_id = serializers.UUIDField(write_only=True, required=False, allow_null=True)
+    icon = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    display_order = serializers.IntegerField(write_only=True, required=False)
+
     class Meta:
         model = MallCategory
-        fields = ['name', 'slug', 'parent', 'icon_url', 'sort_order', 'is_active']
+        fields = [
+            'name', 'slug', 'parent', 'parent_id', 'icon_url', 'icon', 'sort_order',
+            'display_order', 'is_active',
+        ]
         extra_kwargs = {'slug': {'required': False}}
+
+    def validate_slug(self, value):
+        if not value:
+            return value
+        qs = MallCategory.all_objects.filter(slug=value)
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError(
+                'This slug is already used. Please choose a different slug.'
+            )
+        return value
+
+    def validate(self, attrs):
+        parent_id = attrs.pop('parent_id', serializers.empty)
+        icon = attrs.pop('icon', None)
+        display_order = attrs.pop('display_order', None)
+        if parent_id is not serializers.empty:
+            if parent_id is None:
+                attrs['parent'] = None
+            else:
+                try:
+                    attrs['parent'] = MallCategory.objects.get(
+                        id=parent_id,
+                        deleted_at__isnull=True,
+                    )
+                except MallCategory.DoesNotExist:
+                    raise serializers.ValidationError({
+                        'parent_id': 'Parent category not found.'
+                    })
+        if icon is not None and 'icon_url' not in attrs:
+            attrs['icon_url'] = icon
+        if display_order is not None and 'sort_order' not in attrs:
+            attrs['sort_order'] = display_order
+
+        parent = attrs.get('parent')
+        if self.instance and parent:
+            if parent.pk == self.instance.pk:
+                raise serializers.ValidationError({
+                    'parent': 'A category cannot be its own parent.'
+                })
+            descendant_ids = self.instance.get_descendants(include_self=False)
+            if parent.pk in descendant_ids:
+                raise serializers.ValidationError({
+                    'parent': 'A category cannot be moved under its own child.'
+                })
+        return attrs
 
 
 # =============================================================================

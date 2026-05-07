@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
 import * as icons from 'lucide-react'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -22,7 +22,7 @@ const mallCategorySchema = z.object({
     slug: z.string().min(2).max(100).regex(/^[a-z0-9-]+$/, 'Only lowercase letters, numbers, hyphens'),
     icon: z.string().min(1, 'Please select an icon'),
     parent: z.string().nullable().optional(),
-    display_order: z.coerce.number().min(1).max(999),
+    display_order: z.coerce.number().min(1).max(9999).optional(),
     is_active: z.boolean(),
 })
 
@@ -33,13 +33,11 @@ const marketplaceCategorySchema = z.object({
     is_active: z.boolean(),
 })
 
-type MallForm = z.infer<typeof mallCategorySchema>
-type MarketplaceForm = z.infer<typeof marketplaceCategorySchema>
-
 interface CategoryDrawerProps {
     type: 'mall' | 'marketplace'
     mode: 'add' | 'edit'
     category?: any
+    parentCategory?: any
     isOpen: boolean
     onClose: () => void
     onSuccess: () => void
@@ -53,19 +51,20 @@ const COMMON_ICONS = [
 ]
 
 const getIcon = (name: string) => {
-    return (icons as Record<string, React.ElementType>)[name] || icons.Package
+    return (icons as unknown as Record<string, React.ElementType>)[name] || icons.Package
 }
 
-export default function CategoryDrawer({ type, mode, category, isOpen, onClose, onSuccess }: CategoryDrawerProps) {
+export default function CategoryDrawer({ type, mode, category, parentCategory, isOpen, onClose, onSuccess }: CategoryDrawerProps) {
     const [isLoading, setIsLoading] = useState(false)
     const queryClient = useQueryClient()
 
     // Fetch parent categories for Mall
-    const { data: mallCategories = [] } = useQuery({
+    const { data: mallCategories } = useQuery({
         queryKey: ['admin-mall-categories'],
         queryFn: async () => {
             const res = await api.get('/mall/categories/')
-            return res.data?.data?.results || res.data?.results || res.data || []
+            const payload = res.data?.data ?? res.data
+            return payload?.results ?? payload ?? []
         },
         enabled: type === 'mall' && isOpen,
         staleTime: 60_000,
@@ -73,7 +72,14 @@ export default function CategoryDrawer({ type, mode, category, isOpen, onClose, 
 
     const isMall = type === 'mall'
     const schema = isMall ? mallCategorySchema : marketplaceCategorySchema
-    const safeMallCategories = Array.isArray(mallCategories) ? mallCategories : []
+    const safeMallCategories = useMemo(
+        () => Array.isArray(mallCategories) ? mallCategories : [],
+        [mallCategories]
+    )
+    const parentOptions = useMemo(
+        () => safeMallCategories.filter((c: any) => !c.parent && c.id !== category?.id),
+        [safeMallCategories, category?.id]
+    )
 
     const { register, handleSubmit, formState: { errors }, reset, setValue, watch } = useForm<any>({
         resolver: zodResolver(schema),
@@ -108,26 +114,29 @@ export default function CategoryDrawer({ type, mode, category, isOpen, onClose, 
                 is_active: category.is_active,
                 ...(isMall ? {
                     icon: category.icon || 'Package',
-                    parent: category.parent || null,
+                    parent: category.parent || category.parent_id || null,
                     display_order: category.display_order || 1,
                 } : {
                     post_type: category.post_type || 'buy'
                 })
             })
         } else if (isOpen && mode === 'add') {
-            // Calculate next order for new mall category
-            const nextOrder = safeMallCategories.length > 0 
-                ? Math.max(...safeMallCategories.map((c: any) => c.display_order || 0)) + 1 
+            // Display order sorts only within the selected sibling group.
+            const siblingCategories = safeMallCategories.filter((c: any) => {
+                return parentCategory?.id ? c.parent === parentCategory.id : !c.parent
+            })
+            const nextOrder = siblingCategories.length > 0
+                ? Math.max(...siblingCategories.map((c: any) => c.display_order || 0)) + 1
                 : 1
             
             reset({
                 name: '',
                 slug: '',
                 is_active: true,
-                ...(isMall ? { icon: 'Package', parent: null, display_order: nextOrder } : { post_type: 'buy' })
+                ...(isMall ? { icon: 'Package', parent: parentCategory?.id || null, display_order: nextOrder } : { post_type: 'buy' })
             })
         }
-    }, [isOpen, mode, category, isMall, mallCategories, reset])
+    }, [isOpen, mode, category, parentCategory, isMall, safeMallCategories, reset])
 
     const onSubmit = async (data: any) => {
         setIsLoading(true)
@@ -136,6 +145,10 @@ export default function CategoryDrawer({ type, mode, category, isOpen, onClose, 
             // Handle empty parent string to null
             if (isMall && (!payload.parent || payload.parent === 'null' || payload.parent === 'none')) {
                 payload.parent = null
+            }
+            if (isMall) {
+                payload.parent_id = payload.parent
+                delete payload.parent
             }
 
             const endpoint = isMall ? '/mall/categories/' : '/marketplace/categories/'
@@ -149,11 +162,23 @@ export default function CategoryDrawer({ type, mode, category, isOpen, onClose, 
             }
 
             queryClient.invalidateQueries({ queryKey: [isMall ? 'admin-mall-categories' : 'admin-marketplace-categories'] })
+            if (isMall) {
+                queryClient.invalidateQueries({ queryKey: ['admin-mall-categories-tree'] })
+            }
             onSuccess()
         } catch (error: any) {
             const errData = error.response?.data
-            if (errData?.slug) {
+            const errors = errData?.errors || errData
+            const firstError = errors && typeof errors === 'object'
+                ? Object.values(errors).flat().find(Boolean)
+                : null
+
+            if (errors?.slug) {
                 toast.error('This slug is already taken. Try a different name.')
+            } else if (firstError) {
+                toast.error(String(firstError))
+            } else if (errData?.message) {
+                toast.error(errData.message)
             } else {
                 toast.error(`Failed to ${mode} category.`)
             }
@@ -174,7 +199,6 @@ export default function CategoryDrawer({ type, mode, category, isOpen, onClose, 
                             {isMall ? 'Mall Category' : 'Marketplace Category'}
                         </p>
                     </div>
-                    <SheetClose className="text-gray-400 hover:text-gray-600 rounded-full p-1 transition-colors" />
                 </SheetHeader>
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-5">
@@ -238,25 +262,22 @@ export default function CategoryDrawer({ type, mode, category, isOpen, onClose, 
                                         onValueChange={(val) => setValue('parent', val === 'none' ? null : val)}
                                     >
                                         <SelectTrigger>
-                                            <SelectValue placeholder="None (Top Level)" />
+                                            <SelectValue placeholder="None (Main Category)" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="none">None (Top Level)</SelectItem>
-                                            {safeMallCategories
-                                                .filter((c: any) => c.id !== category?.id) // prevent self-parenting
-                                                .map((c: any) => (
+                                            <SelectItem value="none">None (Main Category)</SelectItem>
+                                            {parentOptions.map((c: any) => (
                                                 <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
+                                    <p className="text-[10px] text-gray-400">Select a main category to move this under it, or choose none to make it a main category.</p>
                                 </div>
 
-                                {/* Display Order */}
-                                <div className="space-y-1.5">
-                                    <Label>Display Order <span className="text-red-500">*</span></Label>
-                                    <Input type="number" {...register('display_order')} className={errors.display_order ? 'border-red-500' : ''} />
-                                    <p className="text-[10px] text-gray-400">Lower numbers appear first.</p>
-                                    {errors.display_order && <p className="text-xs text-red-500">{errors.display_order.message as string}</p>}
+                                <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                                    <p className="text-xs font-medium text-gray-600">
+                                        Display order is managed automatically from drag and drop.
+                                    </p>
                                 </div>
                             </>
                         )}

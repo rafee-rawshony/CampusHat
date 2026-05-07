@@ -6,7 +6,7 @@ Category management, product CRUD, reviews, variants, and cart operations.
 
 from decimal import Decimal
 
-from django.db import models, transaction
+from django.db import IntegrityError, models, transaction
 from django.db.models import F
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
@@ -18,7 +18,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet, ViewSet
 
-from core.permissions import IsAdminOrModerator, IsApprovedSeller, IsNormalUserOrAbove
+from core.permissions import IsAdminOnly, IsApprovedSeller, IsNormalUserOrAbove
 
 from .filters import StoreProductFilter
 from .models import (
@@ -71,15 +71,25 @@ class MallCategoryViewSet(ViewSet):
     """
 
     def get_permissions(self):
-        if self.action in ('create', 'update', 'destroy'):
-            return [IsAuthenticated(), IsAdminOrModerator()]
+        if self.action in ('create', 'update', 'partial_update', 'destroy', 'reorder'):
+            return [IsAuthenticated(), IsAdminOnly()]
         return [AllowAny()]
 
     def list(self, request):
         """GET /api/v1/mall/categories/ — flat list of all active categories."""
-        categories = MallCategory.objects.filter(
-            is_active=True, deleted_at__isnull=True,
-        ).order_by('level', 'sort_order', 'name')
+        categories = MallCategory.objects.filter(deleted_at__isnull=True)
+        is_admin = (
+            request.user.is_authenticated and
+            getattr(request.user, 'role', None) == 'admin'
+        )
+        if not is_admin:
+            categories = categories.filter(is_active=True)
+        else:
+            is_active = request.query_params.get('is_active')
+            if is_active in ('true', 'false'):
+                categories = categories.filter(is_active=is_active == 'true')
+
+        categories = categories.order_by('level', 'sort_order', 'name')
 
         serializer = MallCategorySerializer(categories, many=True)
         return Response({
@@ -91,7 +101,45 @@ class MallCategoryViewSet(ViewSet):
     @action(detail=False, methods=['get'], url_path='tree')
     def tree(self, request):
         """GET /api/v1/mall/categories/tree/ — nested tree structure."""
-        tree_data = MallCategory.get_full_tree()
+        is_admin = (
+            request.user.is_authenticated and
+            getattr(request.user, 'role', None) == 'admin'
+        )
+        if is_admin:
+            categories = list(
+                MallCategory.objects.filter(deleted_at__isnull=True)
+                .select_related('parent')
+                .order_by('level', 'sort_order', 'name')
+            )
+            cat_map = {}
+            tree_data = []
+            for cat in categories:
+                cat_map[cat.pk] = {
+                    'id': str(cat.id),
+                    'name': cat.name,
+                    'slug': cat.slug,
+                    'level': cat.level,
+                    'parent': str(cat.parent_id) if cat.parent_id else None,
+                    'parent_id': str(cat.parent_id) if cat.parent_id else None,
+                    'parent_name': cat.parent.name if cat.parent_id else None,
+                    'icon_url': cat.icon_url,
+                    'icon': cat.icon_url,
+                    'sort_order': cat.sort_order,
+                    'display_order': cat.sort_order,
+                    'is_active': cat.is_active,
+                    'product_count': cat.products.filter(
+                        is_active=True, deleted_at__isnull=True,
+                    ).count(),
+                    'children': [],
+                }
+            for cat in categories:
+                node = cat_map[cat.pk]
+                if cat.parent_id and cat.parent_id in cat_map:
+                    cat_map[cat.parent_id]['children'].append(node)
+                else:
+                    tree_data.append(node)
+        else:
+            tree_data = MallCategory.get_full_tree()
         serializer = MallCategoryTreeSerializer(tree_data, many=True)
         return Response({
             'success': True,
@@ -123,19 +171,32 @@ class MallCategoryViewSet(ViewSet):
         """POST /api/v1/mall/categories/ — admin only."""
         serializer = MallCategoryCreateUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        try:
+            serializer.save()
+        except IntegrityError:
+            return Response({
+                'success': False,
+                'message': 'Validation failed.',
+                'errors': {'slug': ['This slug is already used.']},
+                'code': 'VALIDATION_ERROR',
+            }, status=status.HTTP_400_BAD_REQUEST)
         return Response({
             'success': True,
             'message': 'Category created.',
             'data': MallCategorySerializer(serializer.instance).data,
         }, status=status.HTTP_201_CREATED)
 
+    def _get_category_for_write(self, pk):
+        filters = {'deleted_at__isnull': True}
+        try:
+            return MallCategory.objects.get(id=pk, **filters)
+        except (MallCategory.DoesNotExist, ValueError):
+            return MallCategory.objects.get(slug=pk, **filters)
+
     def update(self, request, pk=None):
         """PATCH /api/v1/mall/categories/{slug}/ — admin only."""
         try:
-            category = MallCategory.objects.get(
-                slug=pk, deleted_at__isnull=True,
-            )
+            category = self._get_category_for_write(pk)
         except MallCategory.DoesNotExist:
             return Response({
                 'success': False,
@@ -147,19 +208,111 @@ class MallCategoryViewSet(ViewSet):
             category, data=request.data, partial=True,
         )
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        try:
+            serializer.save()
+        except IntegrityError:
+            return Response({
+                'success': False,
+                'message': 'Validation failed.',
+                'errors': {'slug': ['This slug is already used.']},
+                'code': 'VALIDATION_ERROR',
+            }, status=status.HTTP_400_BAD_REQUEST)
         return Response({
             'success': True,
             'message': 'Category updated.',
             'data': MallCategorySerializer(serializer.instance).data,
         })
 
+    def partial_update(self, request, pk=None):
+        return self.update(request, pk=pk)
+
+    @action(detail=False, methods=['post'], url_path='reorder')
+    def reorder(self, request):
+        """POST /api/v1/mall/categories/reorder/ — admin reorder siblings."""
+        ordered_ids = request.data.get('category_ids') or request.data.get('ordered_ids')
+        parent_id = request.data.get('parent_id', None)
+
+        if not isinstance(ordered_ids, list) or not ordered_ids:
+            return Response({
+                'success': False,
+                'message': 'category_ids must be a non-empty list.',
+                'code': 'VALIDATION_ERROR',
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if len(ordered_ids) != len(set(ordered_ids)):
+            return Response({
+                'success': False,
+                'message': 'category_ids cannot contain duplicates.',
+                'code': 'VALIDATION_ERROR',
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        parent = None
+        if parent_id not in (None, '', 'null', 'none'):
+            try:
+                parent = MallCategory.objects.get(
+                    id=parent_id,
+                    deleted_at__isnull=True,
+                )
+            except (MallCategory.DoesNotExist, ValueError):
+                return Response({
+                    'success': False,
+                    'message': 'Parent category not found.',
+                    'code': 'NOT_FOUND',
+                }, status=status.HTTP_404_NOT_FOUND)
+
+        categories = list(
+            MallCategory.objects.filter(
+                id__in=ordered_ids,
+                deleted_at__isnull=True,
+            )
+        )
+        if len(categories) != len(ordered_ids):
+            return Response({
+                'success': False,
+                'message': 'One or more categories were not found.',
+                'code': 'NOT_FOUND',
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        expected_parent_id = parent.pk if parent else None
+        invalid_sibling = next(
+            (
+                cat for cat in categories
+                if cat.parent_id != expected_parent_id
+            ),
+            None,
+        )
+        if invalid_sibling:
+            return Response({
+                'success': False,
+                'message': 'Only categories under the same parent can be reordered together.',
+                'code': 'VALIDATION_ERROR',
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        category_by_id = {str(cat.id): cat for cat in categories}
+        with transaction.atomic():
+            for index, cat_id in enumerate(ordered_ids, start=1):
+                category = category_by_id[str(cat_id)]
+                category.sort_order = index * 10
+            MallCategory.objects.bulk_update(categories, ['sort_order'])
+
+        return Response({
+            'success': True,
+            'message': 'Category order updated.',
+        })
+
+    def _soft_delete_category_tree(self, category):
+        children = MallCategory.objects.filter(
+            parent=category,
+            deleted_at__isnull=True,
+        )
+        for child in children:
+            self._soft_delete_category_tree(child)
+        category.soft_delete(cascade=False)
+
     def destroy(self, request, pk=None):
         """DELETE /api/v1/mall/categories/{slug}/ — admin soft delete."""
         try:
-            category = MallCategory.objects.get(
-                slug=pk, deleted_at__isnull=True,
-            )
+            category = self._get_category_for_write(pk)
         except MallCategory.DoesNotExist:
             return Response({
                 'success': False,
@@ -167,7 +320,7 @@ class MallCategoryViewSet(ViewSet):
                 'code': 'NOT_FOUND',
             }, status=status.HTTP_404_NOT_FOUND)
 
-        category.soft_delete()
+        self._soft_delete_category_tree(category)
         return Response({
             'success': True,
             'message': 'Category deleted.',

@@ -104,7 +104,7 @@ class MallCategory(BaseModel):
         categories = list(
             cls.objects.filter(
                 is_active=True, deleted_at__isnull=True,
-            ).order_by('level', 'sort_order', 'name')
+            ).select_related('parent').order_by('level', 'sort_order', 'name')
         )
 
         cat_map = {}
@@ -116,8 +116,17 @@ class MallCategory(BaseModel):
                 'name': cat.name,
                 'slug': cat.slug,
                 'level': cat.level,
+                'parent': str(cat.parent_id) if cat.parent_id else None,
+                'parent_id': str(cat.parent_id) if cat.parent_id else None,
+                'parent_name': cat.parent.name if cat.parent_id else None,
                 'icon_url': cat.icon_url,
+                'icon': cat.icon_url,
                 'sort_order': cat.sort_order,
+                'display_order': cat.sort_order,
+                'is_active': cat.is_active,
+                'product_count': cat.products.filter(
+                    is_active=True, deleted_at__isnull=True,
+                ).count(),
                 'children': [],
             }
 
@@ -125,7 +134,7 @@ class MallCategory(BaseModel):
             node = cat_map[cat.pk]
             if cat.parent_id and cat.parent_id in cat_map:
                 cat_map[cat.parent_id]['children'].append(node)
-            else:
+            elif not cat.parent_id:
                 roots.append(node)
 
         return roots

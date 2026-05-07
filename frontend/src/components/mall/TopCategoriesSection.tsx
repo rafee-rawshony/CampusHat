@@ -28,6 +28,9 @@ export function TopCategoriesSection() {
 
     const categories: Category[] = categoriesRaw || []
     const displayCategories = categories.sort((a, b) => a.display_order - b.display_order).slice(0, 9)
+    const isImageUrl = (value?: string | null) => {
+        return !!value && (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('/'))
+    }
 
     return (
         <div className="max-w-7xl mx-auto px-4 lg:px-6 mb-10">
@@ -59,7 +62,7 @@ export function TopCategoriesSection() {
                                 className="flex flex-col items-center gap-2 w-[80px] shrink-0 sm:w-auto group"
                             >
                                 <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center justify-center group-hover:border-[#4C3B8A] group-hover:shadow-md transition relative overflow-hidden">
-                                    {cat.icon_url ? (
+                                    {isImageUrl(cat.icon_url) ? (
                                         <Image src={cat.icon_url} alt={cat.name} fill className="object-cover" sizes="56px" />
                                     ) : (
                                         <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-[#4C3B8A]" />

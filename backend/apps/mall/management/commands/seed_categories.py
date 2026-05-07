@@ -1,214 +1,108 @@
-"""
-Seed Mall Categories.
-
-Populates the MallCategory table with the platform's category hierarchy:
-Electronics, Fashion, Cosmetics, Food, Books, Home, Sports, Campus Services.
-"""
+"""Seed the CampusHat Mall category hierarchy."""
 
 from django.core.management.base import BaseCommand
 
 from apps.mall.models import MallCategory
 
 
-CATEGORY_TREE = {
-    'Electronics': {
-        'icon': '🔌',
-        'children': {
-            'Mobile Phones': {
-                'children': ['Smartphones', 'Feature Phones', 'Phone Accessories'],
-            },
-            'Laptops & Computers': {
-                'children': ['Laptops', 'Desktops', 'Computer Accessories', 'Monitors'],
-            },
-            'Audio & Headphones': {
-                'children': ['Earphones', 'Headphones', 'Speakers', 'Microphones'],
-            },
-            'Cameras & Photography': {
-                'children': ['DSLR Cameras', 'Mirrorless', 'Action Cameras', 'Lenses'],
-            },
-            'Gaming': {
-                'children': ['Gaming Consoles', 'Gaming Accessories', 'PC Gaming'],
-            },
-            'Wearables': {
-                'children': ['Smartwatches', 'Fitness Trackers', 'Smart Glasses'],
-            },
-        },
-    },
-    'Fashion': {
-        'icon': '👕',
-        'children': {
-            "Men's Clothing": {
-                'children': ['T-Shirts', 'Shirts', 'Jeans', 'Jackets', 'Traditional Wear'],
-            },
-            "Women's Clothing": {
-                'children': ['Tops', 'Dresses', 'Sarees', 'Salwar Kameez', 'Kurtis'],
-            },
-            'Footwear': {
-                'children': ['Sneakers', 'Sandals', 'Formal Shoes', 'Sports Shoes'],
-            },
-            'Bags & Wallets': {
-                'children': ['Backpacks', 'Handbags', 'Wallets', 'Laptop Bags'],
-            },
-            'Jewelry & Accessories': {
-                'children': ['Watches', 'Sunglasses', 'Belts', 'Jewelry'],
-            },
-        },
-    },
-    'Cosmetics & Personal Care': {
-        'icon': '💄',
-        'children': {
-            'Skincare': {
-                'children': ['Face Wash', 'Moisturizer', 'Sunscreen', 'Serum'],
-            },
-            'Makeup': {
-                'children': ['Foundation', 'Lipstick', 'Eye Makeup', 'Nail Polish'],
-            },
-            'Hair Care': {
-                'children': ['Shampoo', 'Conditioner', 'Hair Oil', 'Hair Styling'],
-            },
-            'Fragrances': {
-                'children': ['Perfumes', 'Body Sprays', 'Deodorants'],
-            },
-        },
-    },
-    'Food & Beverages': {
-        'icon': '🍔',
-        'children': {
-            'Snacks': {
-                'children': ['Chips', 'Biscuits', 'Nuts', 'Chocolates'],
-            },
-            'Beverages': {
-                'children': ['Tea', 'Coffee', 'Juice', 'Energy Drinks'],
-            },
-            'Home Cooking': {
-                'children': ['Spices', 'Rice', 'Oil', 'Instant Food'],
-            },
-            'Campus Food': {
-                'children': ['Meal Plans', 'Tiffin Service', 'Catering'],
-            },
-        },
-    },
-    'Books & Stationery': {
-        'icon': '📚',
-        'children': {
-            'Academic Books': {
-                'children': ['Engineering', 'Medical', 'Business', 'Science', 'Arts'],
-            },
-            'Fiction & Non-Fiction': {
-                'children': ['Novels', 'Self-Help', 'Biography', 'Comics'],
-            },
-            'Stationery': {
-                'children': ['Notebooks', 'Pens', 'Art Supplies', 'Calculators'],
-            },
-            'Digital Content': {
-                'children': ['E-Books', 'Online Courses', 'Software Licenses'],
-            },
-        },
-    },
-    'Home & Living': {
-        'icon': '🏠',
-        'children': {
-            'Dorm Essentials': {
-                'children': ['Bedding', 'Storage', 'Lighting', 'Curtains'],
-            },
-            'Kitchen': {
-                'children': ['Utensils', 'Appliances', 'Water Bottles', 'Lunch Boxes'],
-            },
-            'Decor': {
-                'children': ['Wall Art', 'Plants', 'Rugs', 'Organizers'],
-            },
-        },
-    },
-    'Sports & Fitness': {
-        'icon': '⚽',
-        'children': {
-            'Cricket': {
-                'children': ['Bats', 'Balls', 'Pads', 'Gloves'],
-            },
-            'Football': {
-                'children': ['Footballs', 'Boots', 'Jerseys', 'Shin Guards'],
-            },
-            'Fitness': {
-                'children': ['Gym Equipment', 'Yoga Mats', 'Resistance Bands', 'Dumbbells'],
-            },
-            'Outdoor': {
-                'children': ['Tents', 'Hiking Gear', 'Water Sports', 'Cycling'],
-            },
-        },
-    },
-    'Campus Services': {
-        'icon': '🎓',
-        'children': {
-            'Tutoring': {
-                'children': ['Math Tutoring', 'Science Tutoring', 'Language Tutoring', 'Test Prep'],
-            },
-            'Tech Services': {
-                'children': ['Laptop Repair', 'Phone Repair', 'Software Installation', 'Data Recovery'],
-            },
-            'Creative Services': {
-                'children': ['Graphic Design', 'Photography', 'Video Editing', 'Content Writing'],
-            },
-            'Academic Help': {
-                'children': ['Assignment Help', 'Project Assistance', 'Presentation Design', 'Resume Writing'],
-            },
-        },
-    },
-}
+CATEGORY_TREE = [
+    ('Electronics', 'Monitor', [
+        'Mobile Phones', 'Laptops', 'Desktop PC', 'Monitors', 'Tablets',
+        'Smart Watches', 'Headphones / Earbuds', 'Cameras', 'Accessories',
+    ]),
+    ('Computers & Accessories', 'Laptop', [
+        'Laptop', 'Desktop PC', 'Monitor', 'Keyboard', 'Mouse', 'Printer',
+        'Storage (SSD, HDD, Pen Drive)', 'Networking (Router, LAN cable)',
+    ]),
+    ('Fashion & Clothing', 'Shirt', [
+        "Men's Clothing", "Women's Clothing", 'Shoes', 'Bags', 'Watches',
+        'Accessories',
+    ]),
+    ('Books & Study Materials', 'BookOpen', [
+        'Academic Books', 'Story / Novel', 'Admission Books', 'Notes',
+        'Stationery',
+    ]),
+    ('Home & Living', 'Home', [
+        'Room Decor', 'Lighting', 'Furniture', 'Kitchen Items', 'Bedding',
+    ]),
+    ('Beauty & Personal Care', 'Sparkles', [
+        'Skincare', 'Haircare', 'Grooming', 'Perfume',
+    ]),
+    ('Sports & Fitness', 'Dumbbell', [
+        'Gym Equipment', 'Sports Gear', 'Outdoor Items',
+    ]),
+    ('Food & Snacks', 'Utensils', [
+        'Packaged Food', 'Homemade Food', 'Beverages',
+    ]),
+    ('Services', 'Wrench', [
+        'Printing', 'Repair', 'Freelance',
+    ]),
+    ('Others', 'Package', [
+        'Miscellaneous',
+    ]),
+]
 
 
 class Command(BaseCommand):
-    help = 'Seed the MallCategory table with the platform category hierarchy.'
+    help = 'Seed the MallCategory table with the CampusHat Mall hierarchy.'
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--clear',
+            action='store_true',
+            help='Delete all existing mall categories before seeding.',
+        )
 
     def handle(self, *args, **options):
-        created_count = 0
-        sort_order = 0
+        if options['clear']:
+            count = MallCategory.all_objects.all().delete()[0]
+            self.stdout.write(self.style.WARNING(f'Deleted {count} categories.'))
 
-        for main_name, main_data in CATEGORY_TREE.items():
-            sort_order += 10
+        created_count = 0
+        updated_count = 0
+
+        for main_index, (main_name, icon, children) in enumerate(CATEGORY_TREE, start=1):
             main_cat, created = MallCategory.objects.get_or_create(
                 name=main_name,
+                parent=None,
                 defaults={
                     'level': 1,
-                    'parent': None,
-                    'sort_order': sort_order,
+                    'icon_url': icon,
+                    'sort_order': main_index * 10,
                     'is_active': True,
                 },
             )
             if created:
                 created_count += 1
 
-            sub_sort = 0
-            for sub_name, sub_data in main_data.get('children', {}).items():
-                sub_sort += 10
-                sub_cat, created = MallCategory.objects.get_or_create(
-                    name=sub_name,
+            updates = {}
+            if main_cat.icon_url != icon:
+                updates['icon_url'] = icon
+            if main_cat.sort_order != main_index * 10:
+                updates['sort_order'] = main_index * 10
+            if not main_cat.is_active:
+                updates['is_active'] = True
+            if updates:
+                for field, value in updates.items():
+                    setattr(main_cat, field, value)
+                main_cat.save(update_fields=[*updates.keys(), 'updated_at'])
+                updated_count += 1
+
+            for child_index, child_name in enumerate(children, start=1):
+                _, child_created = MallCategory.objects.get_or_create(
+                    name=child_name,
                     parent=main_cat,
                     defaults={
                         'level': 2,
-                        'sort_order': sub_sort,
+                        'sort_order': child_index * 10,
                         'is_active': True,
                     },
                 )
-                if created:
+                if child_created:
                     created_count += 1
-
-                subsub_sort = 0
-                for subsub_name in sub_data.get('children', []):
-                    subsub_sort += 10
-                    _, created = MallCategory.objects.get_or_create(
-                        name=subsub_name,
-                        parent=sub_cat,
-                        defaults={
-                            'level': 3,
-                            'sort_order': subsub_sort,
-                            'is_active': True,
-                        },
-                    )
-                    if created:
-                        created_count += 1
 
         self.stdout.write(
             self.style.SUCCESS(
-                f'Done! Created {created_count} categories.'
+                f'Done! Created {created_count} categories, updated {updated_count}.'
             )
         )
