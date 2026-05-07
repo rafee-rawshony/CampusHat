@@ -18,8 +18,6 @@ try:
 except ImportError:
     HAS_SENTRY = False
 
-from decouple import config
-
 from .base import *  # noqa: F401, F403
 
 # =============================================================================
@@ -28,7 +26,12 @@ from .base import *  # noqa: F401, F403
 
 DEBUG = False
 
-ALLOWED_HOSTS = config('DJANGO_ALLOWED_HOSTS', cast=Csv())  # noqa: F405
+ALLOWED_HOSTS = list(dict.fromkeys([
+    *ALLOWED_HOSTS,  # noqa: F405
+    '178.128.122.157',
+    'campushat.com',
+    'www.campushat.com',
+]))
 
 # =============================================================================
 # SECURITY

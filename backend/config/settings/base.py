@@ -25,7 +25,29 @@ SECRET_KEY = config('DJANGO_SECRET_KEY')
 
 DEBUG = config('DJANGO_DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = config('DJANGO_ALLOWED_HOSTS', default='localhost', cast=Csv())
+DEFAULT_ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    '0.0.0.0',
+    '178.128.122.157',
+    'campushat.com',
+    'www.campushat.com',
+]
+
+
+def _csv_env(primary_key, *, fallback_key=None, default=''):
+    raw = config(primary_key, default='').strip()
+    if not raw and fallback_key:
+        raw = config(fallback_key, default='').strip()
+    raw = raw or default
+    return [value for value in Csv()(raw) if value]
+
+
+ALLOWED_HOSTS = _csv_env(
+    'DJANGO_ALLOWED_HOSTS',
+    fallback_key='ALLOWED_HOSTS',
+    default=','.join(DEFAULT_ALLOWED_HOSTS),
+)
 
 # =============================================================================
 # APPLICATION DEFINITION
@@ -328,6 +350,7 @@ CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 # =============================================================================
 # AWS S3 STORAGE

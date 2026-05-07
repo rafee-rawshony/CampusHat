@@ -173,6 +173,37 @@ backend/
 10. Seed data: `seed_categories`, `setup_initial_roles`
 11. Start Gunicorn, Celery worker, and Celery Beat
 
+## DigitalOcean Deploy Notes
+
+For the full-stack production compose at the repo root:
+
+1. Copy `.env.example` to `.env` and keep `NEXT_PUBLIC_API_URL=/api/v1`
+2. Copy `backend/.env.production.example` to `backend/.env`
+3. In `backend/.env`, set:
+   - `DJANGO_ALLOWED_HOSTS=178.128.122.157,campushat.com,www.campushat.com,localhost,127.0.0.1`
+   - `CORS_ALLOWED_ORIGINS=https://campushat.com,https://www.campushat.com,http://178.128.122.157,https://178.128.122.157`
+   - `CSRF_TRUSTED_ORIGINS=https://campushat.com,https://www.campushat.com,http://178.128.122.157,https://178.128.122.157`
+   - `SITE_URL=https://campushat.com`
+   - `FRONTEND_URL=https://campushat.com`
+4. Rebuild after any `NEXT_PUBLIC_*` change:
+
+```bash
+docker compose -f docker-compose.prod.yml down
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+5. Verify from the VPS:
+
+```bash
+docker compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml logs backend --tail=200
+docker compose -f docker-compose.prod.yml logs nginx --tail=200
+curl http://127.0.0.1/api/health/
+curl -H "Host: campushat.com" http://127.0.0.1/api/health/
+```
+
+If the frontend loads but API calls fail in the browser, the usual cause is a stale frontend build with the wrong `NEXT_PUBLIC_API_URL`. Rebuild the frontend image and confirm the browser is calling `/api/v1/...` on the same host.
+
 ## License
 
 © 2026 CampusHat Team. All Rights Reserved.
