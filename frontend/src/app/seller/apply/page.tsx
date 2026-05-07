@@ -50,7 +50,7 @@ export default function SellerApplyPage() {
     })
 
     return (
-        <div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center p-4">
+        <div className="min-h-screen bg-white flex items-center justify-center p-4">
             <div className="bg-white border border-gray-200 rounded-2xl p-8 max-w-lg w-full shadow-sm">
                 {/* Header */}
                 <div className="text-center mb-8">

@@ -85,7 +85,7 @@ export default function SellerStorePage() {
 
     if (storeLoading) {
         return (
-            <div className="bg-[#F5F5F5] min-h-screen animate-pulse">
+            <div className="bg-white min-h-screen animate-pulse">
                 <div className="h-48 w-full bg-gray-300" />
                 <div className="max-w-7xl mx-auto px-4 mt-4 space-y-4">
                     <div className="h-8 w-1/3 bg-gray-200 rounded" />
@@ -99,7 +99,7 @@ export default function SellerStorePage() {
 
     if (storeError || !store) {
         return (
-            <div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center">
+            <div className="min-h-screen bg-white flex items-center justify-center">
                 <div className="text-center">
                     <Package className="w-16 h-16 text-gray-200 mx-auto mb-4" />
                     <h2 className="font-bold text-gray-700 text-lg mb-2">Store not found</h2>
@@ -120,7 +120,7 @@ export default function SellerStorePage() {
     const joinYear   = store.created_at ? new Date(store.created_at).getFullYear() : null
 
     return (
-        <div className="min-h-screen bg-[#F5F5F5] pb-16">
+        <div className="min-h-screen bg-white pb-16">
 
             {/* HERO BANNER */}
             <div

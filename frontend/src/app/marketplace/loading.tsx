@@ -1,6 +1,6 @@
 export default function MarketplaceLoading() {
     return (
-        <div className="min-h-screen bg-[#F5F5F5] py-6 animate-pulse">
+        <div className="min-h-screen bg-white py-6 animate-pulse">
             <div className="max-w-7xl mx-auto px-4 space-y-6">
                 <div className="h-10 w-72 bg-gray-200 rounded-lg" />
 

@@ -67,7 +67,7 @@ export default function BuyerOrderDetailPage() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center">
+            <div className="min-h-screen bg-white flex items-center justify-center">
                 <div className="w-10 h-10 border-4 border-[#4C3B8A] border-t-transparent rounded-full animate-spin" />
             </div>
         )
@@ -75,7 +75,7 @@ export default function BuyerOrderDetailPage() {
 
     if (!order) {
         return (
-            <div className="min-h-screen bg-[#F5F5F5] flex flex-col items-center justify-center p-4">
+            <div className="min-h-screen bg-white flex flex-col items-center justify-center p-4">
                 <Package className="w-16 h-16 text-gray-300 mb-4" />
                 <h2 className="text-xl font-bold text-gray-900 mb-2">Order Not Found</h2>
                 <Button onClick={() => router.push('/account/orders')}>Back to Orders</Button>
@@ -90,7 +90,7 @@ export default function BuyerOrderDetailPage() {
     const trackingHistory: any[] = Array.isArray(tracking) ? tracking : tracking?.history || []
 
     return (
-        <div className="min-h-screen bg-[#F5F5F5] py-6 md:py-8">
+        <div className="min-h-screen bg-white py-6 md:py-8">
             <div className="max-w-4xl mx-auto px-4">
                 {/* Back Button + Header */}
                 <div className="flex items-center gap-3 mb-6">

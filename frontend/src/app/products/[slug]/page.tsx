@@ -198,7 +198,7 @@ export default function ProductDetailPage() {
     if (isLoading) {
         return (
             <>
-                <div className="bg-[#F5F5F5] min-h-screen py-6 animate-pulse px-4">
+                <div className="bg-white min-h-screen py-6 animate-pulse px-4">
                     <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8">
                         <div className="w-full lg:w-[55%] aspect-[4/3] bg-gray-200 rounded-2xl" />
                         <div className="w-full lg:w-[45%] flex flex-col gap-6">
@@ -220,7 +220,7 @@ export default function ProductDetailPage() {
     if (isError || !product) {
         return (
             <>
-                <div className="bg-[#F5F5F5] min-h-[70vh] flex flex-col items-center justify-center p-4">
+                <div className="bg-white min-h-[70vh] flex flex-col items-center justify-center p-4">
                     <PackageX className="w-20 h-20 text-gray-300 mb-6" />
                     <h1 className="text-2xl sm:text-3xl font-black text-gray-900 mb-2">Product Not Found</h1>
                     <p className="text-gray-500 font-medium text-center max-w-sm">
@@ -265,7 +265,7 @@ export default function ProductDetailPage() {
 
     return (
         <>
-            <main className="bg-[#F5F5F5] min-h-screen pb-20">
+            <main className="bg-white min-h-screen pb-20">
 
                 {/* BREADCRUMB */}
                 <div className="bg-white border-b border-gray-100 py-3 hidden sm:block">

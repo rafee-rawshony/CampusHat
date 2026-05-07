@@ -101,7 +101,7 @@ export default function MarketplaceAdDetailPage({ params }: { params: { id: stri
 
     const categoryName = typeof listing.category === 'string' ? listing.category : listing.category?.name || 'Various'
     return (
-        <div className="bg-[#F5F5F5] min-h-screen pb-20 pt-6">
+        <div className="bg-white min-h-screen pb-20 pt-6">
             <div className="container mx-auto px-4 max-w-6xl">
                 {/* Breadcrumb / Top Bar */}
                 <div className="flex items-center gap-2 text-sm text-gray-500 mb-6 font-medium">

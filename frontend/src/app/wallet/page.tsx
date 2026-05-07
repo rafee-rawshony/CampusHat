@@ -34,7 +34,7 @@ export default function WalletPage() {
     const locked = Number(balance?.locked_balance || 0)
 
     return (
-        <div className="min-h-screen bg-[#F5F5F5]">
+        <div className="min-h-screen bg-white">
             <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
 
                 {/* Page header */}

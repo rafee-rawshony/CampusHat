@@ -15,7 +15,7 @@ export default function MarketplaceHomepage() {
     const [showVerificationCard, setShowVerificationCard] = useState(false)
 
     return (
-        <div className="bg-[#F5F5F5] min-h-screen pb-20">
+        <div className="bg-white min-h-screen pb-20">
             {/* Hero */}
             <MarketplaceHero />
 

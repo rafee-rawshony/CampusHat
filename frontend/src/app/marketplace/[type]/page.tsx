@@ -20,7 +20,7 @@ export default function MarketplaceDynamicPage() {
     if (!config) {
         // Unknown type — redirect to marketplace home
         return (
-            <div className="bg-[#F5F5F5] min-h-screen flex items-center justify-center">
+            <div className="bg-white min-h-screen flex items-center justify-center">
                 <div className="text-center">
                     <p className="text-gray-600 font-semibold">Page not found</p>
                     <a href="/marketplace" className="text-[#4C3B8A] hover:underline text-sm mt-2 inline-block">
@@ -32,7 +32,7 @@ export default function MarketplaceDynamicPage() {
     }
 
     return (
-        <Suspense fallback={<div className="bg-[#F5F5F5] min-h-screen" />}>
+        <Suspense fallback={<div className="bg-white min-h-screen" />}>
             <MarketplaceListingPage
                 postType={config.postType}
                 title={config.title}

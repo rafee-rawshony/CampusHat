@@ -38,14 +38,14 @@ export default function OrderSuccessPage() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center">
+            <div className="min-h-screen bg-white flex items-center justify-center">
                 <div className="w-10 h-10 border-4 border-[#4C3B8A] border-t-transparent rounded-full animate-spin" />
             </div>
         )
     }
 
     return (
-        <div className="min-h-screen bg-[#F5F5F5] py-8 md:py-16 relative overflow-hidden">
+        <div className="min-h-screen bg-white py-8 md:py-16 relative overflow-hidden">
             {/* Confetti Particles */}
             {showConfetti && (
                 <div className="absolute inset-0 pointer-events-none z-10">

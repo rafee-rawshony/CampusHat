@@ -1,6 +1,6 @@
 export default function ShopLoading() {
     return (
-        <div className="min-h-screen bg-[#F5F5F5] py-6 animate-pulse">
+        <div className="min-h-screen bg-white py-6 animate-pulse">
             <div className="max-w-7xl mx-auto px-4">
                 <div className="h-8 w-48 bg-gray-200 rounded mb-6" />
 

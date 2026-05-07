@@ -5,7 +5,7 @@ import Link from 'next/link'
 
 export function ApplicationUnderReviewCard() {
     return (
-        <div className="flex flex-col min-h-screen bg-[#F5F5F5] items-center justify-center p-4">
+        <div className="flex flex-col min-h-screen bg-white items-center justify-center p-4">
             <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center max-w-md w-full shadow-sm">
                 <div className="flex justify-center mb-5">
                     <div className="bg-[#4C3B8A]/10 rounded-full p-4 animate-pulse">

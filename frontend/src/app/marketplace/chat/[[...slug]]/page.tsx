@@ -101,7 +101,7 @@ export default function UnifiedChatPage() {
 
     if (!canAccessMarketplace()) {
         return (
-            <div className="min-h-[calc(100vh-64px)] bg-[#F5F5F5] pt-12 flex justify-center px-4">
+            <div className="min-h-[calc(100vh-64px)] bg-white pt-12 flex justify-center px-4">
                 <UpgradePrompt
                     isOpen={true}
                     onClose={() => router.push('/marketplace')}
@@ -113,7 +113,7 @@ export default function UnifiedChatPage() {
     }
 
     return (
-        <div className="bg-[#F5F5F5] min-h-[calc(100vh-64px)]">
+        <div className="bg-white min-h-[calc(100vh-64px)]">
             {/* Breadcrumb — desktop */}
             <div className="container mx-auto max-w-7xl px-4 pt-4 pb-2 hidden md:block">
                 <nav className="flex items-center text-sm text-gray-500 font-medium">

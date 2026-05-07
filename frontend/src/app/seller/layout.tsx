@@ -61,7 +61,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
 
     // Full Approved Layout
     return (
-        <div className="flex flex-col md:flex-row min-h-screen bg-[#F5F5F5] w-full">
+        <div className="flex flex-col md:flex-row min-h-screen bg-white w-full">
             
             {/* MOBILE ONLY: Single column + header */}
             <SellerMobileHeader />

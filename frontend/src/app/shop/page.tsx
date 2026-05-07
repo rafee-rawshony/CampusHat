@@ -250,7 +250,7 @@ function ShopPageContent() {
     )
 
     return (
-        <div className="bg-[#F5F5F5] min-h-screen py-6 md:py-8">
+        <div className="bg-white min-h-screen py-6 md:py-8">
             <div className="max-w-7xl mx-auto px-4">
                 {/* Breadcrumb */}
                 <div className="flex items-center text-xs font-semibold text-gray-400 gap-2 mb-5">

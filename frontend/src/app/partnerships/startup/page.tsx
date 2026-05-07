@@ -19,7 +19,7 @@ const ELIGIBILITY = [
 
 export default function StartupPage() {
     return (
-        <div className="min-h-screen bg-[#F5F5F5]">
+        <div className="min-h-screen bg-white">
 
             {/* Hero */}
             <div className="bg-gradient-to-br from-[#4C3B8A] to-[#2D1B69] py-20 px-4 text-center">

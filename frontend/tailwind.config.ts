@@ -19,7 +19,7 @@ const config: Config = {
           food: '#D97706',
         },
         surface: {
-          base: '#F9FAFB',
+          base: '#FFFFFF',
           card: '#FFFFFF',
           border: '#F3F4F6',
           muted: '#F9FAFB',

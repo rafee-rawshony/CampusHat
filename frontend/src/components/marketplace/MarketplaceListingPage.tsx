@@ -286,7 +286,7 @@ export function MarketplaceListingPage({ postType, title, defaultMaxPrice }: Mar
     }
 
     return (
-        <div className="bg-[#F5F5F5] min-h-screen pb-20">
+        <div className="bg-white min-h-screen pb-20">
             <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* Breadcrumb */}
                 <nav className="flex items-center text-sm text-gray-500 mb-6">

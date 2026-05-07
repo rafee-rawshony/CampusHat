@@ -55,14 +55,14 @@ function PostAdWrapper() {
 
     if (!canAccessMarketplace()) {
         return (
-            <div className="min-h-screen bg-[#F5F5F5] px-4 pb-20">
+            <div className="min-h-screen bg-white px-4 pb-20">
                 <VerificationRequiredCard />
             </div>
         )
     }
 
     return (
-        <div className="bg-[#F5F5F5] min-h-screen pb-20 pt-8">
+        <div className="bg-white min-h-screen pb-20 pt-8">
             <div className="container mx-auto px-4 max-w-2xl">
                 {/* Breadcrumb */}
                 <nav className="flex items-center text-sm text-gray-500 mb-6 font-medium">

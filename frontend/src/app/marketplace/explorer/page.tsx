@@ -56,7 +56,7 @@ function ExplorerContent() {
     const typeCounts = response?.type_counts || response?.data?.type_counts || undefined
 
     return (
-        <div className="bg-[#F5F5F5] min-h-screen pb-20">
+        <div className="bg-white min-h-screen pb-20">
             <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* Breadcrumb */}
                 <nav className="flex items-center text-sm text-gray-500 mb-8">
@@ -94,7 +94,7 @@ function ExplorerContent() {
 
 export default function ExplorerPage() {
     return (
-        <Suspense fallback={<div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center p-8"><div className="w-8 h-8 border-4 border-[#4C3B8A] border-t-transparent rounded-full animate-spin"></div></div>}>
+        <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center p-8"><div className="w-8 h-8 border-4 border-[#4C3B8A] border-t-transparent rounded-full animate-spin"></div></div>}>
             <ExplorerContent />
         </Suspense>
     )

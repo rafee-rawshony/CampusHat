@@ -24,7 +24,7 @@ export default function MallChatDetailPage() {
     })
 
     return (
-        <div className="bg-[#F5F5F5] min-h-[calc(100vh-64px)]">
+        <div className="bg-white min-h-[calc(100vh-64px)]">
             <div className="container mx-auto max-w-7xl h-[calc(100vh-64px)] md:h-[calc(100vh-120px)] p-0 md:px-4 md:pb-4 md:pt-4">
                 <div className="bg-white md:rounded-2xl border-x md:border border-gray-100 shadow-sm overflow-hidden flex h-full">
                     <div className="flex-1 flex flex-col min-w-0">

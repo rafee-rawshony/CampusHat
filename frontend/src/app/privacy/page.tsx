@@ -4,7 +4,7 @@ import Link from 'next/link'
 
 export default function PrivacyPage() {
     return (
-        <div className="min-h-screen bg-[#F5F5F5]">
+        <div className="min-h-screen bg-white">
             <div className="max-w-3xl mx-auto px-4 py-12">
 
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">

@@ -112,7 +112,7 @@ export default function MyAdsPage() {
 
     if (!canAccessMarketplace()) {
         return (
-            <div className="min-h-[calc(100vh-64px)] bg-[#F5F5F5] pt-12 flex justify-center px-4">
+            <div className="min-h-[calc(100vh-64px)] bg-white pt-12 flex justify-center px-4">
                 <UpgradePrompt
                     isOpen={true}
                     onClose={() => router.push('/marketplace')}
@@ -251,7 +251,7 @@ export default function MyAdsPage() {
     }
 
     return (
-        <div className="bg-[#F5F5F5] min-h-screen pb-20 pt-8">
+        <div className="bg-white min-h-screen pb-20 pt-8">
             <div className="container mx-auto px-4 max-w-6xl">
                 
                 {/* Breadcrumb & Header */}
