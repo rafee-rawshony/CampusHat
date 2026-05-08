@@ -224,6 +224,7 @@ export function MarketplaceListingCard({ listing }: MarketplaceListingCardProps)
                                         alt=""
                                         width={24}
                                         height={24}
+                                        unoptimized
                                         className="rounded-full object-cover w-6 h-6 border border-gray-200"
                                     />
                                 ) : (

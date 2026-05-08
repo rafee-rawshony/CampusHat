@@ -81,7 +81,7 @@ export function ListingContactSection({ listing, isAuthenticated, onOpenOfferMod
                 <h3 className="text-lg font-bold text-gray-900 mb-4">Seller Information</h3>
                 <div className="flex items-center gap-4 mb-6">
                     {listing.user_info.profile_picture ? (
-                        <Image src={listing.user_info.profile_picture} alt="Seller" width={56} height={56} className="rounded-full object-cover w-14 h-14 border-2 border-gray-100 shadow-sm" />
+                        <Image src={listing.user_info.profile_picture} alt="Seller" width={56} height={56} unoptimized className="rounded-full object-cover w-14 h-14 border-2 border-gray-100 shadow-sm" />
                     ) : (
                         <div className="w-14 h-14 rounded-full bg-gradient-to-br from-brand-primary/20 to-purple-500/20 flex items-center justify-center border-2 border-white shadow-sm">
                             <User className="w-6 h-6 text-brand-primary" />
