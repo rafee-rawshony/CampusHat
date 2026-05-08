@@ -135,7 +135,7 @@ export default function GoogleSignInButton({ mode = 'signin', onSuccess }: Googl
         window.google.accounts.id.initialize({
             client_id: clientId,
             callback: handleCredentialResponse,
-            ux_mode: 'redirect',
+            ux_mode: 'popup',
         })
 
         // Clear any previous render before re-rendering the button
