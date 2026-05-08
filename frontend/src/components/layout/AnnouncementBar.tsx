@@ -65,7 +65,7 @@ export function AnnouncementBar() {
 
                 {/* Campus Switcher (Right) */}
                 {isMarketplace && (
-                    <div className="absolute right-2 sm:right-4 lg:right-6 flex items-center z-50">
+                    <div className="absolute right-2 sm:right-4 lg:right-6 hidden md:flex items-center z-50">
                         <CampusSwitcher />
                     </div>
                 )}

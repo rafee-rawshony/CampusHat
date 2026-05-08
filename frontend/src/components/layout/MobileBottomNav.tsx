@@ -2,15 +2,15 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Store, ShoppingBag, ShoppingCart, User } from 'lucide-react'
+import { Home, Heart, MessageSquare, ShoppingCart, User } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { useCartStore } from '@/stores/cart.store'
 
 const items = [
     { label: 'Home', href: '/', icon: Home },
-    { label: 'Mall', href: '/shop', icon: Store },
-    { label: 'Market', href: '/marketplace', icon: ShoppingBag },
+    { label: 'Wishlist', href: '/wishlist', icon: Heart },
+    { label: 'Messages', href: '/marketplace/chat', icon: MessageSquare },
     { label: 'Cart', href: '#cart', icon: ShoppingCart, badge: true },
     { label: 'Profile', href: '/account', icon: User },
 ]
