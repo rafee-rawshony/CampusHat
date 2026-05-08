@@ -14,6 +14,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { NotificationBell } from '@/components/layout/NotificationBell'
 
 export function SellerTopBar() {
     const { user, logout } = useAuthStore()
@@ -41,10 +42,7 @@ export function SellerTopBar() {
             <h1 className="font-semibold text-gray-900">{title}</h1>
             
             <div className="flex items-center gap-4">
-                <button className="text-gray-400 hover:text-gray-600 transition-colors relative">
-                    <Bell className="w-5 h-5" />
-                    <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-                </button>
+                <NotificationBell />
                 
                 <div className="w-[1px] h-6 bg-gray-200"></div>
                 

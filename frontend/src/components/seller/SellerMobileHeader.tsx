@@ -8,6 +8,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { SellerSidebarContent } from './SellerSidebar'
+import { NotificationBell } from '@/components/layout/NotificationBell'
 
 export function SellerMobileHeader() {
     return (
@@ -27,10 +28,7 @@ export function SellerMobileHeader() {
 
             <h1 className="font-bold text-sm text-gray-900 tracking-tight">Seller Control Center</h1>
 
-            <button className="text-gray-400 hover:text-gray-600 transition-colors p-1 relative">
-                <Bell className="w-5 h-5" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-            </button>
+            <NotificationBell />
         </header>
     )
 }
