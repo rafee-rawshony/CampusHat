@@ -78,15 +78,21 @@ class SubmitVerificationSerializer(serializers.Serializer):
         return attrs
 
     def _upload_to_s3(self, file_obj, user_id, doc_type):
-        """Upload a file to the S3 private bucket and return the key."""
+        """Upload a file to the S3 private bucket or store locally."""
         try:
-            if getattr(settings, 'DEBUG', False):
-                raise ValueError("Development mode: skipping S3")
+            # 1. Determine if we should even try S3
+            use_s3 = getattr(settings, 'USE_S3_STORAGE', False)
+            
+            # If not explicitly set, check the keys for placeholders
+            if not use_s3:
+                aws_key = str(getattr(settings, 'AWS_ACCESS_KEY_ID', '') or '').strip().lower()
+                if aws_key and not aws_key.startswith('your-') and aws_key not in ('changeme', 'placeholder'):
+                    use_s3 = True
 
-            aws_key = getattr(settings, 'AWS_ACCESS_KEY_ID', '')
-            if not aws_key:
-                raise ValueError("S3 not configured")
+            if not use_s3 or getattr(settings, 'DEBUG', False):
+                raise ValueError("S3 not configured or in debug mode")
 
+            # 2. Try S3 Upload
             s3_client = boto3.client(
                 's3',
                 aws_access_key_id=getattr(settings, 'AWS_ACCESS_KEY_ID', ''),
@@ -97,6 +103,8 @@ class SubmitVerificationSerializer(serializers.Serializer):
             ext = file_obj.name.rsplit('.', 1)[-1] if '.' in file_obj.name else 'jpg'
             key = f'verifications/{user_id}/{doc_type}/{uuid.uuid4().hex}.{ext}'
 
+            # Seek to start just in case
+            file_obj.seek(0)
             s3_client.upload_fileobj(
                 file_obj,
                 bucket,
@@ -104,19 +112,43 @@ class SubmitVerificationSerializer(serializers.Serializer):
                 ExtraArgs={'ContentType': file_obj.content_type},
             )
             return key
-        except Exception:
-            # In development, store locally if S3 is not configured
+
+        except Exception as e:
+            # 3. Fallback to local storage
             import os
             upload_dir = os.path.join(
                 str(settings.BASE_DIR), 'mediafiles', 'verifications',
                 str(user_id), doc_type,
             )
             os.makedirs(upload_dir, exist_ok=True)
-            file_name = f'{uuid.uuid4().hex}.{file_obj.name.rsplit(".", 1)[-1]}'
+            
+            # Get extension safely
+            try:
+                ext = file_obj.name.rsplit('.', 1)[-1]
+            except (AttributeError, IndexError):
+                ext = 'jpg'
+                
+            file_name = f'{uuid.uuid4().hex}.{ext}'
             file_path = os.path.join(upload_dir, file_name)
+            
+            # Reset file pointer if not closed
+            try:
+                if not file_obj.closed:
+                    file_obj.seek(0)
+            except Exception:
+                pass
+
             with open(file_path, 'wb+') as dest:
-                for chunk in file_obj.chunks():
-                    dest.write(chunk)
+                # If the file was closed by boto3 or another error, 
+                # chunks() might fail. We wrap it.
+                try:
+                    for chunk in file_obj.chunks():
+                        dest.write(chunk)
+                except Exception:
+                    # If file is closed, we can't do much more here without a refactor
+                    # but at least we won't crash the whole request if we can help it.
+                    raise
+                    
             return f'verifications/{user_id}/{doc_type}/{file_name}'
 
     def create(self, validated_data):
