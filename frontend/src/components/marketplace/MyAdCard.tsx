@@ -30,7 +30,7 @@ export function MyAdCard({ ad, actions }: MyAdCardProps) {
             <div className="flex gap-3 mb-3">
                 <div className="w-14 h-14 rounded-lg bg-gray-50 border border-gray-200 overflow-hidden shrink-0 relative flex justify-center items-center">
                     {hasImage ? (
-                        <Image src={ad.images[0].image} alt={ad.title} fill className="object-cover" />
+                        <Image src={ad.images[0].image} alt={ad.title} fill unoptimized className="object-cover" />
                     ) : (
                         <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">{ad.post_type}</span>
                     )}

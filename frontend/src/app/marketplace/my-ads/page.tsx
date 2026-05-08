@@ -350,7 +350,7 @@ export default function MyAdsPage() {
                                     {/* Left */}
                                     <div className="w-16 h-16 rounded-lg bg-gray-50 border border-gray-200 overflow-hidden shrink-0 relative flex justify-center items-center">
                                         {ad.images?.[0]?.image || ad.images?.[0] ? (
-                                            <Image src={typeof ad.images[0] === 'string' ? ad.images[0] : ad.images[0].image} alt={ad.title} fill className="object-cover" />
+                                            <Image src={typeof ad.images[0] === 'string' ? ad.images[0] : ad.images[0].image} alt={ad.title} fill unoptimized className="object-cover" />
                                         ) : (
                                             <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">{ad.post_type}</span>
                                         )}

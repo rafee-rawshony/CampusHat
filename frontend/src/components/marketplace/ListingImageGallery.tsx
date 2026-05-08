@@ -23,6 +23,7 @@ export function ListingImageGallery({ images, postType, title }: ListingImageGal
                         src={activeUrl}
                         alt={title}
                         fill
+                        unoptimized
                         className="object-contain"
                     />
                 ) : (
@@ -44,7 +45,7 @@ export function ListingImageGallery({ images, postType, title }: ListingImageGal
                             onClick={() => setActiveImage(idx)}
                             className={`relative w-20 h-20 shrink-0 rounded-lg overflow-hidden border-2 transition-all ${activeImage === idx ? 'border-brand-primary scale-105' : 'border-transparent opacity-70 hover:opacity-100'}`}
                         >
-                            <Image src={getImageUrl(img)} alt="Thumbnail" fill className="object-cover" />
+                            <Image src={getImageUrl(img)} alt="Thumbnail" fill unoptimized className="object-cover" />
                         </button>
                     ))}
                 </div>
