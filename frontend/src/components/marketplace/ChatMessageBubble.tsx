@@ -3,6 +3,7 @@
 import React from 'react'
 import Image from 'next/image'
 import { format } from 'date-fns'
+import { absoluteMediaUrl } from '@/services/upload.service'
 import type { ChatMessage } from '@/hooks/useWebSocket'
 
 interface ChatMessageBubbleProps {
@@ -33,10 +34,11 @@ export function ChatMessageBubble({ message, isMe, showAvatar, otherUser }: Chat
                         <div className="w-6 h-6 rounded-full overflow-hidden">
                             {otherUser?.profile_picture ? (
                                 <Image
-                                    src={otherUser.profile_picture}
+                                    src={absoluteMediaUrl(otherUser.profile_picture)}
                                     alt={otherUser.full_name || 'User'}
                                     width={24}
                                     height={24}
+                                    unoptimized
                                     className="object-cover w-full h-full"
                                 />
                             ) : (
@@ -54,7 +56,7 @@ export function ChatMessageBubble({ message, isMe, showAvatar, otherUser }: Chat
                     <div className={`rounded-2xl overflow-hidden border ${
                         isMe ? 'rounded-tr-sm border-[#4C3B8A]/20' : 'rounded-tl-sm border-gray-200'
                     }`}>
-                        <Image src={message.content} alt="Shared image" width={280} height={200} className="object-cover w-full" />
+                        <Image src={absoluteMediaUrl(message.content)} alt="Shared image" width={280} height={200} unoptimized className="object-cover w-full" />
                     </div>
                 ) : (
                     <div className={`px-3.5 py-2 text-[14px] leading-relaxed ${

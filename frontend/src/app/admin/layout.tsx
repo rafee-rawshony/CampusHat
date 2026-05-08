@@ -15,6 +15,7 @@ import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem,
     DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
+import { absoluteMediaUrl } from '@/services/upload.service'
 
 // Map pathname segments to page titles and breadcrumbs
 function getBreadcrumbs(pathname: string) {
@@ -206,7 +207,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="h-9 gap-2 px-2 hover:bg-gray-50 rounded-lg">
                                     <Avatar className="h-7 w-7 rounded-full border border-gray-200">
-                                        <AvatarImage src={(user as any)?.profile_picture} />
+                                        <AvatarImage src={absoluteMediaUrl((user as any)?.profile_picture)} />
                                         <AvatarFallback className="bg-[#4C3B8A] text-white text-[11px] font-bold">
                                             {user?.full_name?.[0]?.toUpperCase()}
                                         </AvatarFallback>

@@ -12,6 +12,7 @@ import useWebSocket from '@/hooks/useWebSocket'
 import type { ChatMessage } from '@/hooks/useWebSocket'
 import { ChatMessageBubble } from '@/components/marketplace/ChatMessageBubble'
 import { OfferMessageCard } from '@/components/marketplace/OfferMessageCard'
+import { absoluteMediaUrl } from '@/services/upload.service'
 
 interface ChatWindowProps {
     chatId: string
@@ -182,7 +183,7 @@ export function ChatWindow({ chatId, chatData, onBack }: ChatWindowProps) {
 
                 <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 ring-2 ring-gray-100">
                     {otherUser?.profile_picture ? (
-                        <Image src={otherUser.profile_picture} alt={otherUser.name || 'User'} width={40} height={40} className="object-cover w-full h-full" />
+                        <Image src={absoluteMediaUrl(otherUser.profile_picture)} alt={otherUser.name || 'User'} width={40} height={40} unoptimized className="object-cover w-full h-full" />
                     ) : (
                         <div className="w-full h-full bg-gradient-to-br from-[#4C3B8A] to-[#6B5AAE] text-white flex items-center justify-center font-bold text-xs">
                             {initials}
@@ -208,7 +209,7 @@ export function ChatWindow({ chatId, chatData, onBack }: ChatWindowProps) {
                         className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 shrink-0 hidden sm:block hover:opacity-80 transition-opacity"
                     >
                         {listingImage ? (
-                            <Image src={listingImage} alt={listing.title} width={40} height={40} className="object-cover w-full h-full" />
+                            <Image src={absoluteMediaUrl(listingImage)} alt={listing.title} width={40} height={40} unoptimized className="object-cover w-full h-full" />
                         ) : (
                             <div className="w-full h-full flex items-center justify-center bg-[#4C3B8A]/10">
                                 <span className="text-[8px] text-[#4C3B8A] font-bold">AD</span>

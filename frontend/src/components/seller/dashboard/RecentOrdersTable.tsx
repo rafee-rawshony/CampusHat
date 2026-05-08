@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { formatDate } from '@/lib/formatDate'
 import { OrderStatusBadge } from '@/components/seller/OrderStatusBadge'
+import { absoluteMediaUrl } from '@/services/upload.service'
 
 export function RecentOrdersTable() {
     const { data, isLoading } = useQuery({
@@ -84,7 +85,7 @@ export function RecentOrdersTable() {
                                           <div className="flex items-center gap-2">
                                               {order.buyer?.profile_picture ? (
                                                   <img
-                                                      src={order.buyer.profile_picture}
+                                                      src={absoluteMediaUrl(order.buyer.profile_picture)}
                                                       className="w-6 h-6 rounded-full object-cover border border-gray-100"
                                                       alt=""
                                                   />

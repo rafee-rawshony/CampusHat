@@ -5,6 +5,7 @@ import { Bell, ChevronDown, UserCircle, Home, LogOut } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth.store'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { absoluteMediaUrl } from '@/services/upload.service'
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -52,7 +53,7 @@ export function SellerTopBar() {
                         <button className="flex items-center gap-2 hover:bg-gray-50 p-1.5 rounded-lg transition-colors outline-none">
                             {user?.profile_picture ? (
                                 <img 
-                                    src={user.profile_picture} 
+                                    src={absoluteMediaUrl(user.profile_picture)} 
                                     alt="Avatar" 
                                     className="w-8 h-8 rounded-full object-cover border border-gray-200" 
                                 />

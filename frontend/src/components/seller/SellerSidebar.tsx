@@ -26,6 +26,7 @@ import { useAuthStore } from '@/stores/auth.store'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
+import { absoluteMediaUrl } from '@/services/upload.service'
 
 export function SellerSidebarContent() {
     const pathname = usePathname()
@@ -84,7 +85,7 @@ export function SellerSidebarContent() {
                     className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg mb-2 shadow-sm border border-gray-200 object-cover"
                     style={{ 
                         backgroundColor: storeData?.banner_color || '#4C3B8A',
-                        backgroundImage: storeData?.logo ? `url(${storeData.logo})` : 'none',
+                        backgroundImage: storeData?.logo ? `url(${absoluteMediaUrl(storeData.logo)})` : 'none',
                         backgroundSize: 'cover',
                         backgroundPosition: 'center'
                     }}
