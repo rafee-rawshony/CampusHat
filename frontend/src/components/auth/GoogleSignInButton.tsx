@@ -78,6 +78,7 @@ export default function GoogleSignInButton({ mode = 'signin', onSuccess }: Googl
     const [error, setError] = useState<string | null>(null)
 
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
+    console.log('Current Google Client ID:', clientId);
 
     // Load the Google Identity Services script (only once across the page)
     useEffect(() => {
