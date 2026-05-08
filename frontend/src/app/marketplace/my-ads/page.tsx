@@ -155,6 +155,13 @@ export default function MyAdsPage() {
                 {ad.status === 'pending' && (
                     <>
                         <Button 
+                            onClick={() => router.push(`/marketplace/post?edit=${ad.id}`)}
+                            variant="outline" size="sm" 
+                            className="h-8 px-3 text-gray-600 border-gray-200 hover:bg-gray-50 flex items-center gap-1.5 rounded-lg text-xs"
+                        >
+                            <Edit2 className="w-3.5 h-3.5" /> Edit
+                        </Button>
+                        <Button 
                             onClick={() => router.push(`/marketplace/listings/${ad.id}`)}
                             variant="outline" size="sm" 
                             className="h-8 px-3 text-gray-600 border-gray-200 hover:bg-gray-50 flex items-center gap-1.5 rounded-lg text-xs"
@@ -350,7 +357,7 @@ export default function MyAdsPage() {
                                     {/* Left */}
                                     <div className="w-16 h-16 rounded-lg bg-gray-50 border border-gray-200 overflow-hidden shrink-0 relative flex justify-center items-center">
                                         {ad.images?.[0]?.image || ad.images?.[0] ? (
-                                            <Image src={typeof ad.images[0] === 'string' ? ad.images[0] : ad.images[0].image} alt={ad.title} fill className="object-cover" />
+                                            <Image src={typeof ad.images[0] === 'string' ? ad.images[0] : ad.images[0].image} alt={ad.title} fill unoptimized className="object-cover" />
                                         ) : (
                                             <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">{ad.post_type}</span>
                                         )}

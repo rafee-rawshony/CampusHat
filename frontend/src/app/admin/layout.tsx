@@ -11,10 +11,12 @@ import { AdminSidebar } from '@/components/admin/AdminSidebar'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { NotificationBell } from '@/components/layout/NotificationBell'
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem,
     DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
+import { absoluteMediaUrl } from '@/services/upload.service'
 
 // Map pathname segments to page titles and breadcrumbs
 function getBreadcrumbs(pathname: string) {
@@ -187,16 +189,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         )}
 
                         {/* Notification bell */}
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-gray-400 hover:text-gray-700 hover:bg-gray-50 rounded-full relative"
-                        >
-                            <Bell className="w-[18px] h-[18px]" />
+                        <div className="relative">
+                            <NotificationBell />
                             {totalPending > 0 && (
-                                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white" />
+                                <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white" title={`${totalPending} pending admin tasks`} />
                             )}
-                        </Button>
+                        </div>
 
                         {/* Separator */}
                         <div className="w-px h-8 bg-gray-100 mx-1 hidden sm:block" />
@@ -206,7 +204,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="h-9 gap-2 px-2 hover:bg-gray-50 rounded-lg">
                                     <Avatar className="h-7 w-7 rounded-full border border-gray-200">
-                                        <AvatarImage src={(user as any)?.profile_picture} />
+                                        <AvatarImage src={absoluteMediaUrl((user as any)?.profile_picture)} />
                                         <AvatarFallback className="bg-[#4C3B8A] text-white text-[11px] font-bold">
                                             {user?.full_name?.[0]?.toUpperCase()}
                                         </AvatarFallback>

@@ -51,6 +51,20 @@ const nextConfig = {
       { hostname: 'res.cloudinary.com' },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: '/profile',
+        destination: '/account',
+        permanent: true,
+      },
+      {
+        source: '/cart',
+        destination: '/',
+        permanent: true,
+      },
+    ]
+  },
 }
 
 export default withPWA(nextConfig)

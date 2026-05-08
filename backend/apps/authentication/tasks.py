@@ -302,6 +302,19 @@ def notify_admin_new_verification(self, verification_id):
             recipient_list=admin_emails,
             fail_silently=True,
         )
+
+        # 2. Platform Notification for Admins
+        try:
+            from apps.admin_panel.notification_utils import notify_admins
+            notify_admins(
+                notification_type='verification',
+                title='New Student Verification',
+                message=f'User {verification.user.full_name} has submitted a {verification.verification_type} request.',
+                action_url='/admin/review-center?tab=verifications'
+            )
+        except Exception as e:
+            logger.warning(f"Failed to send platform notification for verification: {e}")
+
         logger.info(
             f'Admin notification sent for verification {verification_id}.'
         )
@@ -365,6 +378,20 @@ def send_verification_result(self, verification_id):
             recipient_list=[user.email],
             fail_silently=True,
         )
+
+        # Platform Notification
+        try:
+            from apps.admin_panel.notification_utils import send_notification
+            send_notification(
+                user=user,
+                notification_type='verification',
+                title='Verification Update',
+                message=f'Your {verification.verification_type} verification has been {verification.status}.',
+                action_url='/account/verification'
+            )
+        except Exception as e:
+            logger.warning(f"Failed to send verification result platform notification: {e}")
+
         logger.info(f'Verification result sent to {user.email}.')
     except Exception as exc:
         logger.error(f'send_verification_result error: {exc}')

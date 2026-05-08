@@ -13,6 +13,7 @@ interface ListingContactSectionProps {
         contact_visible: boolean
         contact_phone?: string
         meetup_location?: string
+        is_negotiable: boolean
         user_info: {
             id: string | number
             full_name: string
@@ -81,7 +82,7 @@ export function ListingContactSection({ listing, isAuthenticated, onOpenOfferMod
                 <h3 className="text-lg font-bold text-gray-900 mb-4">Seller Information</h3>
                 <div className="flex items-center gap-4 mb-6">
                     {listing.user_info.profile_picture ? (
-                        <Image src={listing.user_info.profile_picture} alt="Seller" width={56} height={56} className="rounded-full object-cover w-14 h-14 border-2 border-gray-100 shadow-sm" />
+                        <Image src={listing.user_info.profile_picture} alt="Seller" width={56} height={56} unoptimized className="rounded-full object-cover w-14 h-14 border-2 border-gray-100 shadow-sm" />
                     ) : (
                         <div className="w-14 h-14 rounded-full bg-gradient-to-br from-brand-primary/20 to-purple-500/20 flex items-center justify-center border-2 border-white shadow-sm">
                             <User className="w-6 h-6 text-brand-primary" />
@@ -113,7 +114,7 @@ export function ListingContactSection({ listing, isAuthenticated, onOpenOfferMod
                 <div className="flex flex-col gap-3">
                     {isOwnListing ? (
                         <Button
-                            onClick={() => router.push(`/marketplace/my-ads/edit/${listing.id}`)}
+                            onClick={() => router.push(`/marketplace/post?edit=${listing.id}`)}
                             className="w-full bg-[#4C3B8A] hover:bg-[#2D1B69] text-white rounded-xl h-12 font-bold shadow-md gap-2"
                         >
                             Edit Listing
@@ -126,13 +127,15 @@ export function ListingContactSection({ listing, isAuthenticated, onOpenOfferMod
                             >
                                 Send Message
                             </ChatButton>
-                            <Button
-                                onClick={onOpenOfferModal}
-                                variant="outline"
-                                className="w-full border-brand-primary text-brand-primary hover:bg-brand-primary/5 rounded-xl h-12 font-bold"
-                            >
-                                Make Offer
-                            </Button>
+                            {listing.is_negotiable && (
+                                <Button
+                                    onClick={onOpenOfferModal}
+                                    variant="outline"
+                                    className="w-full border-brand-primary text-brand-primary hover:bg-brand-primary/5 rounded-xl h-12 font-bold"
+                                >
+                                    Make Offer
+                                </Button>
+                            )}
                         </>
                     )}
                 </div>

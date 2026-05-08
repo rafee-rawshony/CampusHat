@@ -18,6 +18,19 @@ def notify_admin_new_seller_application(self, seller_id):
         logger.info(
             'New seller application: %s (%s)', seller.business_name, seller.user.email,
         )
+        
+        # Platform Notification
+        try:
+            from apps.admin_panel.notification_utils import notify_admins
+            notify_admins(
+                notification_type='seller',
+                title='New Seller Application',
+                message=f'New application for "{seller.business_name}" by {seller.user.full_name}.',
+                action_url='/admin/review-center?tab=seller-applications'
+            )
+        except Exception as e:
+            logger.warning(f"Failed to send platform notification for seller application: {e}")
+
     except SellerProfile.DoesNotExist:
         logger.error('Seller %s not found for notification.', seller_id)
 
@@ -39,6 +52,20 @@ def notify_seller_approval_result(self, seller_id):
                    f'{seller.status}.\nReason: {seller.rejection_reason or "N/A"}')
         send_mail(subject, msg, settings.DEFAULT_FROM_EMAIL,
                   [seller.user.email], fail_silently=True)
+
+        # Platform Notification
+        try:
+            from apps.admin_panel.notification_utils import send_notification
+            send_notification(
+                user=seller.user,
+                notification_type='seller',
+                title='Seller Application Update',
+                message=f'Your application for "{seller.business_name}" has been {seller.status}.',
+                action_url='/account/seller'
+            )
+        except Exception as e:
+            logger.warning(f"Failed to send seller approval platform notification: {e}")
+
     except Exception as e:
         logger.error('Seller notification error: %s', e)
 
@@ -56,6 +83,20 @@ def notify_store_approval_result(self, store_id):
             msg = f'Your store "{store.name}" has been {store.status}.'
         send_mail('Store Review Update', msg, settings.DEFAULT_FROM_EMAIL,
                   [user.email], fail_silently=True)
+
+        # Platform Notification
+        try:
+            from apps.admin_panel.notification_utils import send_notification
+            send_notification(
+                user=user,
+                notification_type='seller',
+                title='Store Review Update',
+                message=msg,
+                action_url='/account/seller'
+            )
+        except Exception as e:
+            logger.warning(f"Failed to send store approval platform notification: {e}")
+
     except Exception as e:
         logger.error('Store notification error: %s', e)
 
@@ -71,5 +112,18 @@ def notify_payout_processed(self, payout_id):
                f'Your payout of {payout.amount} BDT via {payout.method} has been {payout.status}.')
         send_mail('Payout Update', msg, settings.DEFAULT_FROM_EMAIL,
                   [user.email], fail_silently=True)
+
+        # Platform Notification
+        try:
+            from apps.admin_panel.notification_utils import send_notification
+            send_notification(
+                user=user,
+                notification_type='payout',
+                title='Payout Status Updated',
+                message=f'Your payout of {payout.amount} BDT has been {payout.status}.',
+                action_url='/account/seller/payouts'
+            )
+        except Exception as e:
+            logger.warning(f"Failed to send payout platform notification: {e}")
     except Exception as e:
         logger.error('Payout notification error: %s', e)

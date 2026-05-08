@@ -129,6 +129,20 @@ class MarketplaceProductCreateSerializer(serializers.ModelSerializer):
 
         product = MarketplaceProduct.objects.create(**validated_data)
 
+        # Notify admins about new listing
+        try:
+            from apps.admin_panel.notification_utils import notify_admins
+            notify_admins(
+                notification_type='marketplace',
+                title='New Marketplace Listing',
+                message=f'A new ad "{product.title}" has been submitted and is pending review.',
+                action_url=f'/admin/marketplace/ads' # Admin dashboard URL
+            )
+        except Exception as e:
+            # Don't fail the listing creation if notification fails
+            import logging
+            logging.getLogger(__name__).error(f"Failed to notify admins: {e}")
+
         for idx, image_url in enumerate(image_urls):
             MarketplaceProductImage.objects.create(
                 product=product,
@@ -293,23 +307,42 @@ class MarketplaceProductOwnerUpdateSerializer(serializers.ModelSerializer):
         # Only active or rejected ads can be edited.
         # pending, expired, sold, deleted → no edits allowed.
         instance = self.instance
-        if instance and instance.status not in ['active', 'rejected']:
+        if instance and instance.status not in ['active', 'rejected', 'pending']:
             raise serializers.ValidationError({
                 'non_field_errors': [
                     f'Cannot edit an ad with status: {instance.status}. '
-                    f'Only active or rejected ads can be edited.'
+                    f'Only active, rejected, or pending ads can be edited.'
                 ]
             })
         return data
 
     def update(self, instance, validated_data):
         content_fields = {'title', 'description', 'price'}
+        was_resubmitted = False
+        
         if instance.status == 'active' and (set(validated_data) & content_fields):
             validated_data['status'] = 'pending'
+            was_resubmitted = True
         if instance.status == 'rejected':
             validated_data['status'] = 'pending'
             validated_data['rejection_reason'] = ''
+            was_resubmitted = True
+            
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
+
+        if was_resubmitted:
+            try:
+                from apps.admin_panel.notification_utils import notify_admins
+                notify_admins(
+                    notification_type='marketplace',
+                    title='Marketplace Ad Re-submitted',
+                    message=f'The ad "{instance.title}" has been edited and re-submitted for review.',
+                    action_url='/admin/marketplace/ads'
+                )
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(f"Failed to notify admins of re-submission: {e}")
+                
         return instance

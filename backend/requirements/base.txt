@@ -14,6 +14,7 @@ PyJWT==2.9.0
 
 # Google OAuth (Sign in with Google)
 google-auth==2.35.0
+requests>=2.31.0
 
 # Celery
 celery==5.3.6

@@ -450,3 +450,7 @@ FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
 # OAuth 2.0 Client ID from Google Cloud Console.
 # Used to verify ID tokens received from the frontend.
 GOOGLE_OAUTH_CLIENT_ID = config('GOOGLE_OAUTH_CLIENT_ID', default='')
+
+# Allow Google OAuth popup to communicate with the main window.
+# Django 4.x defaults to 'same-origin' which blocks Google's popup postMessage.
+SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'

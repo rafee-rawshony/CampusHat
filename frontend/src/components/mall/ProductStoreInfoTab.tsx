@@ -9,6 +9,7 @@ import { useAuthStore } from '@/stores/auth.store'
 import { api } from '@/lib/api'
 import toast from 'react-hot-toast'
 import { cn } from '@/lib/utils'
+import { absoluteMediaUrl } from '@/services/upload.service'
 
 export interface ProductStore {
     id: string
@@ -69,9 +70,10 @@ export function ProductStoreInfoTab({ store }: { store: ProductStore }) {
             >
                 {store.banner && (
                     <Image 
-                        src={store.banner} 
+                        src={absoluteMediaUrl(store.banner)} 
                         alt={`${store.name} banner`} 
                         fill 
+                        unoptimized
                         className="object-cover opacity-90"
                         sizes="(max-width: 1024px) 100vw, 800px"
                     />
@@ -87,9 +89,10 @@ export function ProductStoreInfoTab({ store }: { store: ProductStore }) {
                 >
                     {store.logo ? (
                         <Image 
-                            src={store.logo} 
+                            src={absoluteMediaUrl(store.logo)} 
                             alt={store.name} 
                             fill 
+                            unoptimized
                             className="object-cover"
                             sizes="84px"
                         />

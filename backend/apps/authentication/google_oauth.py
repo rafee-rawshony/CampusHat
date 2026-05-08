@@ -56,6 +56,7 @@ def _verify_google_token(id_token_str: str) -> dict | None:
             id_token_str,
             google_requests.Request(),
             client_id,
+            clock_skew_in_seconds=10,
         )
     except ValueError as exc:
         # Token is invalid, expired, or audience mismatch

@@ -46,6 +46,7 @@ export function MarketplaceAdCard({ listing }: MarketplaceAdCardProps) {
                         src={imageUrl}
                         alt={listing.title}
                         fill
+                        unoptimized
                         className="object-cover group-hover:scale-105 transition-transform duration-500"
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     />
@@ -109,7 +110,7 @@ export function MarketplaceAdCard({ listing }: MarketplaceAdCardProps) {
                         {isOwnerVerifiedOrContactVisible ? (
                             <>
                                 {listing.user.avatar ? (
-                                    <Image src={listing.user.avatar} alt="Seller" width={24} height={24} className="rounded-full object-cover w-6 h-6 border border-gray-200" />
+                                    <Image src={listing.user.avatar} alt="Seller" width={24} height={24} unoptimized className="rounded-full object-cover w-6 h-6 border border-gray-200" />
                                 ) : (
                                     <div className="w-6 h-6 rounded-full bg-brand-primary/10 flex items-center justify-center border border-brand-primary/20">
                                         <User className="w-3 h-3 text-brand-primary" />

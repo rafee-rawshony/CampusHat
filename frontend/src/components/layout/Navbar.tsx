@@ -29,6 +29,7 @@ import { MobileDrawer } from '@/components/layout/MobileDrawer'
 import { MobileSearchOverlay } from '@/components/layout/MobileSearchOverlay'
 import { SearchAutocomplete } from '@/components/layout/SearchAutocomplete'
 import { NotificationBell } from '@/components/layout/NotificationBell'
+import { CampusSwitcher } from '@/components/layout/CampusSwitcher'
 
 import {
     DropdownMenu,
@@ -88,7 +89,7 @@ export function Navbar() {
 
             {/* Main Navbar — matches demo Header.tsx */}
             <div className="border-b border-gray-200 bg-white">
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-wrap md:flex-nowrap justify-between items-center gap-y-4">
+                <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex md:flex-nowrap justify-between items-center gap-x-2">
                     {/* Left: Logo + Toggle */}
                     <div className="flex items-center">
                         <MobileDrawer />
@@ -123,6 +124,20 @@ export function Navbar() {
                             >
                                 Marketplace
                             </Link>
+                        </div>
+
+                        {/* Mobile Marketplace Actions — only shown on small screens */}
+                        <div className="md:hidden ml-auto flex flex-col items-end gap-1.5 -mr-1">
+                            {isAuthenticated && (
+                                <div className="translate-x-1">
+                                    <NotificationBell />
+                                </div>
+                            )}
+                            {isMarketplace && (
+                                <div className="scale-[0.85] origin-right">
+                                    <CampusSwitcher variant="dark" />
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -159,7 +174,7 @@ export function Navbar() {
                         ) : isAuthenticated ? (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <button className="flex items-center gap-2 text-gray-600 hover:text-[#4C3B8A] py-2 group">
+                                    <button className="hidden md:flex items-center gap-2 text-gray-600 hover:text-[#4C3B8A] py-2 group">
                                         <Avatar className="h-8 w-8 md:h-9 md:w-9 border border-gray-200 group-hover:border-[#4C3B8A] transition-colors">
                                             {user?.profile_picture ? (
                                                 <AvatarImage
@@ -296,8 +311,10 @@ export function Navbar() {
                             </div>
                         )}
 
-                        {/* Notification Bell */}
-                        {isAuthenticated && <NotificationBell />}
+                        {/* Desktop Bell — hidden on small screens */}
+                        <div className="hidden md:block">
+                            {isAuthenticated && <NotificationBell />}
+                        </div>
 
                         {/* Mall mode: Heart + Cart — circle ghost buttons matching sign-in */}
                         {!isMarketplace ? (
@@ -305,7 +322,7 @@ export function Navbar() {
                                 <Link
                                     href="/wishlist"
                                     aria-label="Wishlist"
-                                    className="relative inline-flex items-center justify-center h-10 w-10 rounded-full text-gray-600 hover:text-[#4C3B8A] hover:bg-[#4C3B8A]/5 transition-all"
+                                    className="relative hidden md:inline-flex items-center justify-center h-10 w-10 rounded-full text-gray-600 hover:text-[#4C3B8A] hover:bg-[#4C3B8A]/5 transition-all"
                                 >
                                     <Heart className="w-5 h-5" />
                                     <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center ring-2 ring-white">0</span>
@@ -313,7 +330,7 @@ export function Navbar() {
                                 <button
                                     onClick={() => setIsOpen(true)}
                                     aria-label="Cart"
-                                    className="relative inline-flex items-center justify-center h-10 w-10 rounded-full text-gray-600 hover:text-[#4C3B8A] hover:bg-[#4C3B8A]/5 transition-all"
+                                    className="relative hidden md:inline-flex items-center justify-center h-10 w-10 rounded-full text-gray-600 hover:text-[#4C3B8A] hover:bg-[#4C3B8A]/5 transition-all"
                                 >
                                     <ShoppingCart className="w-5 h-5" />
                                     <span className="absolute -top-0.5 -right-0.5 bg-[#4C3B8A] text-white text-[10px] font-bold rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center ring-2 ring-white">{getItemCount()}</span>
@@ -323,7 +340,7 @@ export function Navbar() {
                             /* Marketplace mode: Post Ad button */
                             <button
                                 onClick={isAuthenticated ? handlePostAdClick : () => router.push('/auth/login')}
-                                className="bg-[#4C3B8A] text-white font-bold py-2 px-3 md:px-4 rounded-md hover:bg-[#2D1B69] transition-colors flex items-center text-xs md:text-sm whitespace-nowrap"
+                                className="hidden md:flex bg-[#4C3B8A] text-white font-bold py-2 px-3 md:px-4 rounded-md hover:bg-[#2D1B69] transition-colors items-center text-xs md:text-sm whitespace-nowrap"
                             >
                                 <Plus className="w-4 h-4 mr-2" /> Post Ad
                             </button>

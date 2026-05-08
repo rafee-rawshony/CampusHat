@@ -5,6 +5,7 @@ import { ChevronDown, Search, Building2, Globe, Plus, X, Loader2 } from 'lucide-
 import { useCampusStore } from '@/stores/campus.store'
 import { api } from '@/lib/api'
 import toast from 'react-hot-toast'
+import { cn } from '@/lib/utils'
 
 interface Campus {
     id: string
@@ -14,7 +15,7 @@ interface Campus {
 
 const DIVISIONS = ['Dhaka', 'Chittagong', 'Rajshahi', 'Khulna', 'Barisal', 'Sylhet', 'Rangpur', 'Mymensingh']
 
-export function CampusSwitcher() {
+export function CampusSwitcher({ variant = 'white' }: { variant?: 'white' | 'dark' }) {
     const { selectedCampusId, setCampus, clearCampus } = useCampusStore()
     const [searchQuery, setSearchQuery] = useState('')
     const [campuses, setCampuses] = useState<Campus[]>([])
@@ -116,11 +117,17 @@ export function CampusSwitcher() {
         <div className="relative" ref={dropdownRef}>
             <button
                 onClick={() => { setOpen(!open); setShowRequestForm(false) }}
-                className={`bg-white/10 hover:bg-white/20 border border-white/30 rounded-lg px-3 md:px-4 py-1.5 transition-all flex items-center gap-2 shadow-sm ${open ? 'bg-white/20 ring-2 ring-white/20' : ''}`}
+                className={cn(
+                    "rounded-lg px-3 md:px-4 py-1.5 transition-all flex items-center gap-2 shadow-sm",
+                    variant === 'dark' 
+                        ? "bg-gray-100 hover:bg-gray-200 border border-gray-200 text-gray-800" 
+                        : "bg-white/10 hover:bg-white/20 border border-white/30 text-white",
+                    open && (variant === 'dark' ? "bg-gray-200 ring-2 ring-gray-200" : "bg-white/20 ring-2 ring-white/20")
+                )}
             >
-                <Building2 className="h-3 w-3 opacity-70" />
-                <span className="text-[10px] md:text-xs font-extrabold uppercase tracking-tight text-white">Switch Campus</span>
-                <ChevronDown className={`w-3 h-3 opacity-60 transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
+                <Building2 className={cn("h-3 w-3", variant === 'dark' ? "text-[#4C3B8A]" : "opacity-70")} />
+                <span className={cn("text-[10px] md:text-xs font-extrabold uppercase tracking-tight", variant === 'dark' ? "text-gray-700" : "text-white")}>Switch Campus</span>
+                <ChevronDown className={cn("w-3 h-3 transition-transform duration-300", variant === 'dark' ? "text-gray-400" : "opacity-60", open ? "rotate-180" : "")} />
             </button>
 
             {open && (

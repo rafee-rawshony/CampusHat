@@ -38,7 +38,7 @@ class AdminPendingListView(APIView):
             .filter(status='pending', deleted_at__isnull=True)
             .select_related('university', 'category', 'user')
             .prefetch_related('images')
-            .order_by('created_at')
+            .order_by('-updated_at')
         )
         serializer = MarketplaceProductOwnerSerializer(products, many=True)
         return Response({

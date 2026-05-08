@@ -43,6 +43,7 @@ interface DetailListing {
     expires_at: string
     contact_visible: boolean
     contact_phone?: string
+    is_negotiable: boolean
 }
 
 export default function MarketplaceAdDetailPage({ params }: { params: { id: string } }) {
@@ -239,10 +240,12 @@ export default function MarketplaceAdDetailPage({ params }: { params: { id: stri
                     >
                         Message
                     </ChatButton>
-                    <button onClick={() => setOfferModalOpen(true)}
-                        className='flex-1 bg-brand-primary text-white font-bold py-2.5 rounded-xl text-sm shadow-md'>
-                        Make Offer
-                    </button>
+                    {listing.is_negotiable && (
+                        <button onClick={() => setOfferModalOpen(true)}
+                            className='flex-1 bg-brand-primary text-white font-bold py-2.5 rounded-xl text-sm shadow-md'>
+                            Make Offer
+                        </button>
+                    )}
                 </div>
             )}
         </div>

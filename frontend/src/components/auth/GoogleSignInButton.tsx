@@ -74,6 +74,7 @@ export default function GoogleSignInButton({ mode = 'signin', onSuccess }: Googl
     const router = useRouter()
     const { setUser, setAccessToken } = useAuthStore()
     const containerRef = useRef<HTMLDivElement>(null)
+    const initializedRef = useRef(false)
     const [isReady, setIsReady] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
@@ -131,11 +132,16 @@ export default function GoogleSignInButton({ mode = 'signin', onSuccess }: Googl
             }
         }
 
-        window.google.accounts.id.initialize({
-            client_id: clientId,
-            callback: handleCredentialResponse,
-            ux_mode: 'popup',
-        })
+        // Only initialize once to avoid GSI_LOGGER warning
+        if (!initializedRef.current) {
+            window.google.accounts.id.initialize({
+                client_id: clientId,
+                callback: handleCredentialResponse,
+                ux_mode: 'popup',
+                auto_select: false,
+            })
+            initializedRef.current = true
+        }
 
         // Clear any previous render before re-rendering the button
         containerRef.current.innerHTML = ''

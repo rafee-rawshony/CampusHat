@@ -4,6 +4,7 @@ import React from 'react'
 import Image from 'next/image'
 import { Search, MessageCircle } from 'lucide-react'
 import { Input } from '@/components/ui/input'
+import { absoluteMediaUrl } from '@/services/upload.service'
 import { differenceInMinutes, differenceInHours, differenceInDays, format, isYesterday } from 'date-fns'
 
 export interface ChatThread {
@@ -148,10 +149,11 @@ export function ChatConversationList({
                                     <div className="w-12 h-12 rounded-full overflow-hidden">
                                         {thread.other_user.profile_picture ? (
                                             <Image
-                                                src={thread.other_user.profile_picture}
+                                                src={absoluteMediaUrl(thread.other_user.profile_picture)}
                                                 alt={thread.other_user.name}
                                                 width={48}
                                                 height={48}
+                                                unoptimized
                                                 className="object-cover w-full h-full"
                                             />
                                         ) : (
@@ -189,10 +191,11 @@ export function ChatConversationList({
                                         <div className="w-5 h-5 rounded bg-gray-100 overflow-hidden shrink-0">
                                             {thumbnail ? (
                                                 <Image
-                                                    src={thumbnail}
+                                                    src={absoluteMediaUrl(thumbnail)}
                                                     alt={thread.listing.title}
                                                     width={20}
                                                     height={20}
+                                                    unoptimized
                                                     className="object-cover w-full h-full"
                                                 />
                                             ) : (

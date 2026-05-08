@@ -12,6 +12,7 @@ import { ShipOrderModal } from '@/components/seller/orders/ShipOrderModal'
 import toast from 'react-hot-toast'
 import { Loader2 } from 'lucide-react'
 import { normalizeListResponse } from '@/lib/response'
+import { absoluteMediaUrl } from '@/services/upload.service'
 
 interface SellerOrderTableProps {
     orders: any[]
@@ -140,7 +141,7 @@ export function SellerOrderTable({ orders, isLoading }: SellerOrderTableProps) {
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-2">
                                             {order.buyer?.profile_picture ? (
-                                                <img src={order.buyer.profile_picture} className="w-6 h-6 rounded-full object-cover" alt="" />
+                                                <img src={absoluteMediaUrl(order.buyer.profile_picture)} className="w-6 h-6 rounded-full object-cover" alt="" />
                                             ) : (
                                                 <div className="w-6 h-6 rounded-full bg-[#4C3B8A]/10 text-[#4C3B8A] text-[10px] font-bold flex items-center justify-center">
                                                     {order.buyer?.full_name?.charAt(0) || '?'}

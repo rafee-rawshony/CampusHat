@@ -143,6 +143,7 @@ export function MarketplaceListingCard({ listing }: MarketplaceListingCardProps)
                         src={imageUrl}
                         alt={listing.title}
                         fill
+                        unoptimized
                         className="object-cover group-hover:scale-105 transition-transform duration-500"
                         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                     />
@@ -223,6 +224,7 @@ export function MarketplaceListingCard({ listing }: MarketplaceListingCardProps)
                                         alt=""
                                         width={24}
                                         height={24}
+                                        unoptimized
                                         className="rounded-full object-cover w-6 h-6 border border-gray-200"
                                     />
                                 ) : (

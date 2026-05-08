@@ -154,6 +154,11 @@ export function MarketplaceAdReviewTab() {
                         <span className={`text-[10px] uppercase px-2 py-0.5 rounded text-white font-bold ${typeColor}`}>
                             {postType === 'buy' ? 'SELL ITEM' : postType.toUpperCase()}
                         </span>
+                        {ad.reviewed_by && (
+                            <span className="bg-blue-600 text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded shadow-sm animate-pulse">
+                                RE-SUBMITTED
+                            </span>
+                        )}
                     </div>
                     
                     {postType === 'buy' && ad.condition && (
