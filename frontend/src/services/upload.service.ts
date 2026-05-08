@@ -63,8 +63,38 @@ export async function uploadImage(
  */
 export function absoluteMediaUrl(url: string | null | undefined): string {
     if (!url) return ''
-    if (url.startsWith('http://') || url.startsWith('https://')) return url
     const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
+    const isSameOriginApi = apiBase.startsWith('/')
+
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+        try {
+            const parsed = new URL(url)
+            const mediaLikePath =
+                parsed.pathname.startsWith('/media/')
+                || parsed.pathname.startsWith('/uploads/')
+
+            // In production we use same-origin API (/api/v1) behind Nginx.
+            // If DB still contains old absolute media URLs (localhost/IP),
+            // force same-origin media path to avoid mixed-content/domain issues.
+            if (isSameOriginApi && mediaLikePath) {
+                return `${parsed.pathname}${parsed.search}${parsed.hash}`
+            }
+
+            // If the page is HTTPS and a media URL is HTTP, use same-origin path.
+            if (
+                typeof window !== 'undefined'
+                && window.location.protocol === 'https:'
+                && parsed.protocol === 'http:'
+                && mediaLikePath
+            ) {
+                return `${parsed.pathname}${parsed.search}${parsed.hash}`
+            }
+        } catch {
+            return url
+        }
+        return url
+    }
+
     // Strip trailing /api/v1 to get the bare origin.
     const origin = apiBase.replace(/\/api\/v\d+\/?$/, '')
     return origin + (url.startsWith('/') ? url : '/' + url)

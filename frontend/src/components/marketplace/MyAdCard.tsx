@@ -2,6 +2,7 @@ import React from 'react'
 import Image from 'next/image'
 import { format } from 'date-fns'
 import { AdStatusBadge, AdStatus } from './AdStatusBadge'
+import { absoluteMediaUrl } from '@/services/upload.service'
 
 interface MyAdCardProps {
     ad: {
@@ -10,7 +11,7 @@ interface MyAdCardProps {
         price: string | number
         post_type: string
         status: AdStatus
-        images: { image: string }[]
+        images?: Array<{ image?: string; image_url?: string } | string>
         expires_at: string
         created_at?: string
         rejection_reason?: string
@@ -19,7 +20,14 @@ interface MyAdCardProps {
 }
 
 export function MyAdCard({ ad, actions }: MyAdCardProps) {
-    const hasImage = ad.images && ad.images.length > 0 && ad.images[0].image
+    const imageCandidate =
+        ad.images && ad.images.length > 0
+            ? typeof ad.images[0] === 'string'
+                ? ad.images[0]
+                : ad.images[0].image_url || ad.images[0].image || null
+            : null
+    const imageUrl = absoluteMediaUrl(imageCandidate)
+    const hasImage = !!imageUrl
     
     // Safety check for created_at, fallback to expires - duration roughly
     const postedDate = ad.created_at ? new Date(ad.created_at) : new Date(new Date(ad.expires_at).getTime() - 86400000 * 15)
@@ -30,7 +38,7 @@ export function MyAdCard({ ad, actions }: MyAdCardProps) {
             <div className="flex gap-3 mb-3">
                 <div className="w-14 h-14 rounded-lg bg-gray-50 border border-gray-200 overflow-hidden shrink-0 relative flex justify-center items-center">
                     {hasImage ? (
-                        <Image src={ad.images[0].image} alt={ad.title} fill unoptimized className="object-cover" />
+                        <Image src={imageUrl} alt={ad.title} fill unoptimized className="object-cover" />
                     ) : (
                         <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">{ad.post_type}</span>
                     )}

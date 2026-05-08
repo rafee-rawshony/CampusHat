@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth.store'
+import { absoluteMediaUrl } from '@/services/upload.service'
 
 import { AdStatusBadge, AdStatus } from '@/components/marketplace/AdStatusBadge'
 import { DeleteAdModal } from '@/components/marketplace/DeleteAdModal'
@@ -356,8 +357,8 @@ export default function MyAdsPage() {
                                 <div className="hidden sm:flex bg-white border border-gray-100 rounded-xl p-4 items-center gap-4 shadow-sm hover:shadow-md transition-shadow group">
                                     {/* Left */}
                                     <div className="w-16 h-16 rounded-lg bg-gray-50 border border-gray-200 overflow-hidden shrink-0 relative flex justify-center items-center">
-                                        {ad.images?.[0]?.image || ad.images?.[0] ? (
-                                            <Image src={typeof ad.images[0] === 'string' ? ad.images[0] : ad.images[0].image} alt={ad.title} fill unoptimized className="object-cover" />
+                                        {ad.images?.[0]?.image || ad.images?.[0]?.image_url || ad.images?.[0] ? (
+                                            <Image src={absoluteMediaUrl(typeof ad.images[0] === 'string' ? ad.images[0] : (ad.images[0].image_url || ad.images[0].image))} alt={ad.title} fill unoptimized className="object-cover" />
                                         ) : (
                                             <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">{ad.post_type}</span>
                                         )}

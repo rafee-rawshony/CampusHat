@@ -3,6 +3,11 @@
 # =================================================
 # Single command: docker-compose -f docker-compose.prod.yml up -d --build
 #
+# Required once before first run:
+#   1) cp .env.example .env
+#   2) cp backend/.env.production.example backend/.env
+#   3) set real secrets/domains in both files
+#
 # This is what runs on the live server. Everything is production-grade:
 #   • Django backend served by gunicorn (4 workers, threaded)
 #   • Next.js frontend pre-built (no HMR overhead) → 5-10x faster than dev
@@ -58,6 +63,9 @@ services:
     image: campushat-backend:prod
     container_name: campushat_backend
     restart: unless-stopped
+    # Named Docker volumes are root-owned on first mount; run as root so
+    # collectstatic/migrate can write reliably in fresh deployments.
+    user: "0:0"
     # Daphne (ASGI) handles both HTTP and WebSocket — Gunicorn (WSGI) cannot do WebSocket.
     command: ["sh", "-c", "python manage.py collectstatic --noinput && python manage.py migrate --noinput && python manage.py seed_universities && daphne -b 0.0.0.0 -p 8000 --proxy-headers config.asgi:application"]
     environment:
@@ -171,6 +179,26 @@ services:
   # =============================================
   # REVERSE PROXY — Nginx (gzip, cache, SSL-ready)
   # =============================================
+  cert_init:
+    image: alpine:3.20
+    container_name: campushat_cert_init
+    restart: "no"
+    command:
+      - sh
+      - -ec
+      - |
+        apk add --no-cache openssl >/dev/null
+        mkdir -p /etc/letsencrypt/live/campushat.com
+        if [ ! -f /etc/letsencrypt/live/campushat.com/fullchain.pem ] || [ ! -f /etc/letsencrypt/live/campushat.com/privkey.pem ]; then
+          openssl req -x509 -nodes -newkey rsa:2048 -days 3650 \
+            -keyout /etc/letsencrypt/live/campushat.com/privkey.pem \
+            -out /etc/letsencrypt/live/campushat.com/fullchain.pem \
+            -subj '/CN=localhost' \
+            -addext 'subjectAltName=DNS:localhost,DNS:campushat.com,DNS:www.campushat.com,IP:127.0.0.1,IP:178.128.122.157'
+        fi
+    volumes:
+      - certbot_data:/etc/letsencrypt
+
   nginx:
     image: nginx:1.25-alpine
     container_name: campushat_nginx
@@ -185,6 +213,8 @@ services:
       - certbot_data:/etc/letsencrypt:rw
       - certbot_www:/var/www/certbot:rw
     depends_on:
+      cert_init:
+        condition: service_completed_successfully
       backend:
         condition: service_healthy
       frontend:

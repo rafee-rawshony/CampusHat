@@ -27,6 +27,8 @@ urlpatterns = [
 
     # --- Django built-in admin (moved to avoid conflict with Next.js /admin route) ---
     path('django-admin/', admin.site.urls),
+    # Backward-compatible alias for older links/bookmarks.
+    path('admin/', admin.site.urls),
 
     # --- API Documentation ---
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

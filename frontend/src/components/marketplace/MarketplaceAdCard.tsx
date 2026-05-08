@@ -3,22 +3,25 @@ import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { Clock, MapPin, Package, User } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
+import { absoluteMediaUrl } from '@/services/upload.service'
 
 export interface MarketplaceListing {
     id: string | number
     title: string
     price: string | number
     price_unit?: string
-    images: { image: string }[]
+    images?: Array<{ image?: string; image_url?: string } | string>
+    primary_image_url?: string | null
     condition?: string
-    post_type: 'buy' | 'rental' | 'service' | 'food'
+    post_type: 'sell' | 'rent' | 'service' | 'food' | 'buy' | 'rental'
     category: { name: string } | string
     university_name?: string
-    user: {
-        first_name: string
-        last_name: string
+    user?: {
+        first_name?: string
+        last_name?: string
+        full_name?: string
         avatar?: string | null
-    }
+    } | null
     created_at: string
     contact_visible: boolean
     remaining_interest?: number
@@ -29,13 +32,26 @@ interface MarketplaceAdCardProps {
 }
 
 export function MarketplaceAdCard({ listing }: MarketplaceAdCardProps) {
-    const imageUrl = listing.images && listing.images.length > 0
-        ? listing.images[0].image
-        : null
+    const normalizedType =
+        listing.post_type === 'buy' ? 'sell'
+            : listing.post_type === 'rental' ? 'rent'
+                : listing.post_type
+    const imageCandidate =
+        listing.primary_image_url
+        || (listing.images && listing.images.length > 0
+            ? typeof listing.images[0] === 'string'
+                ? listing.images[0]
+                : listing.images[0].image_url || listing.images[0].image || null
+            : null)
+    const imageUrl = absoluteMediaUrl(imageCandidate)
 
     const timeAgo = formatDistanceToNow(new Date(listing.created_at), { addSuffix: true })
     const isOwnerVerifiedOrContactVisible = listing.contact_visible
     const categoryName = typeof listing.category === 'string' ? listing.category : listing.category?.name || 'Various'
+    const sellerName =
+        listing.user?.full_name
+        || [listing.user?.first_name, listing.user?.last_name].filter(Boolean).join(' ')
+        || 'Seller'
 
     return (
         <Link href={`/marketplace/listings/${listing.id}`} className="group block bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden relative">
@@ -58,9 +74,9 @@ export function MarketplaceAdCard({ listing }: MarketplaceAdCardProps) {
 
                 {/* Badges Overlay */}
                 <div className="absolute top-2 left-2 flex flex-col gap-1.5 items-start">
-                    {listing.post_type !== 'buy' && (
-                        <Badge variant={listing.post_type as 'rental' | 'service' | 'food'} className="uppercase shadow-sm text-[10px] font-extrabold tracking-wider">
-                            {listing.post_type}
+                    {normalizedType !== 'sell' && (
+                        <Badge variant={(normalizedType === 'rent' ? 'rental' : normalizedType) as 'rental' | 'service' | 'food'} className="uppercase shadow-sm text-[10px] font-extrabold tracking-wider">
+                            {normalizedType === 'rent' ? 'rental' : normalizedType}
                         </Badge>
                     )}
                     {listing.condition && (
@@ -109,15 +125,15 @@ export function MarketplaceAdCard({ listing }: MarketplaceAdCardProps) {
                     <div className="flex items-center gap-2">
                         {isOwnerVerifiedOrContactVisible ? (
                             <>
-                                {listing.user.avatar ? (
-                                    <Image src={listing.user.avatar} alt="Seller" width={24} height={24} unoptimized className="rounded-full object-cover w-6 h-6 border border-gray-200" />
+                                {listing.user?.avatar ? (
+                                    <Image src={absoluteMediaUrl(listing.user.avatar)} alt="Seller" width={24} height={24} unoptimized className="rounded-full object-cover w-6 h-6 border border-gray-200" />
                                 ) : (
                                     <div className="w-6 h-6 rounded-full bg-brand-primary/10 flex items-center justify-center border border-brand-primary/20">
                                         <User className="w-3 h-3 text-brand-primary" />
                                     </div>
                                 )}
                                 <span className="text-xs font-semibold text-gray-700 truncate max-w-[100px]">
-                                    {listing.user.first_name} {listing.user.last_name}
+                                    {sellerName}
                                 </span>
                             </>
                         ) : (

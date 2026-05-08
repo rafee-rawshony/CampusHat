@@ -161,12 +161,15 @@ class MarketplaceProductCreateSerializer(serializers.ModelSerializer):
 class MarketplaceProductListSerializer(serializers.ModelSerializer):
     """
     Public listing serializer. No user contact info.
+    Includes `primary_image_url` plus a lightweight `images` array for
+    frontend compatibility across listing card variants.
     """
 
     university_name = serializers.CharField(source='university.name', read_only=True)
     university_short = serializers.CharField(source='university.short_name', read_only=True)
     category_name = serializers.CharField(source='category.name', read_only=True, default=None)
     primary_image_url = serializers.SerializerMethodField()
+    images = serializers.SerializerMethodField()
 
     class Meta:
         model = MarketplaceProduct
@@ -174,7 +177,7 @@ class MarketplaceProductListSerializer(serializers.ModelSerializer):
             'id', 'title', 'post_type', 'price', 'price_unit',
             'condition', 'campus_visibility',
             'university_name', 'university_short',
-            'category_name', 'primary_image_url',
+            'category_name', 'primary_image_url', 'images',
             'status', 'expires_at', 'view_count',
             'is_negotiable', 'created_at',
         ]
@@ -186,6 +189,17 @@ class MarketplaceProductListSerializer(serializers.ModelSerializer):
             return primary.image_url
         first = obj.images.first()
         return first.image_url if first else None
+
+    def get_images(self, obj):
+        # Compatibility payload for clients that still read listing.images[0].image.
+        return [
+            {
+                'id': str(img.id),
+                'image_url': img.image_url,
+                'image': img.image_url,
+            }
+            for img in obj.images.all()
+        ]
 
 
 # =============================================================================

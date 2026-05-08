@@ -4,18 +4,21 @@ import { Clock, MapPin, Package, User } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 
 import { Badge } from '@/components/ui/badge'
+import { absoluteMediaUrl } from '@/services/upload.service'
 
 // Types for a marketplace listing card.
 // Exported so pages/sections can type their data properly.
-export type MarketplacePostType = 'buy' | 'rental' | 'service' | 'food'
+export type MarketplacePostType = 'sell' | 'rent' | 'service' | 'food' | 'buy' | 'rental'
+type CanonicalPostType = 'sell' | 'rent' | 'service' | 'food'
 
 export interface MarketplaceListing {
     id: string | number
     title: string
     price: string | number
     price_unit?: string | null          // e.g. "hour", "day" for services
-    post_type: MarketplacePostType
-    images?: { image?: string; image_url?: string }[]
+    post_type: MarketplacePostType | string
+    images?: Array<{ image?: string; image_url?: string } | string>
+    primary_image_url?: string | null
     condition?: string | null
     category?: { name: string } | string | null
     university_name?: string | null
@@ -39,17 +42,17 @@ interface MarketplaceListingCardProps {
 }
 
 // Badge color + label per post type.
-const TYPE_BADGE: Record<MarketplacePostType, { label: string; bg: string }> = {
-    buy: { label: 'BUY', bg: 'bg-blue-600' },
-    rental: { label: 'RENTAL', bg: 'bg-green-600' },
+const TYPE_BADGE: Record<CanonicalPostType, { label: string; bg: string }> = {
+    sell: { label: 'BUY', bg: 'bg-blue-600' },
+    rent: { label: 'RENTAL', bg: 'bg-green-600' },
     service: { label: 'SERVICE', bg: 'bg-purple-600' },
     food: { label: 'FOOD', bg: 'bg-amber-600' },
 }
 
 // Gradient shown when the listing has no image.
-const FALLBACK_BG: Record<MarketplacePostType, string> = {
-    buy: 'bg-gradient-to-br from-blue-500 to-blue-700',
-    rental: 'bg-gradient-to-br from-gray-500 to-gray-700',
+const FALLBACK_BG: Record<CanonicalPostType, string> = {
+    sell: 'bg-gradient-to-br from-blue-500 to-blue-700',
+    rent: 'bg-gradient-to-br from-gray-500 to-gray-700',
     service: 'bg-gradient-to-br from-purple-500 to-pink-600',
     food: 'bg-gradient-to-br from-amber-500 to-orange-600',
 }
@@ -83,10 +86,17 @@ function getTimeAgo(dateStr: string): string {
 
 // Build the displayed price string.
 // Rentals are always monthly. Services may have a price_unit like "hour".
-function formatPrice(listing: MarketplaceListing): string {
+function normalizePostType(postType: MarketplaceListing['post_type']): CanonicalPostType {
+    if (postType === 'buy') return 'sell'
+    if (postType === 'rental') return 'rent'
+    if (postType === 'rent' || postType === 'service' || postType === 'food') return postType
+    return 'sell'
+}
+
+function formatPrice(listing: MarketplaceListing, postType: CanonicalPostType): string {
     const amount = `৳${Number(listing.price || 0).toLocaleString()}`
-    if (listing.post_type === 'rental') return `${amount} / month`
-    if (listing.post_type === 'service' && listing.price_unit) {
+    if (postType === 'rent') return `${amount} / month`
+    if (postType === 'service' && listing.price_unit) {
         return `${amount} / ${listing.price_unit}`
     }
     return amount
@@ -96,8 +106,8 @@ function formatPrice(listing: MarketplaceListing): string {
 // `image` and `image_url`).
 function getImageUrl(listing: MarketplaceListing): string | null {
     const first = listing.images?.[0]
-    if (!first) return null
-    return first.image_url || first.image || null
+    const firstImage = typeof first === 'string' ? first : first?.image_url || first?.image || null
+    return listing.primary_image_url || firstImage || null
 }
 
 // Short seller name: "First L." — avoids showing the full last name.
@@ -110,9 +120,9 @@ function getSellerLabel(user: MarketplaceListing['user']): string {
 }
 
 export function MarketplaceListingCard({ listing }: MarketplaceListingCardProps) {
-    const postType: MarketplacePostType = listing.post_type || 'buy'
-    const imageUrl = getImageUrl(listing)
-    const badge = TYPE_BADGE[postType] || TYPE_BADGE.buy
+    const postType = normalizePostType(listing.post_type)
+    const imageUrl = absoluteMediaUrl(getImageUrl(listing))
+    const badge = TYPE_BADGE[postType] || TYPE_BADGE.sell
 
     const categoryName =
         typeof listing.category === 'string'
@@ -125,7 +135,7 @@ export function MarketplaceListingCard({ listing }: MarketplaceListingCardProps)
 
     const timeLeft = getTimeLeft(listing.created_at)
     const timeAgo = getTimeAgo(listing.created_at)
-    const priceLabel = formatPrice(listing)
+    const priceLabel = formatPrice(listing, postType)
 
     // Security: the backend decides visibility. Default to hidden when not sent.
     const contactVisible = listing.contact_visible === true
@@ -164,7 +174,7 @@ export function MarketplaceListingCard({ listing }: MarketplaceListingCardProps)
                             {listing.condition.replace(/-/g, ' ')}
                         </Badge>
                     )}
-                    {postType !== 'buy' && (
+                    {postType !== 'sell' && (
                         <Badge className={`${badge.bg} text-white border-0 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full shadow-sm`}>
                             {badge.label}
                         </Badge>
@@ -220,7 +230,7 @@ export function MarketplaceListingCard({ listing }: MarketplaceListingCardProps)
                             <>
                                 {listing.user?.avatar ? (
                                     <Image
-                                        src={listing.user.avatar}
+                                        src={absoluteMediaUrl(listing.user.avatar)}
                                         alt=""
                                         width={24}
                                         height={24}

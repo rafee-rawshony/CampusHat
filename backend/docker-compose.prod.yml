@@ -58,6 +58,9 @@ services:
     image: campushat-backend:prod
     container_name: campushat_backend
     restart: unless-stopped
+    # Named Docker volumes are root-owned on first mount; run as root so
+    # collectstatic/migrate can write reliably in fresh deployments.
+    user: "0:0"
     command: >
       sh -c "python manage.py collectstatic --noinput &&
              python manage.py migrate --noinput &&
@@ -149,6 +152,26 @@ services:
       - campushat_network
 
   # --- Nginx Reverse Proxy ---
+  cert_init:
+    image: alpine:3.20
+    container_name: campushat_cert_init
+    restart: "no"
+    command:
+      - sh
+      - -ec
+      - |
+        apk add --no-cache openssl >/dev/null
+        mkdir -p /etc/letsencrypt/live/campushat.com
+        if [ ! -f /etc/letsencrypt/live/campushat.com/fullchain.pem ] || [ ! -f /etc/letsencrypt/live/campushat.com/privkey.pem ]; then
+          openssl req -x509 -nodes -newkey rsa:2048 -days 3650 \
+            -keyout /etc/letsencrypt/live/campushat.com/privkey.pem \
+            -out /etc/letsencrypt/live/campushat.com/fullchain.pem \
+            -subj '/CN=localhost' \
+            -addext 'subjectAltName=DNS:localhost,DNS:campushat.com,DNS:www.campushat.com,IP:127.0.0.1,IP:178.128.122.157'
+        fi
+    volumes:
+      - certbot_data:/etc/letsencrypt
+
   nginx:
     image: nginx:1.25-alpine
     container_name: campushat_nginx
@@ -163,6 +186,8 @@ services:
       - certbot_data:/etc/letsencrypt:rw
       - certbot_www:/var/www/certbot:rw
     depends_on:
+      cert_init:
+        condition: service_completed_successfully
       backend:
         condition: service_healthy
     networks:

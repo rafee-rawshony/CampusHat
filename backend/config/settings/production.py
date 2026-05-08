@@ -37,17 +37,39 @@ ALLOWED_HOSTS = list(dict.fromkeys([
 # SECURITY
 # =============================================================================
 
-# Set to False during initial deployment (before SSL is set up).
-# After Certbot issues the cert and Nginx handles HTTPS, set back to True.
-SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
-SECURE_HSTS_SECONDS = 31536000  # 1 year
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True
+def _is_https_url(url: str) -> bool:
+    return str(url or '').strip().lower().startswith('https://')
+
+
+# SSL_MODE lets deployment run in both SSL and non-SSL environments without code changes:
+#   auto      -> derive from SITE_URL/FRONTEND_URL scheme
+#   flexible  -> keep both HTTP + HTTPS working (no forced redirect, non-secure cookies)
+#   strict    -> enforce HTTPS-only (redirect + secure cookies + HSTS)
+_ssl_mode = str(config('SSL_MODE', default='auto')).strip().lower()
+if _ssl_mode not in {'auto', 'flexible', 'strict'}:
+    _ssl_mode = 'auto'
+
+_detected_https = _is_https_url(SITE_URL) or _is_https_url(FRONTEND_URL)  # noqa: F405
+if _ssl_mode == 'strict':
+    _default_secure = True
+    _default_redirect = True
+elif _ssl_mode == 'flexible':
+    _default_secure = False
+    _default_redirect = False
+else:
+    _default_secure = _detected_https
+    _default_redirect = _detected_https
+
+SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=_default_redirect, cast=bool)
+_hsts_enabled = config('SECURE_HSTS_ENABLED', default=_default_secure, cast=bool)
+SECURE_HSTS_SECONDS = 31536000 if _hsts_enabled else 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = _hsts_enabled
+SECURE_HSTS_PRELOAD = _hsts_enabled
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_BROWSER_XSS_FILTER = True
-SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=True, cast=bool)
-CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=True, cast=bool)
+SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=_default_secure, cast=bool)
+CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=_default_secure, cast=bool)
 X_FRAME_OPTIONS = 'DENY'
 
 # =============================================================================
