@@ -318,12 +318,31 @@ class MarketplaceProductOwnerUpdateSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         content_fields = {'title', 'description', 'price'}
+        was_resubmitted = False
+        
         if instance.status == 'active' and (set(validated_data) & content_fields):
             validated_data['status'] = 'pending'
+            was_resubmitted = True
         if instance.status == 'rejected':
             validated_data['status'] = 'pending'
             validated_data['rejection_reason'] = ''
+            was_resubmitted = True
+            
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
+
+        if was_resubmitted:
+            try:
+                from apps.admin_panel.notification_utils import notify_admins
+                notify_admins(
+                    notification_type='marketplace',
+                    title='Marketplace Ad Re-submitted',
+                    message=f'The ad "{instance.title}" has been edited and re-submitted for review.',
+                    action_url='/admin/marketplace/ads'
+                )
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(f"Failed to notify admins of re-submission: {e}")
+                
         return instance

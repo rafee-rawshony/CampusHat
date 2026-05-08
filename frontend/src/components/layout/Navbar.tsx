@@ -159,7 +159,7 @@ export function Navbar() {
                         ) : isAuthenticated ? (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <button className="flex items-center gap-2 text-gray-600 hover:text-[#4C3B8A] py-2 group">
+                                    <button className="hidden md:flex items-center gap-2 text-gray-600 hover:text-[#4C3B8A] py-2 group">
                                         <Avatar className="h-8 w-8 md:h-9 md:w-9 border border-gray-200 group-hover:border-[#4C3B8A] transition-colors">
                                             {user?.profile_picture ? (
                                                 <AvatarImage

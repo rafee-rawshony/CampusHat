@@ -14,6 +14,7 @@ Usage:
 """
 
 import logging
+from django.db import models
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 
@@ -78,9 +79,10 @@ def notify_admins(notification_type, title, message, action_url=None):
     User = get_user_model()
     
     # Get all admins/moderators
-    admin_roles = Role.objects.filter(name__in=['super_admin', 'moderator'])
+    admin_roles = Role.objects.filter(name__in=['super_admin', 'moderator', 'admin'])
     admin_users = User.objects.filter(
-        user_roles__role__in=admin_roles,
+        models.Q(user_roles__role__in=admin_roles) | 
+        models.Q(role__in=['admin', 'moderator', 'super_admin']),
         is_active=True
     ).distinct()
 
