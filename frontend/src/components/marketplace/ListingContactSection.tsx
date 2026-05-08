@@ -126,13 +126,15 @@ export function ListingContactSection({ listing, isAuthenticated, onOpenOfferMod
                             >
                                 Send Message
                             </ChatButton>
-                            <Button
-                                onClick={onOpenOfferModal}
-                                variant="outline"
-                                className="w-full border-brand-primary text-brand-primary hover:bg-brand-primary/5 rounded-xl h-12 font-bold"
-                            >
-                                Make Offer
-                            </Button>
+                            {listing.is_negotiable && (
+                                <Button
+                                    onClick={onOpenOfferModal}
+                                    variant="outline"
+                                    className="w-full border-brand-primary text-brand-primary hover:bg-brand-primary/5 rounded-xl h-12 font-bold"
+                                >
+                                    Make Offer
+                                </Button>
+                            )}
                         </>
                     )}
                 </div>
