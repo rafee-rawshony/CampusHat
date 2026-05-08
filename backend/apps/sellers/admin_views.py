@@ -411,10 +411,7 @@ class AdminSellerReviewView(APIView):
         if action == 'approve':
             seller.status = 'approved'
             seller.approved_by = request.user
-            badge_label = request.data.get('badge_label', '').strip()
-            if badge_label:
-                seller.badge_label = badge_label
-            seller.save(update_fields=['status', 'approved_by', 'badge_label'])
+            seller.save(update_fields=['status', 'approved_by'])
             
             # Update the user's role to seller if they are a regular user or student
             if seller.user.role in ['normal_user', 'student']:
