@@ -33,7 +33,7 @@ export function MakeOfferModal({ isOpen, onClose, listingId, listingTitle, askin
         setIsSubmitting(true)
         try {
             await api.post(`/marketplace/listings/${listingId}/offers/`, {
-                amount: parseFloat(offerPrice),
+                offered_price: parseFloat(offerPrice),
                 message: message.trim()
             })
             toast.success(`Your offer of ৳${offerPrice} has been sent to the seller.`)
