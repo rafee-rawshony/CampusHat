@@ -155,6 +155,13 @@ export default function MyAdsPage() {
                 {ad.status === 'pending' && (
                     <>
                         <Button 
+                            onClick={() => router.push(`/marketplace/post?edit=${ad.id}`)}
+                            variant="outline" size="sm" 
+                            className="h-8 px-3 text-gray-600 border-gray-200 hover:bg-gray-50 flex items-center gap-1.5 rounded-lg text-xs"
+                        >
+                            <Edit2 className="w-3.5 h-3.5" /> Edit
+                        </Button>
+                        <Button 
                             onClick={() => router.push(`/marketplace/listings/${ad.id}`)}
                             variant="outline" size="sm" 
                             className="h-8 px-3 text-gray-600 border-gray-200 hover:bg-gray-50 flex items-center gap-1.5 rounded-lg text-xs"

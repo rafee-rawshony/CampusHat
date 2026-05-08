@@ -113,7 +113,7 @@ export function ListingContactSection({ listing, isAuthenticated, onOpenOfferMod
                 <div className="flex flex-col gap-3">
                     {isOwnListing ? (
                         <Button
-                            onClick={() => router.push(`/marketplace/my-ads/edit/${listing.id}`)}
+                            onClick={() => router.push(`/marketplace/post?edit=${listing.id}`)}
                             className="w-full bg-[#4C3B8A] hover:bg-[#2D1B69] text-white rounded-xl h-12 font-bold shadow-md gap-2"
                         >
                             Edit Listing

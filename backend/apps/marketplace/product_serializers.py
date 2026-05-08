@@ -293,11 +293,11 @@ class MarketplaceProductOwnerUpdateSerializer(serializers.ModelSerializer):
         # Only active or rejected ads can be edited.
         # pending, expired, sold, deleted → no edits allowed.
         instance = self.instance
-        if instance and instance.status not in ['active', 'rejected']:
+        if instance and instance.status not in ['active', 'rejected', 'pending']:
             raise serializers.ValidationError({
                 'non_field_errors': [
                     f'Cannot edit an ad with status: {instance.status}. '
-                    f'Only active or rejected ads can be edited.'
+                    f'Only active, rejected, or pending ads can be edited.'
                 ]
             })
         return data
