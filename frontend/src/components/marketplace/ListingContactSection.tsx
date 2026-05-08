@@ -13,6 +13,7 @@ interface ListingContactSectionProps {
         contact_visible: boolean
         contact_phone?: string
         meetup_location?: string
+        is_negotiable: boolean
         user_info: {
             id: string | number
             full_name: string

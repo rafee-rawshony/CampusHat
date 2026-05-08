@@ -179,7 +179,8 @@ Thumbs.db
 *.log
 
 campushat-demo/
-.claude/settings.json
-.claude/settings.local.json
-
-/.claude
+.agent/
+.claude/
+CLAUDE.md
+*.md.resolved
+nginx_logs.txt
