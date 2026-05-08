@@ -136,6 +136,7 @@ export default function GoogleSignInButton({ mode = 'signin', onSuccess }: Googl
             client_id: clientId,
             callback: handleCredentialResponse,
             ux_mode: 'popup',
+            auto_select: false,
         })
 
         // Clear any previous render before re-rendering the button
