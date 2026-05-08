@@ -13,7 +13,7 @@ class StoreProductFilter(django_filters.FilterSet):
     """
     Product filter supporting:
     - category__slug (includes descendants)
-    - store__slug
+    - store__slug / store
     - price_min / price_max
     - is_featured
     - tags (contains)
@@ -21,6 +21,7 @@ class StoreProductFilter(django_filters.FilterSet):
     """
 
     category_slug = django_filters.CharFilter(method='filter_by_category_slug')
+    store = django_filters.CharFilter(field_name='store__slug')
     store_slug = django_filters.CharFilter(field_name='store__slug')
     price_min = django_filters.NumberFilter(
         field_name='base_price', lookup_expr='gte',
@@ -36,7 +37,7 @@ class StoreProductFilter(django_filters.FilterSet):
         model = StoreProduct
         fields = [
             'category_slug', 'store_slug', 'price_min', 'price_max',
-            'is_featured', 'tags', 'search',
+            'store', 'is_featured', 'tags', 'search',
         ]
 
     def filter_by_category_slug(self, queryset, name, value):

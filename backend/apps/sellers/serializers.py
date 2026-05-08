@@ -418,12 +418,23 @@ class SellerProfileAdminSerializer(serializers.ModelSerializer):
         store = getattr(obj, 'store', None)
         if not store: return None
         return {
+            'id': str(store.id),
             'name': store.name,
+            'store_name': store.name,
+            'slug': store.slug,
             'description': store.description,
             'store_category': store.store_category,
             'store_type': store.store_type,
+            'store_address': store.store_address,
+            'facebook_page': store.facebook_page,
             'logo': store.logo_url,
+            'logo_url': store.logo_url,
             'banner': store.banner_url,
+            'banner_url': store.banner_url,
+            'banner_color': store.banner_color,
+            'business_phone': store.business_phone,
+            'business_email': store.business_email,
+            'status': store.status,
         }
 
     def get_nid_number_decrypted(self, obj):
@@ -451,6 +462,7 @@ class StoreCreateSerializer(serializers.ModelSerializer):
         model = Store
         fields = [
             'name', 'description', 'store_category',
+            'banner_color', 'store_type', 'store_address', 'facebook_page',
             'return_policy', 'avg_dispatch_hours', 'shipping_coverage',
             'business_phone', 'business_email', 'logo', 'banner',
         ]
@@ -486,15 +498,74 @@ class StoreCreateSerializer(serializers.ModelSerializer):
 
 
 class StoreUpdateSerializer(serializers.ModelSerializer):
+    mobile_banking_method = serializers.ChoiceField(
+        choices=['bkash', 'nagad', 'rocket'],
+        required=False, allow_blank=True, allow_null=True,
+    )
+    mobile_banking_number = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    bank_account_name = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    bank_account_number = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    bank_name = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+
     class Meta:
         model = Store
         fields = [
             'name', 'description', 'store_category',
-            'logo_url', 'banner_url',
+            'logo_url', 'banner_url', 'banner_color',
             'store_type', 'store_address', 'facebook_page',
             'return_policy', 'avg_dispatch_hours', 'shipping_coverage',
             'business_phone', 'business_email',
+            'mobile_banking_method', 'mobile_banking_number',
+            'bank_account_name', 'bank_account_number', 'bank_name',
         ]
+
+    def update(self, instance, validated_data):
+        payout_keys = {
+            'mobile_banking_method', 'mobile_banking_number',
+            'bank_account_name', 'bank_account_number', 'bank_name',
+        }
+        payout_data = {key: validated_data.pop(key) for key in list(validated_data.keys()) if key in payout_keys}
+
+        store = super().update(instance, validated_data)
+        seller = store.seller
+
+        seller_fields = []
+        if 'business_phone' in validated_data and seller.business_phone != store.business_phone:
+            seller.business_phone = store.business_phone
+            seller_fields.append('business_phone')
+        if 'business_email' in validated_data and seller.business_email != store.business_email:
+            seller.business_email = store.business_email
+            seller_fields.append('business_email')
+        if 'name' in validated_data and seller.business_name != store.name:
+            seller.business_name = store.name
+            seller_fields.append('business_name')
+
+        if 'mobile_banking_method' in payout_data:
+            seller.mobile_banking_method = payout_data.get('mobile_banking_method') or None
+            seller_fields.append('mobile_banking_method')
+
+        if 'mobile_banking_number' in payout_data:
+            mobile_number = payout_data.get('mobile_banking_number') or ''
+            seller.mobile_banking_number = encrypt_value(mobile_number) if mobile_number else None
+            seller_fields.append('mobile_banking_number')
+
+        bank_keys = {'bank_account_name', 'bank_account_number', 'bank_name'}
+        if bank_keys.intersection(payout_data.keys()):
+            bank_details = {
+                'account_name': payout_data.get('bank_account_name') or '',
+                'account_number': payout_data.get('bank_account_number') or '',
+                'bank_name': payout_data.get('bank_name') or '',
+            }
+            seller.bank_account_details = (
+                encrypt_value(json.dumps(bank_details))
+                if any(bank_details.values()) else None
+            )
+            seller_fields.append('bank_account_details')
+
+        if seller_fields:
+            seller.save(update_fields=list(set(seller_fields)))
+
+        return store
 
 
 class StoreDetailSerializer(serializers.ModelSerializer):
@@ -503,17 +574,36 @@ class StoreDetailSerializer(serializers.ModelSerializer):
     seller_name = serializers.CharField(source='seller.business_name', read_only=True)
     university_name = serializers.CharField(source='university.name', read_only=True)
     badges = serializers.SerializerMethodField()
+    store_name = serializers.CharField(source='name', read_only=True)
+    logo = serializers.CharField(source='logo_url', read_only=True)
+    banner = serializers.CharField(source='banner_url', read_only=True)
+    product_count = serializers.SerializerMethodField()
+    products_count = serializers.SerializerMethodField()
+    followers_count = serializers.IntegerField(source='follower_count', read_only=True)
+    reviews_count = serializers.IntegerField(source='review_count', read_only=True)
+    rating_count = serializers.IntegerField(source='review_count', read_only=True)
+    seller = serializers.SerializerMethodField()
+    commission_rate = serializers.SerializerMethodField()
+    mobile_banking_method = serializers.SerializerMethodField()
+    mobile_banking_number = serializers.SerializerMethodField()
+    bank_account_name = serializers.SerializerMethodField()
+    bank_account_number = serializers.SerializerMethodField()
+    bank_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Store
         fields = [
-            'id', 'name', 'slug', 'description', 'logo_url', 'banner_url',
+            'id', 'name', 'store_name', 'slug', 'description',
+            'logo_url', 'banner_url', 'logo', 'banner', 'banner_color',
             'store_category', 'store_type', 'store_address', 'facebook_page',
             'return_policy', 'avg_dispatch_hours',
             'shipping_coverage', 'business_phone', 'business_email',
             'status', 'rating_avg', 'review_count', 'total_sales_count',
-            'follower_count', 'response_rate',
-            'seller_name', 'university_name', 'badges',
+            'follower_count', 'followers_count', 'response_rate',
+            'product_count', 'products_count', 'reviews_count', 'rating_count',
+            'seller_name', 'seller', 'university_name', 'badges',
+            'commission_rate', 'mobile_banking_method', 'mobile_banking_number',
+            'bank_account_name', 'bank_account_number', 'bank_name',
             'created_at', 'updated_at',
         ]
         read_only_fields = fields
@@ -522,24 +612,101 @@ class StoreDetailSerializer(serializers.ModelSerializer):
         active = obj.badges.filter(is_active=True)
         return SellerBadgeSerializer(active, many=True).data
 
+    def get_product_count(self, obj):
+        return obj.products.filter(is_active=True, deleted_at__isnull=True).count()
+
+    def get_products_count(self, obj):
+        return self.get_product_count(obj)
+
+    def get_seller(self, obj):
+        user = obj.seller.user
+        return {
+            'id': str(obj.seller.id),
+            'business_name': obj.seller.business_name,
+            'status': obj.seller.status,
+            'is_student_seller': obj.seller.is_student_seller,
+            'user': {
+                'id': str(user.id),
+                'full_name': user.full_name,
+                'email': user.email,
+                'phone': user.phone,
+                'profile_picture': getattr(user, 'profile_picture', None),
+                'date_joined': getattr(user, 'date_joined', None),
+            },
+        }
+
+    def _can_view_private_seller_fields(self, obj):
+        if self.context.get('include_private'):
+            return True
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if not user or not getattr(user, 'is_authenticated', False):
+            return False
+        return (
+            getattr(user, 'is_staff', False)
+            or getattr(user, 'role', None) in ['admin', 'super_admin', 'moderator', 'seller_mod']
+            or getattr(obj.seller, 'user_id', None) == getattr(user, 'id', None)
+        )
+
+    def get_commission_rate(self, obj):
+        return obj.seller.commission_rate if self._can_view_private_seller_fields(obj) else None
+
+    def get_mobile_banking_method(self, obj):
+        return obj.seller.mobile_banking_method if self._can_view_private_seller_fields(obj) else None
+
+    def get_mobile_banking_number(self, obj):
+        if not self._can_view_private_seller_fields(obj):
+            return None
+        return obj.seller.get_mobile_number()
+
+    def _bank_details(self, obj):
+        if not self._can_view_private_seller_fields(obj):
+            return {}
+        return obj.seller.get_bank_details() or {}
+
+    def get_bank_account_name(self, obj):
+        return self._bank_details(obj).get('account_name', '')
+
+    def get_bank_account_number(self, obj):
+        return self._bank_details(obj).get('account_number', '')
+
+    def get_bank_name(self, obj):
+        return self._bank_details(obj).get('bank_name', '')
+
 
 class StoreListSerializer(serializers.ModelSerializer):
     """Compact store serializer for search results."""
 
     university_name = serializers.CharField(source='university.name', read_only=True)
     badge_count = serializers.SerializerMethodField()
+    store_name = serializers.CharField(source='name', read_only=True)
+    logo = serializers.CharField(source='logo_url', read_only=True)
+    banner = serializers.CharField(source='banner_url', read_only=True)
+    product_count = serializers.SerializerMethodField()
+    total_products = serializers.SerializerMethodField()
+    followers_count = serializers.IntegerField(source='follower_count', read_only=True)
+    reviews_count = serializers.IntegerField(source='review_count', read_only=True)
 
     class Meta:
         model = Store
         fields = [
-            'id', 'name', 'slug', 'logo_url', 'store_category',
-            'status', 'rating_avg', 'review_count',
+            'id', 'name', 'store_name', 'slug',
+            'logo_url', 'banner_url', 'logo', 'banner', 'banner_color',
+            'description', 'store_category',
+            'status', 'rating_avg', 'review_count', 'reviews_count',
+            'follower_count', 'followers_count', 'product_count', 'total_products',
             'university_name', 'badge_count',
         ]
         read_only_fields = fields
 
     def get_badge_count(self, obj):
         return obj.badges.filter(is_active=True).count()
+
+    def get_product_count(self, obj):
+        return obj.products.filter(is_active=True, deleted_at__isnull=True).count()
+
+    def get_total_products(self, obj):
+        return self.get_product_count(obj)
 
 
 # =============================================================================

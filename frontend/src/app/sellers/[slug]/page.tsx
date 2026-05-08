@@ -9,6 +9,8 @@ import {
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { normalizeSingleResponse } from '@/lib/response'
+import { absoluteMediaUrl } from '@/services/upload.service'
 import { ProductCard, ProductCardSkeleton } from '@/components/mall/ProductCard'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -35,7 +37,7 @@ export default function SellerStorePage() {
     // Fetch store
     const { data: store, isLoading: storeLoading, isError: storeError } = useQuery({
         queryKey: ['store', slug],
-        queryFn: () => api.get(`/stores/${slug}/`).then(r => r.data),
+        queryFn: () => api.get(`/stores/${slug}/`).then(r => normalizeSingleResponse<any>(r.data)),
         enabled: !!slug,
         retry: 1,
     })
@@ -43,7 +45,7 @@ export default function SellerStorePage() {
     // Fetch following status
     const { data: followData } = useQuery({
         queryKey: ['store-follow', slug],
-        queryFn: () => api.get(`/stores/${slug}/follow_status/`).then(r => r.data).catch(() => ({ is_following: false })),
+        queryFn: () => api.get(`/stores/${slug}/follow_status/`).then(r => normalizeSingleResponse<any>(r.data) || {}).catch(() => ({ is_following: false })),
         enabled: !!slug && isAuthenticated,
     })
     const isFollowing = followData?.is_following || false
@@ -70,7 +72,7 @@ export default function SellerStorePage() {
     const { data: productsRaw, isLoading: productsLoading } = useQuery({
         queryKey: ['store-products', slug, sort],
         queryFn: () => api.get('/mall/products/', {
-            params: { store: slug, ordering: sort, page_size: 24, is_active: true }
+            params: { store_slug: slug, ordering: sort, page_size: 24 }
         }).then(r => {
             const data = r.data
             if (data?.results) return data.results
@@ -103,7 +105,7 @@ export default function SellerStorePage() {
                 <div className="text-center">
                     <Package className="w-16 h-16 text-gray-200 mx-auto mb-4" />
                     <h2 className="font-bold text-gray-700 text-lg mb-2">Store not found</h2>
-                    <p className="text-sm text-gray-400 mb-4">This store may have been removed or doesn't exist.</p>
+                    <p className="text-sm text-gray-400 mb-4">This store may have been removed or does not exist.</p>
                     <Link href="/sellers" className="text-[#4C3B8A] font-semibold hover:underline text-sm">
                         ← Browse Sellers
                     </Link>
@@ -113,8 +115,8 @@ export default function SellerStorePage() {
     }
 
     const storeName  = store.name || store.store_name || 'Store'
-    const bannerUrl  = store.banner || store.store_banner || null
-    const logoUrl    = store.logo || null
+    const bannerUrl  = absoluteMediaUrl(store.banner_url || store.banner || store.store_banner || null)
+    const logoUrl    = absoluteMediaUrl(store.logo_url || store.logo || null)
     const bannerColor = store.banner_color || '#4C3B8A'
     const rating     = Number(store.rating_avg || store.rating || 0)
     const joinYear   = store.created_at ? new Date(store.created_at).getFullYear() : null
@@ -267,7 +269,7 @@ export default function SellerStorePage() {
                         <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
                             <Package className="w-12 h-12 text-gray-200 mx-auto mb-4" />
                             <h3 className="font-semibold text-gray-700 mb-2">No products yet</h3>
-                            <p className="text-sm text-gray-400">This store hasn't listed any products.</p>
+                            <p className="text-sm text-gray-400">This store has not listed any products.</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">

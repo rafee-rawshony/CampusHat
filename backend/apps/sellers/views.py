@@ -297,7 +297,7 @@ class StoreCreateView(GenericAPIView):
 class MyStoreView(GenericAPIView):
     """GET /api/v1/stores/my-store/"""
 
-    permission_classes = [IsAuthenticated, IsApprovedSeller]
+    permission_classes = [IsAuthenticated]
     serializer_class = StoreDetailSerializer
 
     def get(self, request):
@@ -313,14 +313,16 @@ class MyStoreView(GenericAPIView):
 
         return Response({
             'success': True, 'message': 'Request successful.',
-            'data': StoreDetailSerializer(store).data,
+            'data': StoreDetailSerializer(
+                store, context={'request': request, 'include_private': True},
+            ).data,
         })
 
 
 class StoreUpdateView(GenericAPIView):
     """PATCH /api/v1/stores/my-store/update/"""
 
-    permission_classes = [IsAuthenticated, IsApprovedSeller]
+    permission_classes = [IsAuthenticated]
     serializer_class = StoreUpdateSerializer
 
     def patch(self, request):
@@ -337,16 +339,19 @@ class StoreUpdateView(GenericAPIView):
         serializer = self.get_serializer(store, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        store.refresh_from_db()
         return Response({
             'success': True, 'message': 'Store updated.',
-            'data': StoreDetailSerializer(store).data,
+            'data': StoreDetailSerializer(
+                store, context={'request': request, 'include_private': True},
+            ).data,
         })
 
 
 class StoreSubmitForReviewView(APIView):
     """POST /api/v1/stores/my-store/submit-for-review/"""
 
-    permission_classes = [IsAuthenticated, IsApprovedSeller]
+    permission_classes = [IsAuthenticated]
 
     @extend_schema(request=None)
     def post(self, request):
@@ -383,7 +388,7 @@ class PublicStoreDetailView(GenericAPIView):
     def get(self, request, slug):
         try:
             store = Store.objects.select_related(
-                'seller', 'university',
+                'seller', 'seller__user', 'university',
             ).get(slug=slug, status='active', deleted_at__isnull=True)
         except Store.DoesNotExist:
             return Response({
@@ -393,7 +398,7 @@ class PublicStoreDetailView(GenericAPIView):
 
         return Response({
             'success': True, 'message': 'Request successful.',
-            'data': StoreDetailSerializer(store).data,
+            'data': StoreDetailSerializer(store, context={'request': request}).data,
         })
 
 
@@ -406,7 +411,7 @@ class PublicStoreListView(GenericAPIView):
     def get(self, request):
         qs = Store.objects.filter(
             status='active', deleted_at__isnull=True,
-        ).select_related('university')
+        ).select_related('seller', 'seller__user', 'university')
 
         # Filters
         uni_slug = request.query_params.get('university_slug')
@@ -416,7 +421,7 @@ class PublicStoreListView(GenericAPIView):
         if cat:
             qs = qs.filter(store_category__icontains=cat)
 
-        serializer = StoreListSerializer(qs, many=True)
+        serializer = StoreListSerializer(qs, many=True, context={'request': request})
         return Response({
             'success': True, 'message': 'Data retrieved successfully.',
             'data': serializer.data,
@@ -583,12 +588,14 @@ class MyFollowedStoresView(APIView):
             data.append({
                 'id': str(store.id),
                 'slug': store.slug,
-                'store_name': store.store_name,
+                'store_name': store.name,
+                'name': store.name,
                 'logo_url': getattr(store, 'logo_url', None) or getattr(store, 'logo', None),
                 'banner_url': getattr(store, 'banner_url', None) or getattr(store, 'banner', None),
+                'banner_color': getattr(store, 'banner_color', '#4C3B8A'),
                 'description': getattr(store, 'description', '') or '',
                 'follower_count': getattr(store, 'follower_count', 0),
-                'product_count': getattr(store, 'product_count', 0),
+                'product_count': store.products.filter(is_active=True, deleted_at__isnull=True).count(),
                 'rating_avg': float(getattr(store, 'rating_avg', 0) or 0),
                 'followed_at': f.created_at,
             })

@@ -27,6 +27,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { absoluteMediaUrl } from '@/services/upload.service'
+import { normalizeSingleResponse } from '@/lib/response'
 
 export function SellerSidebarContent() {
     const pathname = usePathname()
@@ -73,7 +74,7 @@ export function SellerSidebarContent() {
     // Fetch the seller's own store from GET /stores/my-store/ (authenticated)
     const { data: storeData } = useQuery({
         queryKey: ['my-store'],
-        queryFn: () => api.get('/stores/my-store/').then(r => r.data).catch(() => null),
+        queryFn: () => api.get('/stores/my-store/').then(r => normalizeSingleResponse<any>(r.data)).catch(() => null),
         staleTime: 300_000
     })
 
@@ -85,18 +86,20 @@ export function SellerSidebarContent() {
                     className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg mb-2 shadow-sm border border-gray-200 object-cover"
                     style={{ 
                         backgroundColor: storeData?.banner_color || '#4C3B8A',
-                        backgroundImage: storeData?.logo ? `url(${absoluteMediaUrl(storeData.logo)})` : 'none',
+                        backgroundImage: (storeData?.logo_url || storeData?.logo)
+                            ? `url(${absoluteMediaUrl(storeData.logo_url || storeData.logo)})`
+                            : 'none',
                         backgroundSize: 'cover',
                         backgroundPosition: 'center'
                     }}
                 >
-                    {!storeData?.logo && (storeData?.name?.charAt(0) || 'S')}
+                    {!(storeData?.logo_url || storeData?.logo) && (storeData?.name?.charAt(0) || 'S')}
                 </div>
                 <h2 className="font-bold text-sm text-gray-900 line-clamp-1 text-center w-full">
                     {storeData?.name || 'My Store'}
                 </h2>
                 <p className="text-xs text-gray-400 line-clamp-1 w-full text-center">
-                    {storeData?.contact_email || 'Seller Account'}
+                    {storeData?.business_email || storeData?.contact_email || 'Seller Account'}
                 </p>
             </div>
 

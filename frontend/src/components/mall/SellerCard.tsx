@@ -3,7 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { Star } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { absoluteMediaUrl } from '@/services/upload.service'
 
 export interface SellerCardProps {
     store: {
@@ -39,8 +39,8 @@ export function SellerCard({ store }: SellerCardProps) {
         ? store.banner_color
         : FALLBACK_COLORS[storeName.length % FALLBACK_COLORS.length]
 
-    const bannerUrl = store.banner || store.store_banner || null
-    const logoUrl   = store.logo || store.logo_url || store.profile_picture || null
+    const bannerUrl = absoluteMediaUrl(store.banner || store.store_banner || null)
+    const logoUrl   = absoluteMediaUrl(store.logo || store.logo_url || store.profile_picture || null)
     const rating    = Number(store.rating_avg || 0)
     const products  = store.product_count ?? store.total_products ?? 0
     const followers = store.follower_count ?? store.followers_count ?? 0

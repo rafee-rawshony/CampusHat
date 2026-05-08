@@ -361,6 +361,11 @@ class StoreProductViewSet(ViewSet):
 
         # Ordering
         ordering = request.query_params.get('ordering', '-created_at')
+        ordering_aliases = {
+            'price': 'base_price',
+            '-price': '-base_price',
+        }
+        ordering = ordering_aliases.get(ordering, ordering)
         allowed = ['-created_at', 'created_at', 'base_price', '-base_price',
                     '-sold_count', '-rating_avg']
         if ordering in allowed:

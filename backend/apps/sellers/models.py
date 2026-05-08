@@ -293,6 +293,7 @@ class Store(BaseModel):
     description = models.TextField(blank=True, default='')
     logo_url = models.CharField(max_length=500, blank=True, null=True)
     banner_url = models.CharField(max_length=500, blank=True, null=True)
+    banner_color = models.CharField(max_length=20, default='#4C3B8A', blank=True)
     store_category = models.CharField(max_length=100, blank=True, default='')
     # Daraz-style: is this an online-only, brick-and-mortar, or hybrid store?
     store_type = models.CharField(

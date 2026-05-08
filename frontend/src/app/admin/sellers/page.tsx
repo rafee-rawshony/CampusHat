@@ -55,9 +55,9 @@ export default function AdminSellersPage() {
     const { data: sellersData, isLoading: sellersLoading } = useQuery({
         queryKey: ['admin-all-sellers'],
         queryFn: async () => {
-            // Fetch all sellers (pending + approved) from the pending endpoint and the detail approach
-            const pending = await api.get('/admin/sellers/pending/').then(r => r.data?.data || r.data || [])
-            return Array.isArray(pending) ? pending : []
+            const sellers = await api.get('/admin/sellers/', { params: { status: 'all' } })
+                .then(r => r.data?.data || r.data?.results || r.data || [])
+            return Array.isArray(sellers) ? sellers : []
         },
         enabled: activeTab === 'sellers',
     })
@@ -65,7 +65,7 @@ export default function AdminSellersPage() {
     // --- Stores ---
     const { data: storesData, isLoading: storesLoading } = useQuery({
         queryKey: ['admin-all-stores'],
-        queryFn: () => api.get('/admin/stores/pending/').then(r => r.data?.data || r.data || []),
+        queryFn: () => api.get('/admin/stores/', { params: { status: 'all' } }).then(r => r.data?.data || r.data?.results || r.data || []),
         enabled: activeTab === 'stores',
     })
 
@@ -191,7 +191,7 @@ export default function AdminSellersPage() {
                     {sellersLoading ? (
                         <LoadingSkeleton />
                     ) : sellers.length === 0 ? (
-                        <EmptyState icon={Store} message="No pending sellers" description="All seller applications have been processed." />
+                        <EmptyState icon={Store} message="No sellers found" description="Seller applications will appear here once users apply." />
                     ) : (
                         <>
                             {/* Desktop table */}
@@ -301,7 +301,7 @@ export default function AdminSellersPage() {
                     {storesLoading ? (
                         <LoadingSkeleton />
                     ) : stores.length === 0 ? (
-                        <EmptyState icon={Shield} message="No pending stores" description="All store applications have been processed." />
+                        <EmptyState icon={Shield} message="No stores found" description="Seller stores will appear here once users apply." />
                     ) : (
                         <>
                             <div className="hidden md:block bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">

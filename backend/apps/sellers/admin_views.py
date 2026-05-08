@@ -42,6 +42,26 @@ class AdminSellerPendingView(GenericAPIView):
         })
 
 
+class AdminSellerListView(GenericAPIView):
+    """GET /api/v1/admin/sellers/"""
+    permission_classes = [IsAuthenticated, IsSellerModerator]
+    serializer_class = SellerProfileAdminSerializer
+
+    def get(self, request):
+        status_filter = request.query_params.get('status')
+        sellers = SellerProfile.objects.filter(
+            deleted_at__isnull=True,
+        ).select_related('user').order_by('-created_at')
+        if status_filter and status_filter != 'all':
+            sellers = sellers.filter(status=status_filter)
+
+        serializer = SellerProfileAdminSerializer(sellers, many=True)
+        return Response({
+            'success': True, 'message': 'Data retrieved successfully.',
+            'data': serializer.data,
+        })
+
+
 class AdminSellerDetailView(GenericAPIView):
     """GET /api/v1/admin/sellers/{id}/"""
     permission_classes = [IsAuthenticated, IsSellerModerator]
@@ -83,6 +103,18 @@ class AdminSellerApproveView(APIView):
         seller.status = 'approved'
         seller.approved_by = request.user
         seller.save(update_fields=['status', 'approved_by'])
+
+        if seller.user.role in ['normal_user', 'student']:
+            seller.user.role = 'seller'
+            seller.user.save(update_fields=['role'])
+
+        store = getattr(seller, 'store', None)
+        if store and store.status in ['under_review', 'draft', 'rejected']:
+            store.status = 'active'
+            store.approved_by = request.user
+            store.save(update_fields=['status', 'approved_by'])
+            if seller.is_student_seller:
+                SellerBadge.award_student_seller_badge(store)
 
         return Response({
             'success': True, 'message': 'Seller approved.',
@@ -161,6 +193,26 @@ class AdminStorePendingView(GenericAPIView):
         })
 
 
+class AdminStoreListView(GenericAPIView):
+    """GET /api/v1/admin/stores/"""
+    permission_classes = [IsAuthenticated, IsSellerModerator]
+    serializer_class = StoreDetailSerializer
+
+    def get(self, request):
+        status_filter = request.query_params.get('status')
+        stores = Store.objects.filter(
+            deleted_at__isnull=True,
+        ).select_related('seller', 'seller__user', 'university').order_by('-created_at')
+        if status_filter and status_filter != 'all':
+            stores = stores.filter(status=status_filter)
+
+        serializer = StoreDetailSerializer(stores, many=True)
+        return Response({
+            'success': True, 'message': 'Data retrieved successfully.',
+            'data': serializer.data,
+        })
+
+
 class AdminStoreDetailView(GenericAPIView):
     """GET /api/v1/admin/stores/{id}/"""
     permission_classes = [IsAuthenticated, IsSellerModerator]
@@ -202,6 +254,15 @@ class AdminStoreApproveView(APIView):
         store.status = 'active'
         store.approved_by = request.user
         store.save(update_fields=['status', 'approved_by'])
+
+        if store.seller.status != 'approved':
+            store.seller.status = 'approved'
+            store.seller.approved_by = request.user
+            store.seller.save(update_fields=['status', 'approved_by'])
+
+        if store.seller.user.role in ['normal_user', 'student']:
+            store.seller.user.role = 'seller'
+            store.seller.user.save(update_fields=['role'])
 
         # Award student seller badge if applicable
         if store.seller.is_student_seller:
@@ -422,7 +483,19 @@ class AdminSellerReviewView(APIView):
             if hasattr(seller, 'store') and seller.store:
                 if seller.store.status != 'active':
                     seller.store.status = 'active'
-                    seller.store.save(update_fields=['status'])
+                    seller.store.approved_by = request.user
+                    seller.store.save(update_fields=['status', 'approved_by'])
+                if seller.is_student_seller:
+                    SellerBadge.award_student_seller_badge(seller.store)
+                badge_label = request.data.get('badge_label', '').strip()
+                if badge_label:
+                    SellerBadge.objects.create(
+                        store=seller.store,
+                        badge_type='verified_seller',
+                        display_label=badge_label,
+                        awarded_by=request.user,
+                        awarded_at=timezone.now(),
+                    )
                 
             return Response({'success': True, 'message': 'Seller approved.'})
 

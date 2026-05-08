@@ -4,9 +4,9 @@ from django.urls import path
 
 from .admin_views import (
     AdminSellerReviewView,
-    AdminSellerPendingView, AdminSellerDetailView,
+    AdminSellerListView, AdminSellerPendingView, AdminSellerDetailView,
     AdminSellerApproveView, AdminSellerRejectView, AdminSellerSuspendView,
-    AdminStorePendingView, AdminStoreDetailView,
+    AdminStoreListView, AdminStorePendingView, AdminStoreDetailView,
     AdminStoreApproveView, AdminStoreRejectView,
     AdminAwardBadgeView, AdminRevokeBadgeView,
     AdminPayoutPendingView, AdminPayoutProcessView, AdminPayoutRejectView,
@@ -14,6 +14,7 @@ from .admin_views import (
 
 # Seller admin
 seller_admin_urlpatterns = [
+    path('', AdminSellerListView.as_view(), name='seller-list'),
     path('pending/', AdminSellerPendingView.as_view(), name='seller-pending'),
     path('<uuid:pk>/', AdminSellerDetailView.as_view(), name='seller-detail'),
     path('<uuid:pk>/approve/', AdminSellerApproveView.as_view(), name='seller-approve'),
@@ -24,6 +25,7 @@ seller_admin_urlpatterns = [
 
 # Store admin
 store_admin_urlpatterns = [
+    path('', AdminStoreListView.as_view(), name='store-list'),
     path('pending/', AdminStorePendingView.as_view(), name='store-pending'),
     path('<uuid:pk>/', AdminStoreDetailView.as_view(), name='store-detail'),
     path('<uuid:pk>/approve/', AdminStoreApproveView.as_view(), name='store-approve'),
