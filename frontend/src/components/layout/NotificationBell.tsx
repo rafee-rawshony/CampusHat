@@ -77,7 +77,7 @@ export function NotificationBell() {
         if (!isAuthenticated) return
         try {
             const res = await api.get('/notifications/unread-count/')
-            const count = res.data?.data?.count ?? res.data?.count ?? 0
+            const count = res.data?.data?.unread_count ?? res.data?.unread_count ?? res.data?.data?.count ?? 0
             setUnreadCount(count)
         } catch { /* silently fail */ }
     }, [isAuthenticated])
