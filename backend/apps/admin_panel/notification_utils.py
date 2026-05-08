@@ -66,3 +66,30 @@ def send_notification(user, notification_type, title, message, action_url=None):
         logger.warning(f'Failed to push WebSocket notification: {e}')
 
     return notification
+
+
+def notify_admins(notification_type, title, message, action_url=None):
+    """
+    Sends a notification to all users with 'super_admin' or 'moderator' roles.
+    """
+    from django.contrib.auth import get_user_model
+    from .models import UserRole, Role
+
+    User = get_user_model()
+    
+    # Get all admins/moderators
+    admin_roles = Role.objects.filter(name__in=['super_admin', 'moderator'])
+    admin_users = User.objects.filter(
+        user_roles__role__in=admin_roles,
+        is_active=True
+    ).distinct()
+
+    for admin in admin_users:
+        send_notification(
+            user=admin,
+            notification_type=notification_type,
+            title=title,
+            message=message,
+            action_url=action_url
+        )
+

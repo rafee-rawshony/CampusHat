@@ -59,6 +59,19 @@ def send_order_confirmation(order_id):
                 'user': order.buyer,
             },
         )
+        # Platform Notification
+        try:
+            from apps.admin_panel.notification_utils import send_notification
+            send_notification(
+                user=order.buyer,
+                notification_type='order',
+                title='Order Confirmed',
+                message=f'Your order {order.order_number} has been successfully placed.',
+                action_url=f'/account/orders/{order.id}'
+            )
+        except Exception as e:
+            logger.warning(f"Failed to send order confirmation platform notification: {e}")
+
         logger.info(f'Order confirmation sent for {order.order_number}')
     except Order.DoesNotExist:
         logger.error(f'Order {order_id} not found for confirmation email.')
@@ -87,6 +100,19 @@ def notify_seller_new_order(order_id):
                 'store': order.store,
             },
         )
+        # Platform Notification
+        try:
+            from apps.admin_panel.notification_utils import send_notification
+            send_notification(
+                user=order.store.seller.user,
+                notification_type='order',
+                title='New Order Received',
+                message=f'You have a new order {order.order_number} for your store "{order.store.name}".',
+                action_url=f'/account/seller/orders/{order.id}'
+            )
+        except Exception as e:
+            logger.warning(f"Failed to send seller new order platform notification: {e}")
+
         logger.info(f'Seller notified for order {order.order_number}')
     except Order.DoesNotExist:
         logger.error(f'Order {order_id} not found for seller notification.')
@@ -111,6 +137,19 @@ def notify_order_status_change(order_id, new_status):
                 'new_status': new_status,
             },
         )
+        # Platform Notification
+        try:
+            from apps.admin_panel.notification_utils import send_notification
+            send_notification(
+                user=order.buyer,
+                notification_type='order',
+                title='Order Status Updated',
+                message=f'Your order {order.order_number} is now {new_status}.',
+                action_url=f'/account/orders/{order.id}'
+            )
+        except Exception as e:
+            logger.warning(f"Failed to send order status platform notification: {e}")
+
         logger.info(f'Status change notification sent for {order.order_number}')
     except Order.DoesNotExist:
         logger.error(f'Order {order_id} not found for status notification.')

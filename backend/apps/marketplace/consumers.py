@@ -105,6 +105,25 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
         await self._broadcast_thread_update(msg_data)
 
+        # Send platform-wide notification to the recipient
+        try:
+            recipient_id = await self._get_recipient_id()
+            if recipient_id:
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                recipient = await database_sync_to_async(User.objects.get)(id=recipient_id)
+                
+                from apps.admin_panel.notification_utils import send_notification
+                await database_sync_to_async(send_notification)(
+                    user=recipient,
+                    notification_type='marketplace',
+                    title=f'New message from {self.user.full_name}',
+                    message=text[:100] + ('...' if len(text) > 100 else ''),
+                    action_url=f'/marketplace/chat/{self.chat_id}'
+                )
+        except Exception as e:
+            logger.warning(f"Failed to send chat notification: {e}")
+
     async def _handle_mark_read(self):
         count = await self._mark_messages_read()
         await self.channel_layer.group_send(
@@ -266,6 +285,14 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             return [str(chat.buyer_id), str(chat.seller_id)]
         except MarketplaceChat.DoesNotExist:
             return []
+
+    @database_sync_to_async
+    def _get_recipient_id(self):
+        try:
+            chat = MarketplaceChat.objects.get(pk=self.chat_id, is_active=True)
+            return str(chat.seller_id) if self.user.id == chat.buyer_id else str(chat.buyer_id)
+        except MarketplaceChat.DoesNotExist:
+            return None
 
 
 class MarketplaceInboxConsumer(AsyncJsonWebsocketConsumer):

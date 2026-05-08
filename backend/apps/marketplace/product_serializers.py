@@ -129,6 +129,20 @@ class MarketplaceProductCreateSerializer(serializers.ModelSerializer):
 
         product = MarketplaceProduct.objects.create(**validated_data)
 
+        # Notify admins about new listing
+        try:
+            from apps.admin_panel.notification_utils import notify_admins
+            notify_admins(
+                notification_type='marketplace',
+                title='New Marketplace Listing',
+                message=f'A new ad "{product.title}" has been submitted and is pending review.',
+                action_url=f'/admin/marketplace/ads' # Admin dashboard URL
+            )
+        except Exception as e:
+            # Don't fail the listing creation if notification fails
+            import logging
+            logging.getLogger(__name__).error(f"Failed to notify admins: {e}")
+
         for idx, image_url in enumerate(image_urls):
             MarketplaceProductImage.objects.create(
                 product=product,
