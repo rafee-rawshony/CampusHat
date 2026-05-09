@@ -386,6 +386,7 @@ EMAIL_BACKEND = _email_env('EMAIL_BACKEND', 'django.core.mail.backends.smtp.Emai
 EMAIL_HOST = _email_env('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = _email_env('EMAIL_PORT', 587, cast=int)
 EMAIL_USE_TLS = _email_env('EMAIL_USE_TLS', True, cast=bool)
+EMAIL_USE_SSL = _email_env('EMAIL_USE_SSL', False, cast=bool)
 EMAIL_HOST_USER = _email_env('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = _email_env('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = config(
