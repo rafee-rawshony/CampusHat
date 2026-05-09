@@ -5,7 +5,6 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
-import * as icons from 'lucide-react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -20,7 +19,7 @@ import { Loader2 } from 'lucide-react'
 const mallCategorySchema = z.object({
     name: z.string().min(2, 'Name must be at least 2 chars').max(100),
     slug: z.string().min(2).max(100).regex(/^[a-z0-9-]+$/, 'Only lowercase letters, numbers, hyphens'),
-    icon: z.string().min(1, 'Please select an icon'),
+    icon_url: z.string().max(500).optional().nullable(),
     parent: z.string().nullable().optional(),
     display_order: z.coerce.number().min(1).max(9999).optional(),
     is_active: z.boolean(),
@@ -43,16 +42,6 @@ interface CategoryDrawerProps {
     onSuccess: () => void
 }
 
-const COMMON_ICONS = [
-    'Monitor', 'Smartphone', 'Shirt', 'BookOpen', 'PenLine',
-    'ShoppingBag', 'Home', 'Dumbbell', 'Palette', 'FlaskConical',
-    'Package', 'Laptop', 'Headphones', 'Camera', 'Watch',
-    'Car', 'Bike', 'Pizza', 'Coffee', 'Music'
-]
-
-const getIcon = (name: string) => {
-    return (icons as unknown as Record<string, React.ElementType>)[name] || icons.Package
-}
 
 export default function CategoryDrawer({ type, mode, category, parentCategory, isOpen, onClose, onSuccess }: CategoryDrawerProps) {
     const [isLoading, setIsLoading] = useState(false)
@@ -87,12 +76,12 @@ export default function CategoryDrawer({ type, mode, category, parentCategory, i
             name: '',
             slug: '',
             is_active: true,
-            ...(isMall ? { icon: 'Package', parent: null, display_order: 1 } : { post_type: 'buy' })
+            ...(isMall ? { icon_url: '', parent: null, display_order: 1 } : { post_type: 'buy' })
         }
     })
 
     const watchName = watch('name')
-    const watchIcon = watch('icon')
+    const watchIconUrl = watch('icon_url')
     const watchPostType = watch('post_type')
     const watchParent = watch('parent')
     const watchStatus = watch('is_active')
@@ -113,7 +102,7 @@ export default function CategoryDrawer({ type, mode, category, parentCategory, i
                 slug: category.slug,
                 is_active: category.is_active,
                 ...(isMall ? {
-                    icon: category.icon || 'Package',
+                    icon_url: category.icon_url || category.icon || '',
                     parent: category.parent || category.parent_id || null,
                     display_order: category.display_order || 1,
                 } : {
@@ -133,7 +122,7 @@ export default function CategoryDrawer({ type, mode, category, parentCategory, i
                 name: '',
                 slug: '',
                 is_active: true,
-                ...(isMall ? { icon: 'Package', parent: parentCategory?.id || null, display_order: nextOrder } : { post_type: 'buy' })
+                ...(isMall ? { icon_url: '', parent: parentCategory?.id || null, display_order: nextOrder } : { post_type: 'buy' })
             })
         }
     }, [isOpen, mode, category, parentCategory, isMall, safeMallCategories, reset])
@@ -149,6 +138,8 @@ export default function CategoryDrawer({ type, mode, category, parentCategory, i
             if (isMall) {
                 payload.parent_id = payload.parent
                 delete payload.parent
+                // Empty icon_url → null
+                if (!payload.icon_url) payload.icon_url = null
             }
 
             const endpoint = isMall ? '/mall/categories/' : '/marketplace/categories/'
@@ -222,36 +213,22 @@ export default function CategoryDrawer({ type, mode, category, parentCategory, i
                         {/* MALL SPECIFIC FIELDS */}
                         {isMall && (
                             <>
-                                {/* Icon Picker */}
+                                {/* Icon URL */}
                                 <div className="space-y-2 pt-2">
-                                    <Label>Category Icon <span className="text-red-500">*</span></Label>
-                                    <div className="grid grid-cols-5 gap-2">
-                                        {COMMON_ICONS.map(iconName => {
-                                            const IconComp = getIcon(iconName)
-                                            const isSelected = watchIcon === iconName
-                                            return (
-                                                <button
-                                                    key={iconName}
-                                                    type="button"
-                                                    onClick={() => setValue('icon', iconName, { shouldValidate: true })}
-                                                    className={`aspect-square border rounded-lg flex flex-col items-center justify-center gap-1 transition-all
-                                                        ${isSelected ? 'border-[#4C3B8A] bg-[#4C3B8A]/10' : 'border-gray-200 hover:border-[#4C3B8A] bg-white'}
-                                                    `}
-                                                >
-                                                    <IconComp className={`w-5 h-5 ${isSelected ? 'text-[#4C3B8A]' : 'text-gray-600'}`} strokeWidth={isSelected ? 2.5 : 2} />
-                                                    <span className={`text-[9px] truncate w-full text-center px-0.5 ${isSelected ? 'text-[#4C3B8A] font-bold' : 'text-gray-400 font-medium'}`}>
-                                                        {iconName}
-                                                    </span>
-                                                </button>
-                                            )
-                                        })}
-                                    </div>
-                                    <Input 
-                                        {...register('icon')} 
-                                        placeholder="Or type icon name manually..." 
-                                        className="mt-2 text-sm font-mono h-9" 
+                                    <Label>Category Icon URL</Label>
+                                    <Input
+                                        {...register('icon_url')}
+                                        placeholder="https://example.com/icon.png or /images/icon.svg"
+                                        className="text-sm"
                                     />
-                                    {errors.icon && <p className="text-xs text-red-500">{errors.icon.message as string}</p>}
+                                    <p className="text-[10px] text-gray-400">Paste a direct image URL for the category icon (PNG, SVG, WebP).</p>
+                                    {watchIconUrl && (
+                                        <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg border border-gray-100">
+                                            <img src={watchIconUrl} alt="preview" className="w-8 h-8 object-contain rounded" onError={e => (e.currentTarget.style.display = 'none')} />
+                                            <span className="text-xs text-gray-500 truncate">{watchIconUrl}</span>
+                                        </div>
+                                    )}
+                                    {errors.icon_url && <p className="text-xs text-red-500">{errors.icon_url.message as string}</p>}
                                 </div>
 
                                 {/* Parent */}

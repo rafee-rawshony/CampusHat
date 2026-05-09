@@ -29,6 +29,9 @@ const getIcon = (name?: string | null) => {
     return name ? (icons as unknown as Record<string, React.ElementType>)[name] || icons.Package : icons.FolderOpen
 }
 
+const isImageUrl = (v?: string | null) =>
+    !!v && (v.startsWith('http') || v.startsWith('/') || v.startsWith('data:'))
+
 export default function MallCategoryTab() {
     const [searchTerm, setSearchTerm] = useState('')
     const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
@@ -157,7 +160,7 @@ export default function MallCategoryTab() {
     const renderCategoryRow = (cat: MallCategoryNode, level: number = 0) => {
         const isExpanded = expandedCategories.has(cat.id) || !!searchTerm
         const hasChildren = cat.children && cat.children.length > 0
-        const Icon = getIcon(cat.icon || cat.icon_url)
+        const iconValue = cat.icon_url || cat.icon
         const isRoot = level === 0
         const isDragging = draggedCategoryId === cat.id
 
@@ -193,7 +196,9 @@ export default function MallCategoryTab() {
 
                     {level === 0 ? (
                         <div className="w-8 h-8 rounded-lg bg-[#4C3B8A]/10 flex items-center justify-center shrink-0">
-                            <Icon className="w-4 h-4 text-[#4C3B8A]" />
+                            {isImageUrl(iconValue) ? (
+                                <img src={iconValue!} alt="" className="w-5 h-5 object-contain" />
+                            ) : (() => { const Icon = getIcon(iconValue); return <Icon className="w-4 h-4 text-[#4C3B8A]" /> })()}
                         </div>
                     ) : (
                         <div className="w-2 h-2 rounded-full bg-gray-300 shrink-0" />

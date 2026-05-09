@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, Tag, ChevronRight, ChevronDown, FolderOpen } from 'lucide-react'
+import { Plus, Tag, ChevronRight, ChevronDown, FolderOpen, GripVertical } from 'lucide-react'
 import { api } from '@/lib/api'
 import toast from 'react-hot-toast'
 import CategoryCard, { MarketplaceCategoryType } from './CategoryCard'
@@ -38,6 +38,8 @@ export default function MarketplaceCategoryTab() {
     const [drawerMode, setDrawerMode] = useState<'add' | 'edit' | null>(null)
     const [selectedCat, setSelectedCat] = useState<CategoryNode | null>(null)
     const [addParent, setAddParent] = useState<CategoryNode | null>(null)
+    const [draggedCategoryId, setDraggedCategoryId] = useState<string | null>(null)
+    const [isSavingOrder, setIsSavingOrder] = useState(false)
     const queryClient = useQueryClient()
 
     // Fetch categories as tree for the active ad_type
@@ -105,18 +107,71 @@ export default function MarketplaceCategoryTab() {
         setDrawerMode('edit')
     }
 
+    const saveOrder = async (ordered: CategoryNode[], previous: CategoryNode[]) => {
+        setIsSavingOrder(true)
+        try {
+            await api.post('/admin/marketplace/categories/reorder/', {
+                items: ordered.map((cat, idx) => ({ id: cat.id, sort_order: (idx + 1) * 10 })),
+            })
+            queryClient.invalidateQueries({ queryKey: ['admin-marketplace-categories-tree'] })
+            toast.success('Category order saved')
+        } catch (err: any) {
+            queryClient.setQueryData(['admin-marketplace-categories-tree', activeType], previous)
+            toast.error(err.response?.data?.message || 'Failed to save category order')
+        } finally {
+            setIsSavingOrder(false)
+        }
+    }
+
+    const handleDrop = (targetId: string) => {
+        if (!draggedCategoryId || draggedCategoryId === targetId) {
+            setDraggedCategoryId(null)
+            return
+        }
+        const from = categories.findIndex(c => c.id === draggedCategoryId)
+        const to = categories.findIndex(c => c.id === targetId)
+        if (from === -1 || to === -1) { setDraggedCategoryId(null); return }
+
+        const previous = [...categories]
+        const ordered = [...categories]
+        const [moved] = ordered.splice(from, 1)
+        ordered.splice(to, 0, moved)
+
+        queryClient.setQueryData(['admin-marketplace-categories-tree', activeType], ordered)
+        setDraggedCategoryId(null)
+        saveOrder(ordered, previous)
+    }
+
+    const canDrag = categories.length > 1
+
     // Render a single category row with expand/collapse
     const renderCategoryRow = (cat: CategoryNode, level: number = 0) => {
         const isExpanded = expandedCategories.has(cat.id)
         const hasChildren = cat.children && cat.children.length > 0
         const indent = level * 24
 
+        const isRoot = level === 0
+        const isDragging = draggedCategoryId === cat.id
+
         return (
             <div key={cat.id}>
                 <div
-                    className={`flex items-center gap-3 px-4 py-3 border-b border-gray-50 hover:bg-gray-50/80 transition-colors group ${!cat.is_active ? 'opacity-60' : ''}`}
+                    draggable={isRoot && canDrag}
+                    onDragStart={() => isRoot && setDraggedCategoryId(cat.id)}
+                    onDragOver={e => { if (isRoot && canDrag) e.preventDefault() }}
+                    onDrop={() => isRoot && handleDrop(cat.id)}
+                    onDragEnd={() => setDraggedCategoryId(null)}
+                    className={`flex items-center gap-3 px-4 py-3 border-b border-gray-50 hover:bg-gray-50/80 transition-colors group ${!cat.is_active ? 'opacity-60' : ''} ${isDragging ? 'bg-[#4C3B8A]/5 opacity-60' : ''}`}
                     style={{ paddingLeft: `${16 + indent}px` }}
                 >
+                    {/* Drag handle for root categories */}
+                    {isRoot && (
+                        <button type="button"
+                            className={`hidden sm:flex w-6 h-6 items-center justify-center rounded text-gray-300 ${canDrag ? 'cursor-grab hover:bg-gray-100 hover:text-[#4C3B8A] active:cursor-grabbing' : 'cursor-default'}`}
+                            title={canDrag ? 'Drag to reorder' : ''}>
+                            <GripVertical className="w-4 h-4" />
+                        </button>
+                    )}
                     {/* Expand/collapse toggle */}
                     <button
                         onClick={() => hasChildren && toggleExpand(cat.id)}
@@ -265,6 +320,8 @@ export default function MarketplaceCategoryTab() {
                             <span className="text-xs bg-white border border-gray-200 rounded-full px-2 py-0.5 text-gray-500 font-medium">
                                 {categories.length} categories
                             </span>
+                            <span className="hidden md:inline text-xs text-gray-400">Drag to reorder</span>
+                            {isSavingOrder && <span className="text-xs text-[#4C3B8A] font-semibold">Saving...</span>}
                         </div>
                         <button
                             onClick={() => openAddDrawer()}
