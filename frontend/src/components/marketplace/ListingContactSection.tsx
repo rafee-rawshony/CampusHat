@@ -1,7 +1,7 @@
 import React from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { MapPin, ShieldCheck, User } from 'lucide-react'
+import { MapPin, Phone, ShieldCheck, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/auth.store'
 import { ChatButton } from './ChatButton'
@@ -108,6 +108,18 @@ export function ListingContactSection({ listing, isAuthenticated, onOpenOfferMod
                             <MapPin className="w-4 h-4 shrink-0 mt-0.5" />
                             {listing.meetup_location}
                         </div>
+                    </div>
+                )}
+
+                {isContactVisible && listing.contact_phone && (
+                    <div className="flex items-center gap-2 mb-4 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                        <Phone className="w-4 h-4 text-brand-primary shrink-0" />
+                        <a
+                            href={`tel:${listing.contact_phone}`}
+                            className="text-sm font-semibold text-gray-800 hover:text-brand-primary transition-colors"
+                        >
+                            {listing.contact_phone}
+                        </a>
                     </div>
                 )}
 

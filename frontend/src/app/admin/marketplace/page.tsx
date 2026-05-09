@@ -14,10 +14,12 @@ import {
 
 const STATUS_COLORS: Record<string, string> = {
     pending: 'bg-yellow-100 text-yellow-700',
+    active: 'bg-green-100 text-green-700',
     approved: 'bg-green-100 text-green-700',
     rejected: 'bg-red-100 text-red-600',
-    reported: 'bg-orange-100 text-orange-700',
-    active: 'bg-blue-100 text-blue-700',
+    hidden: 'bg-gray-100 text-gray-600',
+    expired: 'bg-gray-100 text-gray-500',
+    sold: 'bg-blue-100 text-blue-600',
 }
 
 const AD_TYPES = [
@@ -31,9 +33,11 @@ const AD_TYPES = [
 const AD_STATUSES = [
     { value: 'all', label: 'All Status' },
     { value: 'pending', label: 'Pending' },
-    { value: 'approved', label: 'Approved' },
+    { value: 'active', label: 'Active' },
     { value: 'rejected', label: 'Rejected' },
-    { value: 'reported', label: 'Reported' },
+    { value: 'expired', label: 'Expired' },
+    { value: 'hidden', label: 'Hidden' },
+    { value: 'sold', label: 'Sold' },
 ]
 
 function formatDate(d: string) {
@@ -184,7 +188,7 @@ export default function AdminMarketplacePage() {
                         </thead>
                         <tbody className="divide-y divide-gray-50">
                             {ads.map((ad: any) => {
-                                const statusKey = ad.is_reported ? 'reported' : (ad.status || ad.approval_status || 'pending')
+                                const statusKey = ad.status || 'pending'
                                 const pill = STATUS_COLORS[statusKey] || STATUS_COLORS['pending']
 
                                 return (
@@ -192,9 +196,9 @@ export default function AdminMarketplacePage() {
                                         <td className="px-4 py-4">
                                             <div className="flex items-start gap-3">
                                                 <div className="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden shrink-0 border border-gray-100">
-                                                    {ad.images?.[0]?.image || ad.image_url ? (
+                                                    {ad.primary_image_url || ad.images?.[0]?.image_url || ad.images?.[0]?.image ? (
                                                         <img
-                                                            src={ad.images?.[0]?.image || ad.image_url}
+                                                            src={ad.primary_image_url || ad.images?.[0]?.image_url || ad.images?.[0]?.image}
                                                             alt={ad.title}
                                                             className="w-full h-full object-cover"
                                                         />
@@ -219,7 +223,7 @@ export default function AdminMarketplacePage() {
                                         </td>
                                         <td className="px-4 py-4">
                                             <span className="text-xs font-semibold text-gray-600 capitalize">
-                                                {ad.ad_type || ad.category || '—'}
+                                                {ad.post_type || ad.ad_type || '—'}
                                             </span>
                                         </td>
                                         <td className="px-4 py-4">
@@ -246,7 +250,7 @@ export default function AdminMarketplacePage() {
                                                 >
                                                     <Eye className="w-3.5 h-3.5 mr-1" /> View
                                                 </Button>
-                                                {(statusKey === 'pending' || statusKey === 'reported') && (
+                                                {statusKey === 'pending' && (
                                                     <>
                                                         <Button
                                                             size="sm"
@@ -300,16 +304,29 @@ export default function AdminMarketplacePage() {
                         <DialogTitle>Ad Details</DialogTitle>
                     </DialogHeader>
                     {selectedAd && (
-                        <div className="space-y-4">
+                        <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+                            {selectedAd.primary_image_url && (
+                                <img src={selectedAd.primary_image_url} alt={selectedAd.title} className="w-full h-48 object-cover rounded-xl border border-gray-100" />
+                            )}
                             <div>
-                                <p className="font-bold text-gray-900 text-lg">{selectedAd.title}</p>
-                                <p className="text-sm text-gray-500 mt-1">{selectedAd.description}</p>
+                                <p className="font-bold text-gray-900 text-lg leading-tight">{selectedAd.title}</p>
+                                {selectedAd.rejection_reason && (
+                                    <p className="text-xs text-red-600 font-semibold mt-1">Rejection reason: {selectedAd.rejection_reason}</p>
+                                )}
+                                <p className="text-sm text-gray-500 mt-2 line-clamp-4">{selectedAd.description}</p>
                             </div>
-                            <div className="grid grid-cols-2 gap-3 text-sm">
-                                <div><span className="text-gray-400">Type:</span> <span className="font-semibold">{selectedAd.ad_type || '—'}</span></div>
-                                <div><span className="text-gray-400">Price:</span> <span className="font-semibold">৳{selectedAd.price || '—'}</span></div>
-                                <div><span className="text-gray-400">Seller:</span> <span className="font-semibold">{selectedAd.seller_name || selectedAd.user?.full_name || '—'}</span></div>
-                                <div><span className="text-gray-400">Posted:</span> <span className="font-semibold">{formatDate(selectedAd.created_at)}</span></div>
+                            <div className="grid grid-cols-2 gap-2 text-sm">
+                                <div className="bg-gray-50 rounded-lg p-2"><span className="text-gray-400 text-xs block">Type</span><span className="font-semibold capitalize">{selectedAd.post_type || selectedAd.ad_type || '—'}</span></div>
+                                <div className="bg-gray-50 rounded-lg p-2"><span className="text-gray-400 text-xs block">Price</span><span className="font-semibold">৳{Number(selectedAd.price || 0).toLocaleString()}{selectedAd.price_unit ? ` / ${selectedAd.price_unit}` : ''}</span></div>
+                                <div className="bg-gray-50 rounded-lg p-2"><span className="text-gray-400 text-xs block">Condition</span><span className="font-semibold capitalize">{selectedAd.condition || '—'}</span></div>
+                                <div className="bg-gray-50 rounded-lg p-2"><span className="text-gray-400 text-xs block">Category</span><span className="font-semibold">{selectedAd.category_name || '—'}</span></div>
+                                <div className="bg-gray-50 rounded-lg p-2"><span className="text-gray-400 text-xs block">Seller</span><span className="font-semibold">{selectedAd.seller_name || selectedAd.user?.full_name || '—'}</span></div>
+                                <div className="bg-gray-50 rounded-lg p-2"><span className="text-gray-400 text-xs block">Email</span><span className="font-semibold text-xs break-all">{selectedAd.seller_email || selectedAd.user?.email || '—'}</span></div>
+                                <div className="bg-gray-50 rounded-lg p-2"><span className="text-gray-400 text-xs block">University</span><span className="font-semibold">{selectedAd.university_name || '—'}</span></div>
+                                <div className="bg-gray-50 rounded-lg p-2"><span className="text-gray-400 text-xs block">Posted</span><span className="font-semibold">{formatDate(selectedAd.created_at)}</span></div>
+                                {selectedAd.safe_meetup_location && (
+                                    <div className="col-span-2 bg-gray-50 rounded-lg p-2"><span className="text-gray-400 text-xs block">Meetup Location</span><span className="font-semibold">{selectedAd.safe_meetup_location}</span></div>
+                                )}
                             </div>
                             {selectedAd.is_reported && (
                                 <div className="bg-orange-50 border border-orange-100 rounded-xl p-3 flex items-start gap-2">
@@ -321,7 +338,7 @@ export default function AdminMarketplacePage() {
                     )}
                     <DialogFooter className="gap-2">
                         <Button variant="outline" onClick={() => setSelectedAd(null)}>Close</Button>
-                        {selectedAd && (selectedAd.status === 'pending' || selectedAd.is_reported) && (
+                        {selectedAd && selectedAd.status === 'pending' && (
                             <>
                                 <Button
                                     className="bg-green-600 hover:bg-green-700 text-white"

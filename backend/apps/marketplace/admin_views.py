@@ -4,11 +4,13 @@ Admin Views for the Marketplace.
 Approval queue, approve/reject listings, reports queue, action on reports.
 """
 
+from rest_framework import serializers as drf_serializers
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.pagination import CampusHatPagination
 from core.permissions import IsAdminOrModerator
 
 from .interaction_serializers import AdminReportActionSerializer
@@ -17,6 +19,78 @@ from .product_serializers import (
     MarketplaceProductDetailSerializer,
     MarketplaceProductOwnerSerializer,
 )
+
+
+class AdminMarketplaceListSerializer(drf_serializers.ModelSerializer):
+    """Compact serializer for the admin marketplace listing table."""
+
+    seller_name = drf_serializers.CharField(source='user.full_name', read_only=True)
+    seller_email = drf_serializers.CharField(source='user.email', read_only=True)
+    university_name = drf_serializers.CharField(source='university.name', read_only=True)
+    category_name = drf_serializers.CharField(source='category.name', read_only=True, default=None)
+    primary_image_url = drf_serializers.SerializerMethodField()
+
+    class Meta:
+        model = MarketplaceProduct
+        fields = [
+            'id', 'title', 'description', 'post_type', 'price', 'price_unit',
+            'condition', 'is_negotiable', 'status', 'campus_visibility',
+            'safe_meetup_location', 'rejection_reason', 'duration_days',
+            'expires_at', 'view_count',
+            'seller_name', 'seller_email', 'university_name', 'category_name',
+            'primary_image_url', 'created_at', 'updated_at',
+        ]
+        read_only_fields = fields
+
+    def get_primary_image_url(self, obj):
+        img = obj.images.filter(is_primary=True).first() or obj.images.first()
+        return img.image_url if img else None
+
+
+class AdminAllProductsListView(APIView):
+    """
+    GET /api/v1/admin/marketplace/
+
+    List ALL marketplace products (all statuses) with search, status, ad_type filters.
+    """
+
+    permission_classes = [IsAuthenticated, IsAdminOrModerator]
+
+    def get(self, request):
+        from django.db.models import Q
+
+        qs = (
+            MarketplaceProduct.objects
+            .filter(deleted_at__isnull=True)
+            .select_related('university', 'category', 'user')
+            .prefetch_related('images')
+            .order_by('-updated_at')
+        )
+
+        search = request.query_params.get('search', '').strip()
+        if search:
+            qs = qs.filter(
+                Q(title__icontains=search) |
+                Q(user__full_name__icontains=search) |
+                Q(user__email__icontains=search)
+            )
+
+        status_filter = request.query_params.get('status', '')
+        if status_filter and status_filter != 'all':
+            qs = qs.filter(status=status_filter)
+
+        ad_type = request.query_params.get('ad_type', '')
+        if ad_type and ad_type != 'all':
+            qs = qs.filter(post_type=ad_type)
+
+        paginator = CampusHatPagination()
+        page = paginator.paginate_queryset(qs, request)
+        if page is not None:
+            serializer = AdminMarketplaceListSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
+        serializer = AdminMarketplaceListSerializer(qs, many=True)
+        return Response({'success': True, 'data': serializer.data})
 
 
 # =============================================================================

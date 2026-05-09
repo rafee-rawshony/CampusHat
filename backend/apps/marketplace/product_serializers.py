@@ -251,6 +251,7 @@ class MarketplaceProductDetailSerializer(serializers.ModelSerializer):
     images = ProductImageSerializer(many=True, read_only=True)
     user_info = serializers.SerializerMethodField()
     contact_visible = serializers.SerializerMethodField()
+    contact_phone = serializers.SerializerMethodField()
     offers_count = serializers.SerializerMethodField()
     reviews_count = serializers.SerializerMethodField()
     average_rating = serializers.SerializerMethodField()
@@ -264,7 +265,7 @@ class MarketplaceProductDetailSerializer(serializers.ModelSerializer):
             'expires_at', 'view_count', 'safe_meetup_location',
             'university_name', 'university_short',
             'category_name', 'images', 'user_info',
-            'contact_visible', 'rejection_reason',
+            'contact_visible', 'contact_phone', 'rejection_reason',
             'offers_count', 'reviews_count', 'average_rating',
             'created_at', 'updated_at',
         ]
@@ -289,6 +290,16 @@ class MarketplaceProductDetailSerializer(serializers.ModelSerializer):
         from core.permissions import IsVerifiedForMarketplace
         perm = IsVerifiedForMarketplace()
         return perm.has_permission(request, None)
+
+    def get_contact_phone(self, obj):
+        request = self.context.get('request')
+        if not request or not hasattr(request, 'user') or not request.user.is_authenticated:
+            return None
+        from core.permissions import IsVerifiedForMarketplace
+        perm = IsVerifiedForMarketplace()
+        if perm.has_permission(request, None):
+            return obj.user.phone or None
+        return None
 
     def get_offers_count(self, obj):
         return obj.offers.filter(deleted_at__isnull=True).count()

@@ -7,6 +7,7 @@ Endpoints for admin moderation under /api/v1/admin/marketplace/.
 from django.urls import path
 
 from .admin_views import (
+    AdminAllProductsListView,
     AdminApproveView,
     AdminPendingListView,
     AdminProductDetailView,
@@ -25,6 +26,9 @@ from .category_views import (
 )
 
 urlpatterns = [
+    # All products listing (must come before <uuid:pk>/ pattern)
+    path('', AdminAllProductsListView.as_view(), name='all-products'),
+
     # Category Management
     path('categories/', AdminCategoryListView.as_view(), name='admin-categories'),
     path('categories/reorder/', AdminCategoryReorderView.as_view(), name='admin-categories-reorder'),
