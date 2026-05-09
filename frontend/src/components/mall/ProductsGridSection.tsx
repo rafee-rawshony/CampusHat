@@ -27,7 +27,7 @@ export function ProductsGridSection() {
     const products: Product[] = productsRaw || []
 
     return (
-        <div className="max-w-7xl mx-auto px-4 lg:px-6 mb-12 mt-4">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6 mb-12 mt-10 pt-4">
 
             {/* Centered Header */}
             <div className="text-center mb-8">
