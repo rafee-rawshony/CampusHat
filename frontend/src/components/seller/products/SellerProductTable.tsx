@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Switch } from '@/components/ui/switch'
@@ -20,9 +21,10 @@ import {
 import toast from 'react-hot-toast'
 import { normalizeListResponse } from '@/lib/response'
 import { cn } from '@/lib/utils'
+import { absoluteMediaUrl } from '@/services/upload.service'
 
 interface SellerProductTableProps {
-    onEdit: (product: any) => void
+    onEdit(product: any): void
 }
 
 export function SellerProductTable({ onEdit }: SellerProductTableProps) {
@@ -38,8 +40,8 @@ export function SellerProductTable({ onEdit }: SellerProductTableProps) {
     })
 
     const toggleActiveMutation = useMutation({
-        mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
-            api.patch(`/mall/products/${id}/`, { is_active }),
+        mutationFn: ({ identifier, is_active }: { identifier: string; is_active: boolean }) =>
+            api.patch(`/mall/products/${identifier}/`, { is_active }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['seller-products'] })
         },
@@ -47,7 +49,7 @@ export function SellerProductTable({ onEdit }: SellerProductTableProps) {
     })
 
     const deleteMutation = useMutation({
-        mutationFn: (id: string) => api.delete(`/mall/products/${id}/`),
+        mutationFn: (identifier: string) => api.delete(`/mall/products/${identifier}/`),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['seller-products'] })
             toast.success('Product deleted')
@@ -118,12 +120,13 @@ export function SellerProductTable({ onEdit }: SellerProductTableProps) {
                     </thead>
                     <tbody>
                         {products.map((product: any) => {
-                            const img = product.images?.[0]?.image || product.images?.[0]?.image_url
+                            const productIdentifier = product.slug || product.id
+                            const img = absoluteMediaUrl(product.images?.[0]?.image || product.images?.[0]?.image_url || product.primary_image_url)
                             return (
                                 <tr key={product.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                                     {/* Product */}
                                     <td className="px-4 py-3">
-                                        <div className="flex items-center gap-3">
+                                        <Link href={`/products/${productIdentifier}`} className="flex items-center gap-3 group">
                                             <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 shrink-0 border border-gray-100">
                                                 {img ? (
                                                     <img src={img} alt={product.name} className="w-full h-full object-cover" />
@@ -134,14 +137,14 @@ export function SellerProductTable({ onEdit }: SellerProductTableProps) {
                                                 )}
                                             </div>
                                             <div>
-                                                <p className="font-semibold text-gray-900 text-sm line-clamp-2 max-w-[200px]">{product.name}</p>
+                                                <p className="font-semibold text-gray-900 text-sm line-clamp-2 max-w-[200px] group-hover:text-[#4C3B8A]">{product.name}</p>
                                                 {product.sku && <p className="text-xs text-gray-400 font-mono mt-0.5">{product.sku}</p>}
                                             </div>
-                                        </div>
+                                        </Link>
                                     </td>
                                     {/* Category */}
                                     <td className="px-4 py-3 text-sm text-gray-600">
-                                        {product.category?.name || '—'}
+                                        {product.category?.name || product.category_name || '—'}
                                     </td>
                                     {/* Price */}
                                     <td className="px-4 py-3">
@@ -164,7 +167,7 @@ export function SellerProductTable({ onEdit }: SellerProductTableProps) {
                                             <Switch
                                                 checked={product.is_active}
                                                 onCheckedChange={(checked) =>
-                                                    toggleActiveMutation.mutate({ id: product.id, is_active: checked })
+                                                    toggleActiveMutation.mutate({ identifier: productIdentifier, is_active: checked })
                                                 }
                                             />
                                             <span className={cn('text-xs font-medium', product.is_active ? 'text-green-600' : 'text-gray-400')}>
@@ -203,10 +206,11 @@ export function SellerProductTable({ onEdit }: SellerProductTableProps) {
             {/* Mobile Card List */}
             <div className="md:hidden space-y-3">
                 {products.map((product: any) => {
-                    const img = product.images?.[0]?.image || product.images?.[0]?.image_url
+                    const productIdentifier = product.slug || product.id
+                    const img = absoluteMediaUrl(product.images?.[0]?.image || product.images?.[0]?.image_url || product.primary_image_url)
                     return (
                         <div key={product.id} className="bg-white border border-gray-100 rounded-xl p-4 flex items-center gap-3">
-                            <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 shrink-0 border border-gray-100">
+                            <Link href={`/products/${productIdentifier}`} className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 shrink-0 border border-gray-100">
                                 {img ? (
                                     <img src={img} className="w-full h-full object-cover" alt={product.name} />
                                 ) : (
@@ -214,17 +218,17 @@ export function SellerProductTable({ onEdit }: SellerProductTableProps) {
                                         {product.name?.charAt(0)}
                                     </div>
                                 )}
-                            </div>
+                            </Link>
                             <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-gray-900 text-sm line-clamp-1">{product.name}</p>
-                                <p className="text-xs text-gray-500 mt-0.5">{product.category?.name || '—'}</p>
+                                <Link href={`/products/${productIdentifier}`} className="font-semibold text-gray-900 text-sm line-clamp-1 hover:text-[#4C3B8A]">{product.name}</Link>
+                                <p className="text-xs text-gray-500 mt-0.5">{product.category?.name || product.category_name || '—'}</p>
                                 <div className="flex items-center gap-3 mt-2">
                                     <p className="font-bold text-sm text-gray-900">৳{Number(product.base_price).toLocaleString()}</p>
                                     <StockCell qty={product.stock_quantity || 0} />
                                 </div>
                             </div>
                             <div className="flex flex-col items-end gap-2">
-                                <Switch checked={product.is_active} onCheckedChange={(c) => toggleActiveMutation.mutate({ id: product.id, is_active: c })} />
+                                <Switch checked={product.is_active} onCheckedChange={(c) => toggleActiveMutation.mutate({ identifier: productIdentifier, is_active: c })} />
                                 <div className="flex gap-1">
                                     <Button size="icon" variant="outline" className="w-7 h-7 rounded-lg" onClick={() => onEdit(product)}>
                                         <Pencil className="w-3 h-3" />
@@ -245,14 +249,14 @@ export function SellerProductTable({ onEdit }: SellerProductTableProps) {
                     <AlertDialogHeader>
                         <AlertDialogTitle>Delete Product?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Are you sure you want to delete <strong>"{deleteTarget?.name}"</strong>? This cannot be undone.
+                            Are you sure you want to delete <strong>{deleteTarget?.name}</strong>? This cannot be undone.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
                             className="bg-red-500 hover:bg-red-600"
-                            onClick={() => deleteMutation.mutate(deleteTarget?.id)}
+                            onClick={() => deleteMutation.mutate(deleteTarget?.slug || deleteTarget?.id)}
                         >
                             {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
                         </AlertDialogAction>

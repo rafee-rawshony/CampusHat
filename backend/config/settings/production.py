@@ -29,6 +29,7 @@ DEBUG = False
 ALLOWED_HOSTS = list(dict.fromkeys([
     *ALLOWED_HOSTS,  # noqa: F405
     '178.128.122.157',
+    '24.144.83.255',
     'campushat.com',
     'www.campushat.com',
 ]))
@@ -71,6 +72,24 @@ SECURE_BROWSER_XSS_FILTER = True
 SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=_default_secure, cast=bool)
 CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=_default_secure, cast=bool)
 X_FRAME_OPTIONS = 'DENY'
+
+CORS_ALLOWED_ORIGINS = list(dict.fromkeys([
+    *CORS_ALLOWED_ORIGINS,  # noqa: F405
+    'http://localhost:3000',
+    'http://178.128.122.157',
+    'http://24.144.83.255',
+    'https://campushat.com',
+    'https://www.campushat.com',
+]))
+
+CSRF_TRUSTED_ORIGINS = list(dict.fromkeys([
+    *CSRF_TRUSTED_ORIGINS,  # noqa: F405
+    'http://localhost:3000',
+    'http://178.128.122.157',
+    'http://24.144.83.255',
+    'https://campushat.com',
+    'https://www.campushat.com',
+]))
 
 # =============================================================================
 # FILE STORAGE — AWS S3 or DigitalOcean Spaces (S3-compatible)

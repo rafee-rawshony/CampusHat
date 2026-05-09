@@ -12,6 +12,7 @@ import { timeAgo } from '@/lib/utils' // or simply format date locally if not av
 import { AddReviewModal } from './AddReviewModal'
 import { getInitials } from '@/lib/initials'
 import { useRouter } from 'next/navigation'
+import { absoluteMediaUrl } from '@/services/upload.service'
 
 interface ProductReviewsTabProps {
     productId: string
@@ -146,7 +147,7 @@ export function ProductReviewsTab({ productId, productSlug, productName }: Produ
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-200 shrink-0">
                                             {profilePic ? (
-                                                <Image src={profilePic} alt={fullName} width={40} height={40} className="object-cover w-full h-full" />
+                                                <Image src={absoluteMediaUrl(profilePic)} alt={fullName} width={40} height={40} unoptimized className="object-cover w-full h-full" />
                                             ) : (
                                                 <span className="text-sm font-bold text-gray-500">{getInitials(fullName)}</span>
                                             )}
@@ -187,7 +188,7 @@ export function ProductReviewsTab({ productId, productSlug, productName }: Produ
                                                 className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border border-gray-200 hover:border-brand-primary transition-colors block"
                                             >
                                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                <img src={imgUrl} alt={`Review ${idx}`} className="w-full h-full object-cover" />
+                                                <img src={absoluteMediaUrl(imgUrl)} alt={`Review ${idx}`} className="w-full h-full object-cover" />
                                             </a>
                                         ))}
                                     </div>

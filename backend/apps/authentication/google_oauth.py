@@ -22,7 +22,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import User, UserSession
-from .views import _build_login_user_data
+from .views import _build_login_user_data, _should_use_secure_refresh_cookie
 
 logger = logging.getLogger(__name__)
 
@@ -181,12 +181,11 @@ class GoogleAuthView(APIView):
             },
         }, status=status.HTTP_200_OK)
 
-        is_production = getattr(settings, 'DEBUG', True) is False
         response.set_cookie(
             key='refresh_token',
             value=refresh_token_str,
             httponly=True,
-            secure=is_production,
+            secure=_should_use_secure_refresh_cookie(request),
             samesite='Lax',
             max_age=60 * 60 * 24 * 7,
             path='/',

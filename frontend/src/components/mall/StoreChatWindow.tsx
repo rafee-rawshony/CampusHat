@@ -9,6 +9,7 @@ import { format, isToday, isYesterday, isSameDay } from 'date-fns'
 import { useAuthStore } from '@/stores/auth.store'
 import { api } from '@/lib/api'
 import { ChatMessageBubble } from '@/components/marketplace/ChatMessageBubble'
+import { absoluteMediaUrl } from '@/services/upload.service'
 
 interface StoreChatWindowProps {
     chatId: string
@@ -107,7 +108,7 @@ export function StoreChatWindow({ chatId, chatData }: StoreChatWindowProps) {
 
                 <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 bg-brand-light flex items-center justify-center font-bold text-brand-primary">
                     {otherUser.profile_picture ? (
-                        <Image src={otherUser.profile_picture} alt={otherUser.name} width={36} height={36} className="object-cover w-full h-full" />
+                        <Image src={absoluteMediaUrl(otherUser.profile_picture)} alt={otherUser.name} width={36} height={36} unoptimized className="object-cover w-full h-full" />
                     ) : (
                         otherUser.name.charAt(0)
                     )}

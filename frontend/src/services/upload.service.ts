@@ -73,11 +73,16 @@ export function absoluteMediaUrl(url: string | null | undefined): string {
                 parsed.pathname.startsWith('/media/')
                 || parsed.pathname.startsWith('/uploads/')
 
-            // In production we use same-origin API (/api/v1) behind Nginx.
-            // If DB still contains old absolute media URLs (localhost/IP),
-            // force same-origin media path to avoid mixed-content/domain issues.
-            if (isSameOriginApi && mediaLikePath) {
-                return `${parsed.pathname}${parsed.search}${parsed.hash}`
+            // If the URL is pointing to localhost but we are running in production/remote,
+            // or if we need to enforce same-origin API:
+            if (mediaLikePath && (isSameOriginApi || parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1')) {
+                // If same origin, just use the pathname
+                if (isSameOriginApi) {
+                    return `${parsed.pathname}${parsed.search}${parsed.hash}`
+                }
+                // Otherwise attach it to the correct API base origin
+                const origin = apiBase.replace(/\/api\/v\d+\/?$/, '')
+                return `${origin}${parsed.pathname}${parsed.search}${parsed.hash}`
             }
 
             // If the page is HTTPS and a media URL is HTTP, use same-origin path.

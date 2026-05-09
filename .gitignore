@@ -148,7 +148,7 @@ __pycache__/
 # Virtual environments
 venv/
 .venv/
-env/
+
 
 # Django
 db.sqlite3
@@ -179,8 +179,11 @@ Thumbs.db
 *.log
 
 campushat-demo/
-.agent/
-.claude/
+docs/
+.agent
+.claude
+logs.txt
+full_logs.txt
 CLAUDE.md
 *.md.resolved
 nginx_logs.txt

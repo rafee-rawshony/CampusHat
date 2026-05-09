@@ -147,7 +147,7 @@ export default function SellerStorePage() {
                 </div>
 
                 {/* Store Info Row */}
-                <div className="flex flex-col sm:flex-row items-start gap-5 -mt-16 mb-6 relative z-10">
+                <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5 -mt-10 sm:-mt-10 mb-6 relative z-10 text-center sm:text-left">
                     {/* Logo */}
                     <div className="w-20 h-20 rounded-2xl border-[3px] border-white shadow-lg overflow-hidden shrink-0" style={{ backgroundColor: bannerColor }}>
                         {logoUrl ? (
@@ -159,8 +159,8 @@ export default function SellerStorePage() {
                         )}
                     </div>
 
-                    <div className="flex-1 pt-10 sm:pt-6">
-                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                    <div className="flex-1 w-full pt-2 sm:pt-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                             <div>
                                 <h1 className="font-bold text-2xl text-gray-900">{storeName}</h1>
                                 {store.badge_label && (
@@ -173,7 +173,7 @@ export default function SellerStorePage() {
                                 )}
                             </div>
 
-                            <div className="flex gap-2 shrink-0">
+                            <div className="flex justify-center sm:justify-end gap-2 shrink-0 mt-3 sm:mt-0">
                                 <Button
                                     onClick={handleFollow}
                                     variant={isFollowing ? 'outline' : 'default'}
@@ -262,8 +262,8 @@ export default function SellerStorePage() {
                     </div>
 
                     {productsLoading ? (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                            {Array(8).fill(0).map((_, i) => <ProductCardSkeleton key={i} />)}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 md:gap-3">
+                            {Array(12).fill(0).map((_, i) => <ProductCardSkeleton key={i} />)}
                         </div>
                     ) : products.length === 0 ? (
                         <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
@@ -272,7 +272,7 @@ export default function SellerStorePage() {
                             <p className="text-sm text-gray-400">This store has not listed any products.</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 md:gap-3">
                             {products.map((product: any) => (
                                 <ProductCard key={product.id} product={product} />
                             ))}

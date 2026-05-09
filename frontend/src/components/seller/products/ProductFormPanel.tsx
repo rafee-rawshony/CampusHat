@@ -18,13 +18,13 @@ const productSchema = z.object({
     brand: z.string().optional(),
     sku: z.string().optional(),
     category: z.string().min(1, 'Select a category'),
-    base_price: z.coerce.number().min(0),
+    base_price: z.coerce.number().min(0.01, 'Price must be greater than 0'),
     discount_price: z.coerce.number().min(0).optional().nullable(),
     stock_quantity: z.coerce.number().min(0),
     is_active: z.boolean(),
-    image_url_1: z.string().url('Must be a valid URL').optional().or(z.literal('')),
-    image_url_2: z.string().url('Must be a valid URL').optional().or(z.literal('')),
-    image_url_3: z.string().url('Must be a valid URL').optional().or(z.literal('')),
+    image_url_1: z.string().optional(),
+    image_url_2: z.string().optional(),
+    image_url_3: z.string().optional(),
     short_description: z.string().max(200).optional(),
     description: z.string().max(1000).optional(),
 })
@@ -44,6 +44,23 @@ interface ProductVariant {
 interface ProductFormPanelProps {
     editProduct: any | null
     onClose: () => void
+}
+
+function apiErrorMessage(error: any, fallback: string) {
+    const data = error?.response?.data
+    if (!data) return fallback
+    if (typeof data === 'string') return data
+    if (data.detail) return data.detail
+    if (data.message && !data.errors) return data.message
+    const errors = data.errors || data
+    if (errors && typeof errors === 'object') {
+        const firstKey = Object.keys(errors)[0]
+        const firstValue = errors[firstKey]
+        if (Array.isArray(firstValue)) return `${firstKey}: ${firstValue[0]}`
+        if (typeof firstValue === 'string') return `${firstKey}: ${firstValue}`
+        return `${firstKey}: Invalid value`
+    }
+    return data.message || fallback
 }
 
 // ─── Variants Section (only shown in edit mode) ────────────────────
@@ -323,8 +340,8 @@ export function ProductFormPanel({ editProduct, onClose }: ProductFormPanelProps
     const queryClient = useQueryClient()
 
     const { data: categoriesData } = useQuery({
-        queryKey: ['mall-categories'],
-        queryFn: () => api.get('/mall/categories/').then(r => {
+        queryKey: ['mall-categories', 'flat'],
+        queryFn: () => api.get('/mall/categories/?flat=true').then(r => {
             const res = r.data?.data?.results || r.data?.results || r.data?.data || r.data
             return Array.isArray(res) ? res : []
         }),
@@ -354,7 +371,7 @@ export function ProductFormPanel({ editProduct, onClose }: ProductFormPanelProps
         if (editProduct) {
             reset({
                 name: editProduct.name || '',
-                brand: editProduct.brand || '',
+                brand: editProduct.brand?.name || editProduct.brand_name || '',
                 sku: editProduct.sku || '',
                 category: editProduct.category?.id || editProduct.category || '',
                 base_price: parseFloat(editProduct.base_price) || 0,
@@ -373,15 +390,15 @@ export function ProductFormPanel({ editProduct, onClose }: ProductFormPanelProps
     const buildPayload = (data: ProductFormValues) => {
         return {
             name: data.name,
-            brand: data.brand,
-            sku: data.sku,
+            brand: data.brand?.trim() || null,
+            sku: data.sku?.trim() || null,
             category: data.category,
             base_price: data.base_price,
-            discount_price: data.discount_price || null,
+            discount_price: (data.discount_price && data.discount_price > 0) ? data.discount_price : null,
             stock_quantity: data.stock_quantity,
             is_active: data.is_active,
-            short_description: data.short_description,
-            description: data.description,
+            has_variants: false, is_featured: false, short_description: data.short_description || '',
+            description: data.description || '',
             image_url_1: data.image_url_1 || '',
             image_url_2: data.image_url_2 || '',
             image_url_3: data.image_url_3 || '',
@@ -397,21 +414,19 @@ export function ProductFormPanel({ editProduct, onClose }: ProductFormPanelProps
             onClose()
         },
         onError: (err: any) => {
-            const msg = err?.response?.data?.detail || 'Failed to add product'
-            toast.error(msg)
+            toast.error(apiErrorMessage(err, 'Failed to add product'))
         },
     })
 
     const editMutation = useMutation({
-        mutationFn: (payload: any) => api.patch(`/mall/products/${editProduct.id}/`, payload),
+        mutationFn: (payload: any) => api.patch(`/mall/products/${editProduct.slug || editProduct.id}/`, payload),
         onSuccess: () => {
             toast.success('Product updated!')
             queryClient.invalidateQueries({ queryKey: ['seller-products'] })
             onClose()
         },
         onError: (err: any) => {
-            const msg = err?.response?.data?.detail || 'Failed to update product'
-            toast.error(msg)
+            toast.error(apiErrorMessage(err, 'Failed to update product'))
         },
     })
 
@@ -476,13 +491,15 @@ export function ProductFormPanel({ editProduct, onClose }: ProductFormPanelProps
                     </div>
                     <div>
                         <label className="block text-xs font-semibold text-gray-700 mb-1.5">Category *</label>
-                        <Select onValueChange={(v) => setValue('category', v)} defaultValue={editProduct?.category?.id || ''}>
+                        <Select value={watch('category') || ''} onValueChange={(v) => setValue('category', v, { shouldDirty: true })}>
                             <SelectTrigger className="w-full text-sm border-gray-200 bg-gray-50 focus:ring-[#4C3B8A]">
                                 <SelectValue placeholder="Select a category" />
                             </SelectTrigger>
                             <SelectContent>
                                 {categories.map((cat: any) => (
-                                    <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>
+                                    <SelectItem key={cat.id} value={String(cat.id)}>
+                                        {cat.level > 1 ? '\u00A0\u00A0'.repeat(cat.level - 1) + '↳ ' : ''}{cat.name}
+                                    </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>

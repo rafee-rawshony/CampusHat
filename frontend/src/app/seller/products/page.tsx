@@ -7,6 +7,7 @@ import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SellerProductTable } from '@/components/seller/products/SellerProductTable'
 import { ProductFormPanel } from '@/components/seller/products/ProductFormPanel'
+import { normalizeListResponse } from '@/lib/response'
 
 export default function SellerProductsPage() {
     const [showForm, setShowForm] = useState(false)
@@ -14,11 +15,11 @@ export default function SellerProductsPage() {
 
     const { data } = useQuery({
         queryKey: ['seller-products'],
-        queryFn: () => api.get('/seller/products/').then(r => r.data?.results || r.data || []),
+        queryFn: () => api.get('/seller/products/').then(r => r.data),
         staleTime: 60_000,
     })
 
-    const products: any[] = data || []
+    const products: any[] = normalizeListResponse(data)
 
     const handleEdit = (product: any) => {
         setEditProduct(product)

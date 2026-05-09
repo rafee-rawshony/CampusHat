@@ -140,7 +140,7 @@ export default function ProductDetailPage() {
                 name: product.name,
                 slug: product.slug,
                 price: String(finalPrice),
-                image_url: activeVariantOverride?.image || product.images?.[0]?.image,
+                image_url: activeVariantOverride?.image || product.images?.[0]?.image_url,
                 quantity: quantity,
                 variant_id: activeVariantOverride?.id,
                 variant_info: activeVariantOverride?.attributes

@@ -37,6 +37,16 @@ from .models import EmailChangeRequest
 
 logger = logging.getLogger(__name__)
 
+def _should_use_secure_refresh_cookie(request) -> bool:
+    """
+    Use Secure cookies in production, except when serving via localhost/127.0.0.1.
+    This keeps real deployments secure while allowing local Docker HTTP testing.
+    """
+    host = (request.get_host() or '').split(':', 1)[0].lower()
+    if host in ('localhost', '127.0.0.1'):
+        return False
+    return getattr(settings, 'DEBUG', True) is False
+
 
 # =============================================================================
 # REGISTRATION
@@ -273,12 +283,11 @@ class LoginView(APIView):
             }
         }, status=status.HTTP_200_OK)
 
-        is_production = getattr(settings, 'DEBUG', True) is False
         response.set_cookie(
             key='refresh_token',
             value=refresh_token_str,
             httponly=True,
-            secure=is_production,
+            secure=_should_use_secure_refresh_cookie(request),
             samesite='Lax',
             max_age=60 * 60 * 24 * 7,
             path='/',
@@ -512,12 +521,11 @@ class OTPVerifyView(APIView):
             },
         }, status=status.HTTP_200_OK)
 
-        is_production = getattr(settings, 'DEBUG', True) is False
         response.set_cookie(
             key='refresh_token',
             value=refresh_token_str,
             httponly=True,
-            secure=is_production,
+            secure=_should_use_secure_refresh_cookie(request),
             samesite='Lax',
             max_age=60 * 60 * 24 * 7,
             path='/',
@@ -547,8 +555,6 @@ class CookieTokenRefreshView(APIView):
             access_token = str(token.access_token)
             # ROTATE_REFRESH_TOKENS=True means we issue a new refresh token
             new_refresh_token = str(token)
-            is_production = getattr(settings, 'DEBUG', True) is False
-
             response = Response({
                 'success': True,
                 'data': {'access_token': access_token}
@@ -558,7 +564,7 @@ class CookieTokenRefreshView(APIView):
                 key='refresh_token',
                 value=new_refresh_token,
                 httponly=True,
-                secure=is_production,
+                secure=_should_use_secure_refresh_cookie(request),
                 samesite='Lax',
                 max_age=60 * 60 * 24 * 7,
                 path='/',

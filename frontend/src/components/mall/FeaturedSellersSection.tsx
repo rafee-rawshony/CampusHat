@@ -6,6 +6,8 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { getInitials } from '@/lib/initials'
 
+import { absoluteMediaUrl } from '@/services/upload.service'
+
 interface Store {
     slug: string
     name: string
@@ -66,6 +68,7 @@ export function FeaturedSellersSection() {
 
                         const initials = getInitials(store.name || 'S')
                         const bannerColor = store.banner_color || '#4C3B8A'
+                        const logoUrl = absoluteMediaUrl(store.logo)
 
                         return (
                             <Link
@@ -77,11 +80,12 @@ export function FeaturedSellersSection() {
                                     className="w-[60px] h-[60px] rounded-full relative flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow overflow-hidden"
                                     style={{ backgroundColor: bannerColor }}
                                 >
-                                    {store.logo ? (
+                                    {logoUrl ? (
                                         <Image
-                                            src={store.logo}
+                                            src={logoUrl}
                                             alt={store.name}
                                             fill
+                                            unoptimized
                                             className="object-cover"
                                             sizes="60px"
                                         />

@@ -338,6 +338,36 @@ class StoreProductViewSet(ViewSet):
     Public: listing (filtered), detail.
     Seller: create, update, soft-delete.
     """
+    lookup_field = 'pk'
+    lookup_value_regex = '[^/]+'
+
+    def _get_product_by_identifier(self, identifier, public=False):
+        qs = StoreProduct.objects.filter(deleted_at__isnull=True)
+        if public:
+            qs = qs.filter(
+                is_active=True,
+                store__status='active',
+                store__deleted_at__isnull=True,
+            )
+        qs = qs.select_related('store__seller', 'category', 'brand').prefetch_related(
+            'images', 'variants',
+        )
+
+        # Try slug first (most common from frontend)
+        try:
+            return qs.get(slug=identifier)
+        except StoreProduct.DoesNotExist:
+            pass
+
+        # Fallback: try as UUID
+        try:
+            from uuid import UUID as UUIDType
+            uuid_val = UUIDType(str(identifier))
+            return qs.get(id=uuid_val)
+        except (ValueError, TypeError, StoreProduct.DoesNotExist):
+            pass
+
+        raise StoreProduct.DoesNotExist
 
     def get_permissions(self):
         if self.action in ('create',):
@@ -391,17 +421,7 @@ class StoreProductViewSet(ViewSet):
     def retrieve(self, request, pk=None):
         """GET /api/v1/mall/products/{slug}/ — public detail."""
         try:
-            product = StoreProduct.objects.select_related(
-                'store', 'category',
-            ).prefetch_related(
-                'images', 'variants',
-            ).get(
-                slug=pk,
-                is_active=True,
-                deleted_at__isnull=True,
-                store__status='active',
-                store__deleted_at__isnull=True,
-            )
+            product = self._get_product_by_identifier(pk, public=True)
         except StoreProduct.DoesNotExist:
             return Response({
                 'success': False,
@@ -446,9 +466,7 @@ class StoreProductViewSet(ViewSet):
     def partial_update(self, request, pk=None):
         """PATCH /api/v1/mall/products/{slug}/ — store owner only."""
         try:
-            product = StoreProduct.objects.get(
-                slug=pk, deleted_at__isnull=True,
-            )
+            product = self._get_product_by_identifier(pk)
         except StoreProduct.DoesNotExist:
             return Response({
                 'success': False,
@@ -479,9 +497,7 @@ class StoreProductViewSet(ViewSet):
     def destroy(self, request, pk=None):
         """DELETE /api/v1/mall/products/{slug}/ — store owner soft delete."""
         try:
-            product = StoreProduct.objects.get(
-                slug=pk, deleted_at__isnull=True,
-            )
+            product = self._get_product_by_identifier(pk)
         except StoreProduct.DoesNotExist:
             return Response({
                 'success': False,

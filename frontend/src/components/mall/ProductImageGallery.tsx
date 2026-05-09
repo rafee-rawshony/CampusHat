@@ -5,12 +5,14 @@ import Image from 'next/image'
 import useEmblaCarousel from 'embla-carousel-react'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { absoluteMediaUrl } from '@/services/upload.service'
 
 export interface ProductImage {
     id: string
-    image: string
+    image_url: string
     alt_text?: string | null
-    order?: number
+    sort_order?: number
+    is_primary?: boolean
 }
 
 interface ProductImageGalleryProps {
@@ -26,7 +28,7 @@ export function ProductImageGallery({ images, productName, activeImageOverride }
     // STATE & REFS
     // -------------------------
     const hasImages = images && images.length > 0
-    const sortedImages = hasImages ? [...images].sort((a, b) => (a.order || 0) - (b.order || 0)) : []
+    const sortedImages = hasImages ? [...images].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)) : []
     
     const [selectedIndex, setSelectedIndex] = useState(0)
     const [lightboxOpen, setLightboxOpen] = useState(false)
@@ -49,7 +51,7 @@ export function ProductImageGallery({ images, productName, activeImageOverride }
     // Parent override logic (Variant selector updates image)
     useEffect(() => {
         if (activeImageOverride && hasImages) {
-            const index = sortedImages.findIndex(img => img.image.includes(activeImageOverride))
+            const index = sortedImages.findIndex(img => img.image_url.includes(activeImageOverride))
             if (index !== -1 && emblaApi) {
                 emblaApi.scrollTo(index)
             }
@@ -105,9 +107,10 @@ export function ProductImageGallery({ images, productName, activeImageOverride }
                                 onClick={() => setLightboxOpen(true)}
                             >
                                 <Image
-                                    src={img.image}
+                                    src={absoluteMediaUrl(img.image_url)}
                                     alt={img.alt_text || productName}
                                     fill
+                                    unoptimized
                                     className="object-contain"
                                     sizes="(max-width: 768px) 100vw, 55vw"
                                     priority
@@ -155,9 +158,10 @@ export function ProductImageGallery({ images, productName, activeImageOverride }
                             )}
                         >
                             <Image
-                                src={img.image}
+                                src={absoluteMediaUrl(img.image_url)}
                                 alt="Thumbnail"
                                 fill
+                                unoptimized
                                 className="object-cover"
                                 sizes="64px"
                             />
@@ -194,9 +198,10 @@ export function ProductImageGallery({ images, productName, activeImageOverride }
                         onClick={(e) => e.stopPropagation()}
                     >
                         <Image
-                            src={sortedImages[selectedIndex].image}
+                            src={absoluteMediaUrl(sortedImages[selectedIndex].image_url)}
                             alt={sortedImages[selectedIndex].alt_text || productName}
                             fill
+                            unoptimized
                             className="object-contain drop-shadow-2xl"
                             sizes="100vw"
                             quality={100}

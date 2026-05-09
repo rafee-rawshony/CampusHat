@@ -294,7 +294,7 @@ class StoreProductDetailSerializer(serializers.ModelSerializer):
         max_digits=10, decimal_places=2, read_only=True,
     )
     is_in_stock = serializers.BooleanField(read_only=True)
-    images = StoreProductImageSerializer(source='images', many=True, read_only=True)
+    images = StoreProductImageSerializer(many=True, read_only=True)
     variants = serializers.SerializerMethodField()
     store = StoreDetailForProductSerializer(read_only=True)
     category_name = serializers.CharField(
@@ -335,6 +335,8 @@ class StoreProductCreateUpdateSerializer(serializers.ModelSerializer):
     image_url_2 = serializers.URLField(required=False, allow_blank=True, write_only=True, default='')
     image_url_3 = serializers.URLField(required=False, allow_blank=True, write_only=True, default='')
 
+    brand = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+
     class Meta:
         model = StoreProduct
         fields = [
@@ -348,6 +350,19 @@ class StoreProductCreateUpdateSerializer(serializers.ModelSerializer):
         if value and not isinstance(value, list):
             raise serializers.ValidationError('Tags must be a list.')
         return value or []
+
+    def validate_brand(self, value):
+        if not value:
+            return None
+        if isinstance(value, str):
+            value = value.strip()
+            if not value:
+                return None
+            brand = Brand.objects.filter(name__iexact=value).first()
+            if not brand:
+                brand = Brand.objects.create(name=value)
+            return brand
+        return value
 
     def validate_base_price(self, value):
         if value <= Decimal('0.00'):

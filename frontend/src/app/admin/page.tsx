@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthStore } from '@/stores/auth.store'
@@ -116,19 +116,72 @@ function BreakdownRow({ label, value, color, loading }: {
 }
 
 export default function AdminDashboardPage() {
-    const { isAdmin, user } = useAuthStore()
+    const { isAdmin, user, isAuthenticated, _hasHydrated, accessToken, setAccessToken, logout } = useAuthStore()
     const router = useRouter()
+    const [isAuthBootstrapping, setIsAuthBootstrapping] = useState(true)
+    const canFetchDashboardData =
+        _hasHydrated && isAuthenticated && isAdmin() && !!accessToken && !isAuthBootstrapping
 
     // Non-admin moderators get redirected to approvals
     useEffect(() => {
         if (!isAdmin()) router.replace('/admin/approvals')
     }, [isAdmin, router])
 
+    // Ensure admin pages don't fire protected queries until an access token exists.
+    useEffect(() => {
+        if (!_hasHydrated) return
+        if (!isAuthenticated || !isAdmin()) {
+            setIsAuthBootstrapping(false)
+            return
+        }
+        if (accessToken) {
+            setIsAuthBootstrapping(false)
+            return
+        }
+
+        let active = true
+        setIsAuthBootstrapping(true)
+        api.post('/auth/token/refresh/')
+            .then((res) => {
+                if (!active) return
+                const token =
+                    res.data?.data?.access_token ||
+                    res.data?.access_token ||
+                    res.data?.access
+                if (token) {
+                    setAccessToken(token)
+                    return
+                }
+                logout()
+            })
+            .catch(() => {
+                if (active) logout()
+            })
+            .finally(() => {
+                if (active) setIsAuthBootstrapping(false)
+            })
+
+        return () => { active = false }
+    }, [_hasHydrated, isAuthenticated, isAdmin, accessToken, setAccessToken, logout])
+
     // Dashboard stats from backend
-    const { data: stats, isLoading } = useQuery({
+    const {
+        data: stats,
+        isLoading: isStatsLoading,
+    } = useQuery({
         queryKey: ['admin-dashboard-stats'],
-        queryFn: () => api.get('/admin/dashboard/stats/').then(r => r.data?.data || r.data),
+        queryFn: async () => {
+            try {
+                const r = await api.get('/admin/dashboard/stats/')
+                return r.data?.data || r.data || {}
+            } catch {
+                // Fallback route (same view) in case reverse-proxy/route edge cases hit /stats/.
+                const r = await api.get('/admin/dashboard/')
+                return r.data?.data || r.data || {}
+            }
+        },
         refetchInterval: 60_000,
+        enabled: canFetchDashboardData,
     })
 
     // Approval counts for the pending widget
@@ -136,6 +189,7 @@ export default function AdminDashboardPage() {
         queryKey: ['admin-pending-counts'],
         queryFn: () => api.get('/admin/approvals/counts/').then(r => r.data?.data || r.data),
         refetchInterval: 60_000,
+        enabled: canFetchDashboardData,
     })
 
     // Recent activity for the feed
@@ -146,7 +200,9 @@ export default function AdminDashboardPage() {
             return d?.results || d || []
         }),
         refetchInterval: 30_000,
+        enabled: canFetchDashboardData,
     })
+    const isLoading = isAuthBootstrapping || (canFetchDashboardData && isStatsLoading)
 
     // Current greeting based on time
     const greeting = useMemo(() => {

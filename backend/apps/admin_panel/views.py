@@ -46,28 +46,39 @@ class AdminDashboardView(APIView):
     def get(self, request):
         from apps.authentication.models import User, UserVerification
         from apps.marketplace.models import MarketplaceProduct
+        from apps.mall.models import StoreProduct
         from apps.orders.models import Order
         from apps.refunds.models import Refund
         from apps.sellers.models import SellerProfile, Store
         from apps.wallet.models import Wallet
+        from datetime import datetime, time, timedelta
 
         today = timezone.now().date()
+        today_start = timezone.make_aware(datetime.combine(today, time.min))
+        seven_days_ago = today_start - timedelta(days=7)
+        fourteen_days_ago = today_start - timedelta(days=14)
 
-        # Single aggregation per model — combines what was 11 separate queries.
-        # Each Count(filter=Q(...)) is a single SQL aggregate, so all counts
-        # for a given model run as ONE query instead of one-per-count.
+        # ── Seller / Store stats ────────────────────────────────────────
         seller_stats = SellerProfile.objects.aggregate(
             total=Count('id'),
             pending=Count('id', filter=Q(status='pending')),
         )
         store_stats = Store.objects.aggregate(
-            active=Count('id', filter=Q(is_active=True)),
-            pending=Count('id', filter=Q(is_active=False)),
+            active=Count('id', filter=Q(status='active')),
+            pending=Count('id', filter=Q(status='under_review')),
         )
+
+        # ── Marketplace stats + listing-type breakdown ──────────────────
         marketplace_stats = MarketplaceProduct.objects.aggregate(
             total=Count('id'),
             pending=Count('id', filter=Q(status='pending')),
+            buy_sell=Count('id', filter=Q(post_type='sell')),
+            rental=Count('id', filter=Q(post_type='rent')),
+            service=Count('id', filter=Q(post_type='service')),
+            food=Count('id', filter=Q(post_type='food')),
         )
+
+        # ── Verification stats ──────────────────────────────────────────
         verification_stats = UserVerification.objects.aggregate(
             verified_students=Count(
                 'user',
@@ -79,12 +90,44 @@ class AdminDashboardView(APIView):
             ),
             pending=Count('id', filter=Q(status='pending')),
         )
-        order_stats = Order.objects.filter(created_at__date=today).aggregate(
+
+        # ── Mall products ───────────────────────────────────────────────
+        mall_products = StoreProduct.objects.filter(
+            deleted_at__isnull=True, is_active=True,
+        ).count()
+
+        # ── Order stats: ALL-TIME + today + by status ───────────────────
+        order_all = Order.objects.aggregate(
+            total=Count('id'),
+            total_revenue=Sum('total_amount', filter=Q(payment_status='paid')),
+            delivered=Count('id', filter=Q(order_status='delivered')),
+            pending=Count('id', filter=Q(order_status__in=['placed', 'confirmed', 'packed'])),
+            cancelled=Count('id', filter=Q(order_status='cancelled')),
+        )
+        order_today = Order.objects.filter(created_at__gte=today_start).aggregate(
             total_today=Count('id'),
             revenue_today=Sum('total_amount', filter=Q(payment_status='paid')),
         )
 
+        # ── Revenue trend (last 7 days vs previous 7 days) ─────────────
+        rev_recent = Order.objects.filter(
+            payment_status='paid',
+            created_at__gte=seven_days_ago,
+        ).aggregate(s=Sum('total_amount'))['s'] or 0
+        rev_previous = Order.objects.filter(
+            payment_status='paid',
+            created_at__gte=fourteen_days_ago,
+            created_at__lt=seven_days_ago,
+        ).aggregate(s=Sum('total_amount'))['s'] or 0
+        if rev_previous > 0:
+            revenue_trend = round(((float(rev_recent) - float(rev_previous)) / float(rev_previous)) * 100, 1)
+        else:
+            revenue_trend = 100.0 if rev_recent > 0 else 0.0
+
+        # ── User stats ─────────────────────────────────────────────────
         total_users = User.objects.count()
+        new_users_today = User.objects.filter(created_at__gte=today_start).count()
+
         pending_refunds = Refund.objects.filter(
             status__in=['pending', 'under_review', 'approved'],
         ).count()
@@ -105,28 +148,49 @@ class AdminDashboardView(APIView):
         except Exception:
             platform_wallet_balance = 0
 
-        verified_students = verification_stats['verified_students']
-        total_sellers = seller_stats['total']
-        active_stores = store_stats['active']
-        total_marketplace_ads = marketplace_stats['total']
-        total_orders_today = order_stats['total_today']
-        total_revenue_today = order_stats['revenue_today'] or 0
-
         return Response({
             'success': True,
             'data': {
+                # Primary KPIs (what the frontend MetricCards expect)
+                'total_revenue': float(order_all['total_revenue'] or 0),
+                'total_sellers': seller_stats['total'],
+                'mall_products': mall_products,
+                'marketplace_listings': marketplace_stats['total'],
+
+                # Orders (all-time)
+                'total_orders': order_all['total'] or 0,
+                'delivered_orders': order_all['delivered'] or 0,
+                'pending_orders': order_all['pending'] or 0,
+                'cancelled_orders': order_all['cancelled'] or 0,
+
+                # Today metrics
+                'total_orders_today': order_today['total_today'] or 0,
+                'total_revenue_today': float(order_today['revenue_today'] or 0),
+
+                # Users
                 'total_users': total_users,
-                'verified_students': verified_students,
-                'total_sellers': total_sellers,
-                'active_stores': active_stores,
-                'total_marketplace_ads': total_marketplace_ads,
+                'new_users_today': new_users_today,
+                'verified_students': verification_stats['verified_students'],
+
+                # Trend
+                'revenue_trend': revenue_trend,
+
+                # Marketplace type breakdown
+                'buy_listings': marketplace_stats['buy_sell'] or 0,
+                'rental_listings': marketplace_stats['rental'] or 0,
+                'service_listings': marketplace_stats['service'] or 0,
+                'food_listings': marketplace_stats['food'] or 0,
+
+                # Stores
+                'active_stores': store_stats['active'],
+                'total_marketplace_ads': marketplace_stats['total'],
+
+                # Approvals
                 'pending_approvals_count': pending_approvals_count,
                 'pending_seller_approvals': pending_seller_approvals,
                 'pending_store_approvals': pending_store_approvals,
                 'pending_ad_approvals': pending_ad_approvals,
                 'pending_verifications': pending_verifications,
-                'total_orders_today': total_orders_today,
-                'total_revenue_today': total_revenue_today,
                 'pending_refunds': pending_refunds,
                 'platform_wallet_balance': platform_wallet_balance,
             },
