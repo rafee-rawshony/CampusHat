@@ -7,7 +7,6 @@ import { HeroCarousel } from '@/components/mall/HeroCarousel'
 import { FlashSaleSection } from '@/components/mall/FlashSaleSection'
 import { TopCategoriesSection } from '@/components/mall/TopCategoriesSection'
 import { FeaturedSellersSection } from '@/components/mall/FeaturedSellersSection'
-import { ProductsGridSection } from '@/components/mall/ProductsGridSection'
 
 export default function MallHomePage() {
     const router = useRouter()
@@ -38,7 +37,6 @@ export default function MallHomePage() {
                 <FlashSaleSection />
                 <TopCategoriesSection />
                 <FeaturedSellersSection />
-                <ProductsGridSection />
             </main>
         </div>
     )

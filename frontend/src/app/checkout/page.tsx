@@ -74,15 +74,23 @@ export default function CheckoutPage() {
 
     const [paymentMethod, setPaymentMethod] = useState<string>('cod')
 
-    // Guard Checks + fetch saved addresses
+    // Reactive auth guard only — fires whenever auth state changes
     useEffect(() => {
         if (!isAuthenticated) {
             router.replace('/auth/login?redirect=/checkout')
         }
-        if (items.length === 0) {
-            toast.error('Your cart is empty.')
-            router.replace('/shop')
-        }
+    }, [isAuthenticated, router])
+
+    // One-time mount: cart check (with delay to let syncCart settle) + wallet + addresses
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(() => {
+        // Short delay so that syncCart() from Buy Now can populate items before we check
+        const cartCheckTimer = setTimeout(() => {
+            if (useCartStore.getState().items.length === 0) {
+                toast.error('Your cart is empty.')
+                router.replace('/shop')
+            }
+        }, 300)
 
         const fetchWallet = async () => {
             try {
@@ -96,16 +104,13 @@ export default function CheckoutPage() {
         }
         fetchWallet()
 
-        // Fetch saved addresses
         const fetchAddresses = async () => {
             try {
                 const addrs = await listAddresses()
                 setSavedAddresses(addrs)
-                // Auto-select default or first address
                 const defaultAddr = addrs.find(a => a.is_default) || addrs[0]
                 if (defaultAddr) {
                     setSelectedAddressId(defaultAddr.id)
-                    // Pre-fill form with saved address
                     setValue('full_name', defaultAddr.recipient_name || user?.full_name || '')
                     setValue('phone', defaultAddr.recipient_phone || '')
                     setValue('campus_building', defaultAddr.campus_building || defaultAddr.address_line1 || '')
@@ -119,7 +124,9 @@ export default function CheckoutPage() {
             }
         }
         fetchAddresses()
-    }, [isAuthenticated, items.length, router, setValue, user?.full_name])
+
+        return () => clearTimeout(cartCheckTimer)
+    }, []) // intentionally empty — runs once on mount
 
     const selectSavedAddress = (addr: UserAddress) => {
         setSelectedAddressId(addr.id)

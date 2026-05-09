@@ -4,8 +4,10 @@ import React, { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { CheckCircle2, UserPlus, Building2 } from 'lucide-react'
-import { getInitials } from '@/lib/initials'
 import { useAuthStore } from '@/stores/auth.store'
+
+const getInitials = (name: string) =>
+    name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
 import { api } from '@/lib/api'
 import toast from 'react-hot-toast'
 import { cn } from '@/lib/utils'
@@ -33,7 +35,7 @@ export interface ProductStore {
 export function ProductStoreInfoTab({ store }: { store: ProductStore }) {
     const { isAuthenticated } = useAuthStore()
     const [isFollowing, setIsFollowing] = useState(false)
-    const [followerCount, setFollowerCount] = useState(store.follower_count)
+    const [followerCount, setFollowerCount] = useState(store.follower_count ?? 0)
     const [isUpdating, setIsUpdating] = useState(false)
 
     // Using year from the backend date_joined
@@ -84,14 +86,14 @@ export function ProductStoreInfoTab({ store }: { store: ProductStore }) {
             <div className="flex flex-col sm:flex-row sm:items-end gap-5 px-4 sm:px-6 -mt-8 relative z-10 mb-6">
                 
                 {/* Logo */}
-                <div 
-                    className="w-[84px] h-[84px] rounded-full border-4 border-white flex items-center justify-center overflow-hidden shrink-0 shadow-sm bg-white"
+                <div
+                    className="relative w-[84px] h-[84px] rounded-full border-4 border-white flex items-center justify-center overflow-hidden shrink-0 shadow-sm bg-white"
                 >
                     {store.logo ? (
-                        <Image 
-                            src={absoluteMediaUrl(store.logo)} 
-                            alt={store.name} 
-                            fill 
+                        <Image
+                            src={absoluteMediaUrl(store.logo)}
+                            alt={store.name}
+                            fill
                             unoptimized
                             className="object-cover"
                             sizes="84px"
@@ -177,11 +179,11 @@ export function ProductStoreInfoTab({ store }: { store: ProductStore }) {
                     <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mt-1">Followers</p>
                 </div>
                 <div className="bg-gray-50 rounded-2xl p-4 text-center border border-gray-100">
-                    <p className="text-2xl font-bold text-gray-900">{store.on_time_delivery_rate}%</p>
+                    <p className="text-2xl font-bold text-gray-900">{store.on_time_delivery_rate ?? '—'}%</p>
                     <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mt-1">On-Time Delivery</p>
                 </div>
                 <div className="bg-gray-50 rounded-2xl p-4 text-center border border-gray-100">
-                    <p className="text-2xl font-bold text-gray-900">{store.response_rate}%</p>
+                    <p className="text-2xl font-bold text-gray-900">{store.response_rate ?? '—'}%</p>
                     <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mt-1">Response Rate</p>
                 </div>
                 <div className="bg-gray-50 rounded-2xl p-4 text-center border border-gray-100">

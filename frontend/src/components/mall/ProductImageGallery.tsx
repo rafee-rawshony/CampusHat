@@ -1,9 +1,10 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import useEmblaCarousel from 'embla-carousel-react'
-import { ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, X, ZoomIn } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { absoluteMediaUrl } from '@/services/upload.service'
 
@@ -32,6 +33,8 @@ export function ProductImageGallery({ images, productName, activeImageOverride }
     
     const [selectedIndex, setSelectedIndex] = useState(0)
     const [lightboxOpen, setLightboxOpen] = useState(false)
+    const [mounted, setMounted] = useState(false)
+    useEffect(() => setMounted(true), [])
 
     // Embla Setup
     const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true })
@@ -92,19 +95,87 @@ export function ProductImageGallery({ images, productName, activeImageOverride }
     // -------------------------
     // GALLERY RENDER
     // -------------------------
+    const lightboxJSX = (
+        <div
+            className="fixed inset-0 bg-black/85 flex items-center justify-center"
+            style={{ zIndex: 9999 }}
+            onClick={() => setLightboxOpen(false)}
+        >
+            {/* Close button */}
+            <button
+                className="absolute top-4 right-4 sm:top-5 sm:right-5 text-white bg-white/15 hover:bg-white/25 p-2.5 rounded-full transition-colors"
+                style={{ zIndex: 10000 }}
+                onClick={(e) => { e.stopPropagation(); setLightboxOpen(false); }}
+            >
+                <X className="w-5 h-5" />
+            </button>
+
+            {/* Prev */}
+            {sortedImages.length > 1 && (
+                <button
+                    className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 text-white bg-white/15 hover:bg-white/25 p-3 rounded-full transition-colors"
+                    style={{ zIndex: 10000 }}
+                    onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedIndex(p => (p > 0 ? p - 1 : sortedImages.length - 1))
+                    }}
+                >
+                    <ChevronLeft className="w-6 h-6" />
+                </button>
+            )}
+
+            {/* Image — centered, no fixed height so it never clips */}
+            <div
+                className="flex items-center justify-center w-full max-w-5xl px-20 sm:px-28 select-none"
+                onClick={(e) => e.stopPropagation()}
+            >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                    src={absoluteMediaUrl(sortedImages[selectedIndex].image_url)}
+                    alt={sortedImages[selectedIndex].alt_text || productName}
+                    className="max-h-[85vh] max-w-full object-contain rounded-xl shadow-2xl"
+                    draggable={false}
+                />
+            </div>
+
+            {/* Next */}
+            {sortedImages.length > 1 && (
+                <button
+                    className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 text-white bg-white/15 hover:bg-white/25 p-3 rounded-full transition-colors"
+                    style={{ zIndex: 10000 }}
+                    onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedIndex(p => (p < sortedImages.length - 1 ? p + 1 : 0))
+                    }}
+                >
+                    <ChevronRight className="w-6 h-6" />
+                </button>
+            )}
+
+            {/* Counter + hint */}
+            <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1">
+                {sortedImages.length > 1 && (
+                    <span className="text-white/80 text-sm font-semibold bg-black/30 px-4 py-1 rounded-full">
+                        {selectedIndex + 1} / {sortedImages.length}
+                    </span>
+                )}
+                <span className="text-white/40 text-xs">Click outside to close</span>
+            </div>
+        </div>
+    )
+
     return (
         <div className="sticky top-4 flex flex-col gap-3">
-            {/* VIEWPORT ROW (Main Image) */}
-            <div className="relative rounded-2xl overflow-hidden bg-white border border-gray-100 shadow-sm">
-                
+            {/* MAIN IMAGE */}
+            <div className="relative rounded-2xl overflow-hidden bg-white border border-gray-100 shadow-sm group/gallery">
+
                 {/* Embla Wrapper */}
                 <div className="overflow-hidden" ref={emblaRef}>
                     <div className="flex touch-pan-y">
                         {sortedImages.map((img) => (
-                            <div 
-                                key={img.id} 
-                                className="flex-[0_0_100%] min-w-0 aspect-[4/3] relative cursor-zoom-in"
-                                onClick={() => setLightboxOpen(true)}
+                            <div
+                                key={img.id}
+                                className="flex-[0_0_100%] min-w-0 aspect-[4/3] relative"
                             >
                                 <Image
                                     src={absoluteMediaUrl(img.image_url)}
@@ -120,9 +191,18 @@ export function ProductImageGallery({ images, productName, activeImageOverride }
                     </div>
                 </div>
 
+                {/* Zoom button — appears on hover */}
+                <button
+                    onClick={() => setLightboxOpen(true)}
+                    className="absolute bottom-3 right-3 z-10 bg-white/90 hover:bg-white text-gray-700 hover:text-[#4C3B8A] px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm opacity-0 group-hover/gallery:opacity-100 transition-opacity duration-200"
+                >
+                    <ZoomIn className="w-3.5 h-3.5" />
+                    Zoom
+                </button>
+
                 {/* Counter Badge */}
                 {sortedImages.length > 1 && (
-                    <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-sm text-white text-xs font-medium px-2.5 py-1 rounded-full z-10 pointer-events-none">
+                    <div className="absolute top-3 right-3 bg-black/40 backdrop-blur-sm text-white text-xs font-medium px-2.5 py-1 rounded-full z-10 pointer-events-none">
                         {selectedIndex + 1} / {sortedImages.length}
                     </div>
                 )}
@@ -131,11 +211,11 @@ export function ProductImageGallery({ images, productName, activeImageOverride }
                 {sortedImages.length > 1 && (
                     <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10 md:hidden">
                         {sortedImages.map((_, i) => (
-                            <div 
+                            <div
                                 key={i}
                                 className={cn(
-                                    "h-1.5 rounded-full transition-all duration-300 shadow-sm",
-                                    selectedIndex === i ? "bg-[#4C3B8A] w-5" : "bg-gray-300 w-1.5"
+                                    'h-1.5 rounded-full transition-all duration-300 shadow-sm',
+                                    selectedIndex === i ? 'bg-[#4C3B8A] w-5' : 'bg-gray-300 w-1.5'
                                 )}
                             />
                         ))}
@@ -143,7 +223,7 @@ export function ProductImageGallery({ images, productName, activeImageOverride }
                 )}
             </div>
 
-            {/* DESKTOP THUMBNAILS (Hidden on Mobile) */}
+            {/* THUMBNAILS */}
             {sortedImages.length > 1 && (
                 <div className="hidden md:flex gap-2 overflow-x-auto pb-2 scrollbar-hide snap-x">
                     {sortedImages.map((img, idx) => (
@@ -151,10 +231,10 @@ export function ProductImageGallery({ images, productName, activeImageOverride }
                             key={img.id}
                             onClick={() => emblaApi?.scrollTo(idx)}
                             className={cn(
-                                "w-16 h-16 rounded-xl overflow-hidden border-2 transition-all relative shrink-0 snap-start",
-                                selectedIndex === idx 
-                                    ? "border-[#4C3B8A] shadow-md" 
-                                    : "border-gray-100 hover:border-gray-300 opacity-70 hover:opacity-100"
+                                'w-16 h-16 rounded-xl overflow-hidden border-2 transition-all relative shrink-0 snap-start',
+                                selectedIndex === idx
+                                    ? 'border-[#4C3B8A] shadow-md'
+                                    : 'border-gray-100 hover:border-gray-300 opacity-70 hover:opacity-100'
                             )}
                         >
                             <Image
@@ -170,73 +250,8 @@ export function ProductImageGallery({ images, productName, activeImageOverride }
                 </div>
             )}
 
-            {/* LIGHTBOX OVERLAY */}
-            {lightboxOpen && (
-                <div
-                    className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center"
-                    onClick={() => setLightboxOpen(false)}
-                >
-                    {/* Close */}
-                    <button
-                        className="absolute top-4 right-4 sm:top-6 sm:right-6 text-white bg-white/20 hover:bg-white/30 p-2.5 rounded-full z-[101] transition-colors"
-                        onClick={(e) => { e.stopPropagation(); setLightboxOpen(false); }}
-                    >
-                        <X className="w-5 h-5" />
-                    </button>
-
-                    {/* Tap-to-close hint */}
-                    <span className="absolute top-5 left-1/2 -translate-x-1/2 text-white/50 text-xs font-medium pointer-events-none select-none">
-                        Tap outside to close
-                    </span>
-
-                    {/* Prev */}
-                    {sortedImages.length > 1 && (
-                        <button
-                            className="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 text-white bg-white/20 hover:bg-white/30 p-2.5 rounded-full z-[101] transition-colors"
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                setSelectedIndex(p => (p > 0 ? p - 1 : sortedImages.length - 1))
-                            }}
-                        >
-                            <ChevronLeft className="w-6 h-6" />
-                        </button>
-                    )}
-
-                    {/* Image */}
-                    <div
-                        className="relative flex items-center justify-center w-full max-w-4xl px-16 sm:px-24 select-none"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                            src={absoluteMediaUrl(sortedImages[selectedIndex].image_url)}
-                            alt={sortedImages[selectedIndex].alt_text || productName}
-                            className="max-h-[80vh] max-w-full object-contain drop-shadow-2xl rounded-lg"
-                            draggable={false}
-                        />
-                    </div>
-
-                    {/* Next */}
-                    {sortedImages.length > 1 && (
-                        <button
-                            className="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 text-white bg-white/20 hover:bg-white/30 p-2.5 rounded-full z-[101] transition-colors"
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                setSelectedIndex(p => (p < sortedImages.length - 1 ? p + 1 : 0))
-                            }}
-                        >
-                            <ChevronRight className="w-6 h-6" />
-                        </button>
-                    )}
-
-                    {/* Counter */}
-                    {sortedImages.length > 1 && (
-                        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 text-white/70 text-sm font-medium bg-black/30 px-3 py-1 rounded-full">
-                            {selectedIndex + 1} / {sortedImages.length}
-                        </div>
-                    )}
-                </div>
-            )}
+            {/* LIGHTBOX — rendered via portal directly on <body> to escape all stacking contexts */}
+            {lightboxOpen && mounted && createPortal(lightboxJSX, document.body)}
         </div>
     )
 }

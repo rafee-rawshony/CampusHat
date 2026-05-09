@@ -124,16 +124,16 @@ export default function ProductDetailPage() {
     const handleAddToCart = async () => {
         if (!product) return
         if (!validateVariantSelections()) return
-
         if (!isAuthenticated) {
             router.push(`/auth/login?redirect=/products/${slug}`)
             return
         }
-
         setAddingToCart(true)
         try {
-            const finalPrice = product.has_variants ? activeVariantOverride!.price : (product.discount_price ?? product.base_price)
-            
+            const finalPrice = product.has_variants
+                ? activeVariantOverride!.price
+                : (product.discount_price ?? product.base_price)
+            // Fire-and-forget optimistic add — best UX for "Add to Cart"
             addItem({
                 id: crypto.randomUUID(),
                 product_id: product.id,
@@ -143,11 +143,10 @@ export default function ProductDetailPage() {
                 image_url: activeVariantOverride?.image || product.images?.[0]?.image_url,
                 quantity: quantity,
                 variant_id: activeVariantOverride?.id,
-                variant_info: activeVariantOverride?.attributes
+                variant_info: activeVariantOverride?.attributes,
             })
-            
             toast.success('Added to cart!')
-        } catch (error) {
+        } catch {
             toast.error('Failed to add to cart. Please try again.')
         } finally {
             setAddingToCart(false)
@@ -155,9 +154,37 @@ export default function ProductDetailPage() {
     }
 
     const handleBuyNow = async () => {
+        // Auth check first — do NOT call handleAddToCart (it would also navigate to login
+        // and then this function would still call router.push('/checkout') after).
+        if (!isAuthenticated) {
+            router.push(`/auth/login?redirect=/products/${slug}`)
+            return
+        }
         if (!validateVariantSelections()) return
-        await handleAddToCart()
-        router.push('/checkout')
+        setAddingToCart(true)
+        try {
+            const finalPrice = product.has_variants
+                ? activeVariantOverride!.price
+                : (product.discount_price ?? product.base_price)
+            // AWAIT the full addItem (API call + syncCart) so the cart is definitely
+            // populated before the checkout page mounts and checks items.length.
+            await addItem({
+                id: crypto.randomUUID(),
+                product_id: product.id,
+                name: product.name,
+                slug: product.slug,
+                price: String(finalPrice),
+                image_url: activeVariantOverride?.image || product.images?.[0]?.image_url,
+                quantity: quantity,
+                variant_id: activeVariantOverride?.id,
+                variant_info: activeVariantOverride?.attributes,
+            })
+            router.push('/checkout')
+        } catch {
+            toast.error('Failed to process. Please try again.')
+        } finally {
+            setAddingToCart(false)
+        }
     }
 
     const handleShare = () => {
