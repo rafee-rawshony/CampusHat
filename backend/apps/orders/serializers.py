@@ -213,8 +213,11 @@ class InvoiceSerializer(serializers.ModelSerializer):
 class AdminOrderSerializer(serializers.ModelSerializer):
     """Admin view — includes all financial details."""
 
+    buyer_name = serializers.CharField(source='buyer.full_name', read_only=True)
     buyer_email = serializers.CharField(source='buyer.email', read_only=True)
+    buyer_phone = serializers.CharField(source='buyer.phone', read_only=True, default=None)
     store_name = serializers.CharField(source='store.store_name', read_only=True)
+    status = serializers.CharField(source='order_status', read_only=True)
     items = OrderItemSerializer(many=True, read_only=True)
     status_history = OrderStatusHistorySerializer(many=True, read_only=True)
     payments = PaymentSerializer(many=True, read_only=True)
@@ -222,13 +225,13 @@ class AdminOrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = [
-            'id', 'order_number', 'buyer', 'buyer_email',
+            'id', 'order_number', 'buyer', 'buyer_name', 'buyer_email', 'buyer_phone',
             'store', 'store_name',
             'delivery_address_snapshot',
             'coupon_code_snapshot',
             'subtotal', 'discount_amount', 'delivery_fee',
             'total_amount', 'platform_commission', 'seller_net_amount',
-            'payment_status', 'order_status',
+            'payment_status', 'order_status', 'status',
             'buyer_note', 'tracking_code',
             'cancelled_at', 'cancellation_reason',
             'items', 'status_history', 'payments',

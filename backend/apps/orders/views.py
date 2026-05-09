@@ -7,7 +7,7 @@ Admin: all orders, force status update.
 """
 
 from rest_framework import status
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.generics import GenericAPIView
 from rest_framework.views import APIView
@@ -23,7 +23,7 @@ from apps.orders.services.checkout import (
     process_checkout,
 )
 from core.pagination import CampusHatPagination
-from core.permissions import IsApprovedSeller, IsNormalUserOrAbove
+from core.permissions import IsAdminOrModerator, IsApprovedSeller, IsNormalUserOrAbove
 from core.wallet_engine import InsufficientBalanceError
 
 from .serializers import (
@@ -501,14 +501,26 @@ class SellerShipOrderView(GenericAPIView):
 # =============================================================================
 
 class AdminOrderListView(APIView):
-    """GET /api/v1/admin/orders/ — all orders."""
+    """GET /api/v1/admin/orders/ — all orders with search + status filter."""
 
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsAdminOrModerator]
 
     def get(self, request):
-        orders = Order.objects.select_related(
-            'buyer', 'store',
-        ).order_by('-created_at')
+        from django.db.models import Q
+
+        orders = Order.objects.select_related('buyer', 'store').order_by('-created_at')
+
+        status_filter = request.query_params.get('status', '')
+        if status_filter and status_filter != 'all':
+            orders = orders.filter(order_status=status_filter)
+
+        search = request.query_params.get('search', '').strip()
+        if search:
+            orders = orders.filter(
+                Q(order_number__icontains=search) |
+                Q(buyer__full_name__icontains=search) |
+                Q(buyer__email__icontains=search)
+            )
 
         paginator = CampusHatPagination()
         page = paginator.paginate_queryset(orders, request)
@@ -527,7 +539,7 @@ class AdminOrderListView(APIView):
 class AdminOrderDetailView(APIView):
     """GET /api/v1/admin/orders/{id}/"""
 
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsAdminOrModerator]
 
     def get(self, request, order_id):
         try:
@@ -550,7 +562,7 @@ class AdminOrderDetailView(APIView):
 class AdminForceStatusView(APIView):
     """PATCH /api/v1/admin/orders/{id}/status/ — force status update."""
 
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsAdminOrModerator]
 
     def patch(self, request, order_id):
         try:
