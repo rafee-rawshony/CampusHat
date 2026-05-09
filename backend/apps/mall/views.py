@@ -377,13 +377,19 @@ class StoreProductViewSet(ViewSet):
         return [AllowAny()]
 
     def list(self, request):
-        """GET /api/v1/mall/products/ — public listing with filters."""
-        qs = StoreProduct.objects.filter(
-            is_active=True,
-            deleted_at__isnull=True,
-            store__status='active',
-            store__deleted_at__isnull=True,
-        ).select_related('store', 'category').prefetch_related('images')
+        """GET /api/v1/mall/products/ — public listing with filters. Admin sees all."""
+        is_admin = request.user.is_authenticated and getattr(request.user, 'role', None) in ('admin', 'moderator')
+        if is_admin:
+            qs = StoreProduct.objects.filter(
+                deleted_at__isnull=True,
+            ).select_related('store', 'category').prefetch_related('images')
+        else:
+            qs = StoreProduct.objects.filter(
+                is_active=True,
+                deleted_at__isnull=True,
+                store__status='active',
+                store__deleted_at__isnull=True,
+            ).select_related('store', 'category').prefetch_related('images')
 
         # Apply filters
         f = StoreProductFilter(request.query_params, queryset=qs)
@@ -1600,6 +1606,31 @@ class ProductQuestionListView(APIView):
             'message': 'Question submitted successfully.',
             'data': ProductQuestionSerializer(question).data,
         }, status=201)
+
+
+class AdminMallProductToggleView(APIView):
+    """PATCH /api/v1/mall/products/<uuid:pk>/admin-toggle/ — admin toggle product active status."""
+
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        from core.permissions import IsAdminOrModerator
+        perm = IsAdminOrModerator()
+        if not perm.has_permission(request, self):
+            return Response({'success': False, 'message': 'Admin access required.'}, status=403)
+
+        try:
+            product = StoreProduct.objects.get(pk=pk, deleted_at__isnull=True)
+        except StoreProduct.DoesNotExist:
+            return Response({'success': False, 'message': 'Product not found.'}, status=404)
+
+        product.is_active = not product.is_active
+        product.save(update_fields=['is_active'])
+        return Response({
+            'success': True,
+            'message': f'Product {"activated" if product.is_active else "deactivated"}.',
+            'data': {'is_active': product.is_active},
+        })
 
 
 class SellerAnswerQuestionView(APIView):

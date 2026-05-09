@@ -9,6 +9,7 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from .views import (
+    AdminMallProductToggleView,
     BannerListView,
     BrandListView,
     CartAddItemView,
@@ -93,6 +94,11 @@ urlpatterns += [
          ProductVariantListCreateView.as_view(), name='product-variants'),
     path('products/<slug:product_slug>/variants/<uuid:variant_id>/',
          ProductVariantDetailView.as_view(), name='product-variant-detail'),
+]
+
+# Admin product actions
+urlpatterns += [
+    path('products/<uuid:pk>/admin-toggle/', AdminMallProductToggleView.as_view(), name='product-admin-toggle'),
 ]
 
 # Product Q&A (nested under product)
