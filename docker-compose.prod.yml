@@ -60,7 +60,7 @@ services:
     build:
       context: ./backend
       dockerfile: docker/Dockerfile.prod
-    image: campushat-backend:prod
+    image: ${DOCKER_REGISTRY:-}campushat-backend:${IMAGE_TAG:-latest}
     container_name: campushat_backend
     restart: unless-stopped
     # Named Docker volumes are root-owned on first mount; run as root so
@@ -97,7 +97,7 @@ services:
       start_period: 45s
 
   celery:
-    image: campushat-backend:prod
+    image: ${DOCKER_REGISTRY:-}campushat-backend:${IMAGE_TAG:-latest}
     container_name: campushat_celery
     restart: unless-stopped
     command: celery -A config worker --loglevel=warning --concurrency=${CELERY_CONCURRENCY:-2}
@@ -121,7 +121,7 @@ services:
       - campushat_network
 
   celerybeat:
-    image: campushat-backend:prod
+    image: ${DOCKER_REGISTRY:-}campushat-backend:${IMAGE_TAG:-latest}
     container_name: campushat_celerybeat
     restart: unless-stopped
     command: celery -A config beat --loglevel=warning --scheduler django_celery_beat.schedulers:DatabaseScheduler
@@ -156,7 +156,7 @@ services:
         # Set them in the root-level .env file (see .env.example at project root).
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api/v1}
         NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
-    image: campushat-frontend:prod
+    image: ${DOCKER_REGISTRY:-}campushat-frontend:${IMAGE_TAG:-latest}
     container_name: campushat_frontend
     restart: unless-stopped
     expose:

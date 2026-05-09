@@ -26,11 +26,7 @@ class StoreMessageSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at']
 
     def get_sender_avatar(self, obj):
-        if obj.sender.profile_picture:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.sender.profile_picture.url)
-        return None
+        return obj.sender.profile_picture or None
 
 
 class StoreChatSerializer(serializers.ModelSerializer):
@@ -51,18 +47,10 @@ class StoreChatSerializer(serializers.ModelSerializer):
         ]
 
     def get_store_logo(self, obj):
-        if obj.store.logo:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.store.logo.url)
-        return None
+        return obj.store.logo_url or None
 
     def get_buyer_avatar(self, obj):
-        if obj.buyer.profile_picture:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.buyer.profile_picture.url)
-        return None
+        return obj.buyer.profile_picture or None
 
     def get_last_message(self, obj):
         last_msg = obj.messages.order_by('-created_at').first()
