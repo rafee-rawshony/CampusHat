@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import * as LucideIcons from 'lucide-react'
+import { LayoutGrid } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 
@@ -48,20 +49,28 @@ export function TopCategoriesSection() {
         .slice(0, 8)
 
     return (
-        <div className="max-w-7xl mx-auto px-4 lg:px-6 mb-10">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6 mb-12">
             {/* Header */}
-            <div className="flex justify-between items-center mb-5">
-                <h2 className="font-bold text-xl text-gray-900">Top Categories</h2>
-                <Link href="/categories" className="text-[#4C3B8A] text-sm font-semibold hover:underline">
+            <div className="flex items-end justify-between mb-6">
+                <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-[#4C3B8A]/10 flex items-center justify-center">
+                        <LayoutGrid className="w-5 h-5 text-[#4C3B8A]" />
+                    </div>
+                    <div>
+                        <h2 className="font-bold text-xl text-gray-900 leading-tight">Top Categories</h2>
+                        <p className="text-xs text-gray-400 mt-0.5 hidden sm:block">Shop by category for quick browsing</p>
+                    </div>
+                </div>
+                <Link href="/categories" className="text-[#4C3B8A] text-sm font-semibold hover:underline shrink-0">
                     View All →
                 </Link>
             </div>
 
-            {/* Grid */}
-            <div className="grid grid-cols-4 sm:grid-cols-8 gap-3 sm:gap-4">
+            {/* Grid — flex-wrap so cells stay a fixed size regardless of count */}
+            <div className="flex flex-wrap gap-4 sm:gap-5 justify-start">
                 {isLoading
                     ? Array(8).fill(null).map((_, i) => (
-                        <div key={i} className="flex flex-col items-center gap-2.5">
+                        <div key={i} className="flex flex-col items-center gap-2.5 w-[72px] sm:w-[88px]">
                             <div className="w-full aspect-square rounded-2xl bg-gray-100 animate-pulse" />
                             <div className="h-3 w-12 bg-gray-100 rounded animate-pulse" />
                         </div>
@@ -75,7 +84,7 @@ export function TopCategoriesSection() {
                             <Link
                                 key={cat.id}
                                 href={`/categories/${cat.slug}`}
-                                className="flex flex-col items-center gap-2 group"
+                                className="flex flex-col items-center gap-2 group w-[72px] sm:w-[88px]"
                             >
                                 {/* Icon box */}
                                 <div className={`w-full aspect-square rounded-2xl flex items-center justify-center relative overflow-hidden transition-all duration-200 group-hover:scale-105 group-hover:shadow-md ${hasImage ? 'bg-white border border-gray-100' : colorClass}`}>

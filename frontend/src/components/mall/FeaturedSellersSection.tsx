@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
+import { Store as StoreIcon } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { getInitials } from '@/lib/initials'
@@ -44,11 +45,19 @@ export function FeaturedSellersSection() {
     if (!isLoading && sellers.length === 0) return null
 
     return (
-        <div className="max-w-7xl mx-auto px-4 lg:px-6 mb-10">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6 mb-12">
             {/* Header */}
-            <div className="flex justify-between items-center mb-4">
-                <h2 className="font-bold text-xl text-gray-900">Best Sellers</h2>
-                <Link href="/sellers" className="text-[#4C3B8A] text-sm font-semibold hover:underline">
+            <div className="flex items-end justify-between mb-6">
+                <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-[#4C3B8A]/10 flex items-center justify-center">
+                        <StoreIcon className="w-5 h-5 text-[#4C3B8A]" />
+                    </div>
+                    <div>
+                        <h2 className="font-bold text-xl text-gray-900 leading-tight">Featured Stores</h2>
+                        <p className="text-xs text-gray-400 mt-0.5 hidden sm:block">Trusted sellers handpicked for you</p>
+                    </div>
+                </div>
+                <Link href="/sellers" className="text-[#4C3B8A] text-sm font-semibold hover:underline shrink-0">
                     View All →
                 </Link>
             </div>

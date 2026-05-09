@@ -32,8 +32,8 @@ export default function MallHomePage() {
     if (mode === 'marketplace') return null
 
     return (
-        <div className="bg-white min-h-screen pb-20 pt-4 md:pt-8 w-full overflow-x-hidden">
-            <main>
+        <div className="bg-gray-50 min-h-screen pb-20 pt-4 md:pt-8 w-full overflow-x-hidden">
+            <main className="space-y-2">
                 <HeroCarousel />
                 <FlashSaleSection />
                 <TopCategoriesSection />
