@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import { Zap } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { CountdownTimer } from '@/components/shared/CountdownTimer'
@@ -28,29 +27,31 @@ export function FlashSaleSection() {
     const items = flashSale?.products || []
 
     return (
-        <div className="max-w-7xl mx-auto px-4 lg:px-6 mb-10">
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6 mb-8">
+            <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-gray-100">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <Zap className="w-5 h-5 text-[#EF4444] fill-current" />
-                        <h2 className="font-bold text-xl text-gray-900">Flash Sale</h2>
-                        {flashSale?.ends_at && (
-                            <div className="ml-2">
-                                <CountdownTimer targetDate={flashSale.ends_at} />
-                            </div>
-                        )}
+                <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
+                    <div className="shrink-0">
+                        <h2 className="font-bold text-xl text-gray-900 leading-tight">Flash Sell</h2>
+                        <p className="text-xs text-gray-400 mt-1">Grab these deals before they&apos;re gone!</p>
                     </div>
+
+                    {flashSale?.ends_at && (
+                        <div className="grow flex justify-center order-3 sm:order-2 w-full sm:w-auto">
+                            <CountdownTimer targetDate={flashSale.ends_at} />
+                        </div>
+                    )}
+
                     <Link
                         href="/shop?flash=true"
-                        className="text-[#4C3B8A] text-sm font-semibold hover:underline shrink-0"
+                        className="text-[#4C3B8A] text-sm font-semibold hover:underline shrink-0 border border-gray-200 rounded-full px-4 py-1.5 order-2 sm:order-3"
                     >
                         View All →
                     </Link>
                 </div>
 
                 {/* Horizontal scroll */}
-                <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 scrollbar-hide">
                     {isLoading
                         ? Array(6).fill(null).map((_, i) => (
                             <div key={i} className="w-[160px] sm:w-[200px] shrink-0">
