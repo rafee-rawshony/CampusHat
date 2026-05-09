@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { RotateCw, TrendingUp } from 'lucide-react'
+import { RotateCw } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { ProductCard, ProductCardSkeleton, Product } from './ProductCard'
@@ -27,22 +27,12 @@ export function ProductsGridSection() {
     const products: Product[] = productsRaw || []
 
     return (
-        <div className="max-w-7xl mx-auto px-4 lg:px-6 mb-12">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6 mb-12 mt-4">
 
-            {/* Header */}
-            <div className="flex items-end justify-between mb-6">
-                <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-[#4C3B8A]/10 flex items-center justify-center">
-                        <TrendingUp className="w-5 h-5 text-[#4C3B8A]" />
-                    </div>
-                    <div>
-                        <h2 className="font-bold text-xl text-gray-900 leading-tight">Best Sellers</h2>
-                        <p className="text-xs text-gray-400 mt-0.5 hidden sm:block">Top-rated products loved by students</p>
-                    </div>
-                </div>
-                <Link href="/shop" className="text-[#4C3B8A] text-sm font-semibold hover:underline shrink-0">
-                    View All →
-                </Link>
+            {/* Centered Header */}
+            <div className="text-center mb-8">
+                <h2 className="font-bold text-2xl sm:text-3xl text-gray-900 leading-tight">Our Products</h2>
+                <p className="text-sm text-gray-500 mt-2">Discover a wide range of products available in our store.</p>
             </div>
 
             {/* Error */}

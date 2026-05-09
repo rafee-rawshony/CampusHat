@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import * as LucideIcons from 'lucide-react'
-import { LayoutGrid } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 
@@ -46,68 +45,61 @@ export function TopCategoriesSection() {
     const displayCategories: Category[] = (categoriesRaw || [])
         .filter((c: Category) => !c.parent)
         .sort((a: Category, b: Category) => (a.display_order ?? 0) - (b.display_order ?? 0))
-        .slice(0, 8)
+        .slice(0, 10)
 
     return (
-        <div className="max-w-7xl mx-auto px-4 lg:px-6 mb-12">
-            {/* Header */}
-            <div className="flex items-end justify-between mb-6">
-                <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-[#4C3B8A]/10 flex items-center justify-center">
-                        <LayoutGrid className="w-5 h-5 text-[#4C3B8A]" />
-                    </div>
+        <div className="max-w-7xl mx-auto px-4 lg:px-6 mb-8">
+            <div className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
+                {/* Header */}
+                <div className="flex items-end justify-between mb-5">
                     <div>
                         <h2 className="font-bold text-xl text-gray-900 leading-tight">Top Categories</h2>
-                        <p className="text-xs text-gray-400 mt-0.5 hidden sm:block">Shop by category for quick browsing</p>
+                        <p className="text-xs text-gray-400 mt-1">New products with updated stocks.</p>
                     </div>
+                    <Link href="/categories" className="text-[#4C3B8A] text-sm font-semibold hover:underline shrink-0 border border-gray-200 rounded-full px-4 py-1.5">
+                        View All →
+                    </Link>
                 </div>
-                <Link href="/categories" className="text-[#4C3B8A] text-sm font-semibold hover:underline shrink-0">
-                    View All →
-                </Link>
-            </div>
 
-            {/* Grid — flex-wrap so cells stay a fixed size regardless of count */}
-            <div className="flex flex-wrap gap-4 sm:gap-5 justify-start">
-                {isLoading
-                    ? Array(8).fill(null).map((_, i) => (
-                        <div key={i} className="flex flex-col items-center gap-2.5 w-[72px] sm:w-[88px]">
-                            <div className="w-full aspect-square rounded-2xl bg-gray-100 animate-pulse" />
-                            <div className="h-3 w-12 bg-gray-100 rounded animate-pulse" />
-                        </div>
-                    ))
-                    : displayCategories.map((cat, idx) => {
-                        const colorClass = ICON_BG_COLORS[idx % ICON_BG_COLORS.length]
-                        const Icon = (LucideIcons as any)[cat.icon ?? ''] ?? LucideIcons.Package
-                        const hasImage = isImageUrl(cat.icon_url)
+                {/* Grid — equally distributed cells in a single row on desktop */}
+                <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-10 gap-2 sm:gap-3">
+                    {isLoading
+                        ? Array(10).fill(null).map((_, i) => (
+                            <div key={i} className="flex flex-col items-center justify-center gap-2 p-3 rounded-xl border border-gray-100">
+                                <div className="w-10 h-10 rounded-lg bg-gray-100 animate-pulse" />
+                                <div className="h-3 w-14 bg-gray-100 rounded animate-pulse" />
+                            </div>
+                        ))
+                        : displayCategories.map((cat) => {
+                            const Icon = (LucideIcons as any)[cat.icon ?? ''] ?? LucideIcons.Package
+                            const hasImage = isImageUrl(cat.icon_url)
 
-                        return (
-                            <Link
-                                key={cat.id}
-                                href={`/categories/${cat.slug}`}
-                                className="flex flex-col items-center gap-2 group w-[72px] sm:w-[88px]"
-                            >
-                                {/* Icon box */}
-                                <div className={`w-full aspect-square rounded-2xl flex items-center justify-center relative overflow-hidden transition-all duration-200 group-hover:scale-105 group-hover:shadow-md ${hasImage ? 'bg-white border border-gray-100' : colorClass}`}>
-                                    {hasImage ? (
-                                        // eslint-disable-next-line @next/next/no-img-element
-                                        <img
-                                            src={cat.icon_url!}
-                                            alt={cat.name}
-                                            className="w-3/5 h-3/5 object-contain"
-                                        />
-                                    ) : (
-                                        <Icon className="w-7 h-7 sm:w-8 sm:h-8" strokeWidth={1.8} />
-                                    )}
-                                </div>
-
-                                {/* Label */}
-                                <span className="text-[11px] sm:text-xs font-semibold text-gray-600 text-center line-clamp-2 leading-tight group-hover:text-[#4C3B8A] transition-colors px-0.5">
-                                    {cat.name}
-                                </span>
-                            </Link>
-                        )
-                    })
-                }
+                            return (
+                                <Link
+                                    key={cat.id}
+                                    href={`/categories/${cat.slug}`}
+                                    className="flex flex-col items-center justify-center gap-2 p-3 rounded-xl border border-gray-100 hover:border-[#4C3B8A] hover:shadow-md transition-all duration-200 group"
+                                >
+                                    <div className="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center group-hover:bg-[#4C3B8A]/10 transition-colors">
+                                        {hasImage ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img
+                                                src={cat.icon_url!}
+                                                alt={cat.name}
+                                                className="w-6 h-6 object-contain"
+                                            />
+                                        ) : (
+                                            <Icon className="w-5 h-5 text-[#4C3B8A]" strokeWidth={1.8} />
+                                        )}
+                                    </div>
+                                    <span className="text-[10px] sm:text-[11px] font-semibold text-gray-700 text-center line-clamp-2 leading-tight group-hover:text-[#4C3B8A] transition-colors">
+                                        {cat.name}
+                                    </span>
+                                </Link>
+                            )
+                        })
+                    }
+                </div>
             </div>
         </div>
     )
