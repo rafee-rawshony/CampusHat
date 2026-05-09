@@ -31,7 +31,7 @@ app.conf.beat_schedule = {
         'schedule': crontab(minute='*/15'),
     },
     'send-expiry-warnings': {
-        'task': 'marketplace.send_expiry_warnings',
+        'task': 'marketplace.send_expiry_warning',
         'schedule': crontab(hour=3, minute=0),  # 9AM UTC+6
     },
     # Phase 08: Coupons
@@ -45,7 +45,7 @@ app.conf.beat_schedule = {
     },
     # Phase 10: Analytics
     'update-seller-dashboard-stats': {
-        'task': 'apps.analytics.tasks.update_seller_dashboard_stats',
+        'task': 'analytics.update_seller_dashboard_stats',
         'schedule': crontab(minute=0, hour='*/6'),  # every 6 hours
     },
     'cleanup-old-analytics': {
@@ -55,11 +55,11 @@ app.conf.beat_schedule = {
         ),
     },
     'cleanup-expired-sessions': {
-        'task': 'apps.authentication.tasks.cleanup_expired_sessions',
+        'task': 'authentication.cleanup_expired_sessions',
         'schedule': crontab(hour=21, minute=0),  # 3:00 AM Bangladesh (UTC+6)
     },
     'auto-cancel-unpaid-orders': {
-        'task': 'apps.orders.tasks.auto_cancel_unpaid_orders',
+        'task': 'orders.auto_cancel_unpaid_orders',
         'schedule': crontab(minute='*/30'),  # Every 30 minutes
     },
 }

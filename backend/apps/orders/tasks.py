@@ -161,7 +161,7 @@ from django.db import transaction
 from django.db.models import F
 from decimal import Decimal
 
-@shared_task(bind=True, max_retries=3, default_retry_delay=300)
+@shared_task(bind=True, max_retries=3, default_retry_delay=300, name='orders.auto_cancel_unpaid_orders')
 def auto_cancel_unpaid_orders(self):
     """
     Cancels orders stuck in 'placed' status with payment_status='pending'.
