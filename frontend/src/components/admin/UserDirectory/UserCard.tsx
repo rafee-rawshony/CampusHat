@@ -103,7 +103,7 @@ export function UserCard({ user, onViewProfile, onChangeRole, onSuspend, onActiv
                 {getStatusPillJSX(user)}
                 {user.university && (
                     <span className="bg-gray-100 text-gray-600 px-2 py-0.5 text-[10px] font-bold uppercase rounded-full tracking-wider border border-gray-200">
-                        {user.university.short_code || 'UNI'}
+                        {user.university.short_name || 'UNI'}
                     </span>
                 )}
             </div>

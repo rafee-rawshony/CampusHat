@@ -61,8 +61,8 @@ export function UserFilters({ filters, setFilters, totalUsers, startIndex, endIn
         queryKey: ['universities-list'],
         queryFn: async () => {
             try {
-                const r = await api.get('/universities/')
-                const res = r.data?.data || r.data?.results || r.data
+                const r = await api.get('/universities/', { params: { page_size: 200 } })
+                const res = r.data?.data?.results || r.data?.results || r.data?.data || r.data
                 return Array.isArray(res) ? res : []
             } catch {
                 return []
@@ -119,7 +119,7 @@ export function UserFilters({ filters, setFilters, totalUsers, startIndex, endIn
                             <SelectContent>
                                 <SelectItem value="all">All Universities</SelectItem>
                                 {Array.isArray(universities) && universities.map((u: any) => (
-                                    <SelectItem key={u.id} value={u.id}>{u.short_code || u.name}</SelectItem>
+                                    <SelectItem key={u.id} value={u.id}>{u.short_name || u.name}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>

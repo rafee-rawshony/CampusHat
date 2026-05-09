@@ -66,7 +66,7 @@ export function UserTable({ users, onViewProfile, onChangeRole, onSuspend, onAct
                                     {user.university ? (
                                         <div className="flex flex-col items-start gap-1">
                                             <span className="bg-gray-100 text-gray-600 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
-                                                {user.university.short_code || 'UNI'}
+                                                {user.university.short_name || 'UNI'}
                                             </span>
                                             <span className="text-[10px] text-gray-400 truncate max-w-[140px]">
                                                 {user.university.name}

@@ -302,6 +302,10 @@ class AdminUserListView(APIView):
         if is_active is not None:
             users = users.filter(is_active=is_active.lower() == 'true')
 
+        is_email_verified = request.query_params.get('is_email_verified')
+        if is_email_verified is not None:
+            users = users.filter(is_email_verified=is_email_verified.lower() == 'true')
+
         search = request.query_params.get('search')
         if search:
             users = users.filter(

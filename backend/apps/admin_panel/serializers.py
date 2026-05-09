@@ -99,11 +99,17 @@ class AdminUserListSerializer(serializers.Serializer):
     role = serializers.CharField()
     is_active = serializers.BooleanField()
     is_email_verified = serializers.BooleanField()
-    university_name = serializers.SerializerMethodField()
+    university = serializers.SerializerMethodField()
     created_at = serializers.DateTimeField()
 
-    def get_university_name(self, obj):
-        return getattr(obj.university, 'name', None) if obj.university_id else None
+    def get_university(self, obj):
+        if not obj.university_id or not obj.university:
+            return None
+        return {
+            'id': str(obj.university.id),
+            'name': obj.university.name,
+            'short_name': obj.university.short_name,
+        }
 
 
 class AdminUserDetailSerializer(serializers.Serializer):
