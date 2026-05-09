@@ -29,8 +29,8 @@ export default function WishlistPage() {
         queryKey: ['wishlist-products'],
         queryFn: async () => {
             const { data } = await api.get('/wishlist/')
-            const items = data?.data?.results || data?.results || data || []
-            return items.map((item: any) => item.product || item).filter(Boolean)
+            const products = Array.isArray(data?.data) ? data.data : (data?.results || [])
+            return products.filter(Boolean)
         },
         enabled: !!isAuthenticated,
         staleTime: 60_000,
