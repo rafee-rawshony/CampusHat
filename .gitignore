@@ -182,6 +182,7 @@ campushat-demo/
 docs/
 .agent
 .claude
+.serena/
 logs.txt
 full_logs.txt
 CLAUDE.md
