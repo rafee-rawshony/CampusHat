@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { RotateCw } from 'lucide-react'
+import { RotateCw, TrendingUp } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { ProductCard, ProductCardSkeleton, Product } from './ProductCard'
@@ -15,7 +15,7 @@ export function ProductsGridSection() {
                     is_active: true,
                     page: 1,
                     page_size: 12,
-                    ordering: '-created_at'
+                    ordering: '-sold_count,-created_at',
                 }
             })
             const d = res.data?.data ?? res.data
@@ -27,21 +27,25 @@ export function ProductsGridSection() {
     const products: Product[] = productsRaw || []
 
     return (
-        <div className="max-w-7xl mx-auto px-4 lg:px-6 mb-10">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6 mb-12">
+
             {/* Header */}
-            <div className="flex justify-between items-end mb-6">
-                <div>
-                    <h2 className="font-bold text-xl text-gray-900">Our Products</h2>
-                    <p className="text-gray-500 text-sm mt-1 sm:block hidden">
-                        Discover completely verified, quality listings ready for checkout.
-                    </p>
+            <div className="flex items-end justify-between mb-6">
+                <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-[#4C3B8A]/10 flex items-center justify-center">
+                        <TrendingUp className="w-5 h-5 text-[#4C3B8A]" />
+                    </div>
+                    <div>
+                        <h2 className="font-bold text-xl text-gray-900 leading-tight">Best Sellers</h2>
+                        <p className="text-xs text-gray-400 mt-0.5 hidden sm:block">Top-rated products loved by students</p>
+                    </div>
                 </div>
-                <Link href="/shop" className="text-[#4C3B8A] text-sm font-semibold hover:underline shrink-0 pb-0.5">
+                <Link href="/shop" className="text-[#4C3B8A] text-sm font-semibold hover:underline shrink-0">
                     View All →
                 </Link>
             </div>
 
-            {/* Error State */}
+            {/* Error */}
             {isError ? (
                 <div className="bg-red-50 border border-red-100 rounded-2xl p-8 text-center flex flex-col items-center">
                     <p className="text-red-600 font-medium mb-4">Could not load products. Try again.</p>
@@ -55,36 +59,29 @@ export function ProductsGridSection() {
                     </button>
                 </div>
             ) : (
-                /* Grid */
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 lg:gap-5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
                     {isLoading
-                        ? Array(12).fill(null).map((_, i) => (
-                            <div key={i} className="w-full">
-                                <ProductCardSkeleton />
-                            </div>
-                        ))
+                        ? Array(8).fill(null).map((_, i) => <ProductCardSkeleton key={i} />)
                         : products.map((product) => (
-                            <div key={product.id} className="w-full">
-                                <ProductCard product={product} />
-                            </div>
+                            <ProductCard key={product.id} product={product} />
                         ))
                     }
                 </div>
             )}
 
-            {/* Empty State protection (if API succeeds but returns empty array) */}
+            {/* Empty */}
             {!isLoading && !isError && products.length === 0 && (
                 <div className="bg-gray-50 border border-gray-100 rounded-2xl p-10 text-center text-gray-500">
                     No products available right now. Check back soon!
                 </div>
             )}
 
-            {/* Bottom CTA */}
+            {/* CTA */}
             {!isError && products.length > 0 && (
                 <div className="mt-8 flex justify-center">
                     <Link
                         href="/shop"
-                        className="border-2 border-[#4C3B8A] text-[#4C3B8A] font-semibold px-8 py-3 rounded-xl hover:bg-[#4C3B8A] hover:text-white transition inline-block text-sm sm:text-base text-center w-full sm:w-auto"
+                        className="border-2 border-[#4C3B8A] text-[#4C3B8A] font-semibold px-10 py-3 rounded-xl hover:bg-[#4C3B8A] hover:text-white transition text-sm"
                     >
                         View All Products
                     </Link>

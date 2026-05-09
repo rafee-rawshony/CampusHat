@@ -394,21 +394,23 @@ export default function CheckoutPage() {
                                 {items.map(item => (
                                     <div key={item.id} className="flex gap-4">
                                         <div className="h-16 w-16 bg-gray-50 rounded-lg overflow-hidden shrink-0 relative border border-gray-100">
-                                            {item.image_url ? (
-                                                <Image src={item.image_url} alt={item.name} fill className="object-cover" />
+                                            {(item.image_url || item.primary_image_url) ? (
+                                                <Image src={item.image_url || item.primary_image_url!} alt={item.name || item.product_name || ''} fill className="object-cover" unoptimized />
                                             ) : (
-                                                <span className="flex h-full items-center justify-center font-bold text-gray-300">{item.name.charAt(0)}</span>
+                                                <span className="flex h-full items-center justify-center font-bold text-gray-300">
+                                                    {(item.name || item.product_name || '?').charAt(0)}
+                                                </span>
                                             )}
                                         </div>
                                         <div className="flex-1">
-                                            <h4 className="font-bold text-sm text-gray-900 line-clamp-1">{item.name}</h4>
+                                            <h4 className="font-bold text-sm text-gray-900 line-clamp-1">{item.name || item.product_name}</h4>
                                             {item.variant_info && (
                                                 <p className="text-xs text-gray-500 truncate mt-0.5">
                                                     {Object.values(item.variant_info).join(' • ')}
                                                 </p>
                                             )}
                                             <div className="flex items-center justify-between mt-1">
-                                                <span className="text-sm font-semibold text-brand-primary">৳{parseFloat(item.price).toLocaleString()}</span>
+                                                <span className="text-sm font-semibold text-brand-primary">৳{parseFloat(item.unit_price_snapshot || item.price || '0').toLocaleString()}</span>
                                                 <span className="text-xs text-gray-500 font-medium">Qty: {item.quantity}</span>
                                             </div>
                                         </div>

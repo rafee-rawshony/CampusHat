@@ -172,55 +172,69 @@ export function ProductImageGallery({ images, productName, activeImageOverride }
 
             {/* LIGHTBOX OVERLAY */}
             {lightboxOpen && (
-                <div 
-                    className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex items-center justify-center"
+                <div
+                    className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center"
                     onClick={() => setLightboxOpen(false)}
                 >
-                    <button 
-                        className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors bg-white/10 hover:bg-white/20 p-2 rounded-full z-[101]"
+                    {/* Close */}
+                    <button
+                        className="absolute top-4 right-4 sm:top-6 sm:right-6 text-white bg-white/20 hover:bg-white/30 p-2.5 rounded-full z-[101] transition-colors"
                         onClick={(e) => { e.stopPropagation(); setLightboxOpen(false); }}
                     >
-                        <X className="w-6 h-6" />
+                        <X className="w-5 h-5" />
                     </button>
 
-                    <button
-                        className="absolute left-6 top-1/2 -translate-y-1/2 text-white/50 hover:text-white transition-colors bg-white/10 hover:bg-white/20 p-3 rounded-full z-[101]"
-                        onClick={(e) => {
-                            e.stopPropagation()
-                            setSelectedIndex(p => (p > 0 ? p - 1 : sortedImages.length - 1))
-                        }}
-                    >
-                        <ChevronLeft className="w-8 h-8" />
-                    </button>
+                    {/* Tap-to-close hint */}
+                    <span className="absolute top-5 left-1/2 -translate-x-1/2 text-white/50 text-xs font-medium pointer-events-none select-none">
+                        Tap outside to close
+                    </span>
 
-                    <div 
-                        className="relative w-full max-w-5xl h-[85vh] mx-16 select-none"
+                    {/* Prev */}
+                    {sortedImages.length > 1 && (
+                        <button
+                            className="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 text-white bg-white/20 hover:bg-white/30 p-2.5 rounded-full z-[101] transition-colors"
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                setSelectedIndex(p => (p > 0 ? p - 1 : sortedImages.length - 1))
+                            }}
+                        >
+                            <ChevronLeft className="w-6 h-6" />
+                        </button>
+                    )}
+
+                    {/* Image */}
+                    <div
+                        className="relative flex items-center justify-center w-full max-w-4xl px-16 sm:px-24 select-none"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <Image
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
                             src={absoluteMediaUrl(sortedImages[selectedIndex].image_url)}
                             alt={sortedImages[selectedIndex].alt_text || productName}
-                            fill
-                            unoptimized
-                            className="object-contain drop-shadow-2xl"
-                            sizes="100vw"
-                            quality={100}
+                            className="max-h-[80vh] max-w-full object-contain drop-shadow-2xl rounded-lg"
+                            draggable={false}
                         />
                     </div>
 
-                    <button
-                        className="absolute right-6 top-1/2 -translate-y-1/2 text-white/50 hover:text-white transition-colors bg-white/10 hover:bg-white/20 p-3 rounded-full z-[101]"
-                        onClick={(e) => {
-                            e.stopPropagation()
-                            setSelectedIndex(p => (p < sortedImages.length - 1 ? p + 1 : 0))
-                        }}
-                    >
-                        <ChevronRight className="w-8 h-8" />
-                    </button>
+                    {/* Next */}
+                    {sortedImages.length > 1 && (
+                        <button
+                            className="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 text-white bg-white/20 hover:bg-white/30 p-2.5 rounded-full z-[101] transition-colors"
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                setSelectedIndex(p => (p < sortedImages.length - 1 ? p + 1 : 0))
+                            }}
+                        >
+                            <ChevronRight className="w-6 h-6" />
+                        </button>
+                    )}
 
-                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/70 font-medium tracking-wide">
-                        {selectedIndex + 1} / {sortedImages.length}
-                    </div>
+                    {/* Counter */}
+                    {sortedImages.length > 1 && (
+                        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 text-white/70 text-sm font-medium bg-black/30 px-3 py-1 rounded-full">
+                            {selectedIndex + 1} / {sortedImages.length}
+                        </div>
+                    )}
                 </div>
             )}
         </div>

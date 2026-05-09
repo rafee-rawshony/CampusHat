@@ -146,8 +146,27 @@ export const useCartStore = create<CartState>()(
                     const data = await fetchCart()
                     // Map API response to our local state shape
                     // Backend returns { items: [...] } or sometimes { data: { items: [...] } }
-                    const items = data?.items || data?.data?.items
-                    if (items && Array.isArray(items)) {
+                    const rawItems = data?.items || data?.data?.items
+                    if (rawItems && Array.isArray(rawItems)) {
+                        // Remap backend field names to frontend CartItem interface
+                        const items: CartItem[] = rawItems.map((item: any) => ({
+                            id: item.id,
+                            product_id: item.product,
+                            product: item.product,
+                            name: item.product_name || item.name || '',
+                            product_name: item.product_name,
+                            slug: item.product_slug || item.slug || '',
+                            product_slug: item.product_slug,
+                            price: String(item.unit_price_snapshot ?? item.price ?? '0'),
+                            unit_price_snapshot: item.unit_price_snapshot,
+                            image_url: item.primary_image_url || item.image_url || '',
+                            primary_image_url: item.primary_image_url,
+                            quantity: item.quantity,
+                            variant_id: item.variant,
+                            variant: item.variant,
+                            variant_name: item.variant_name || '',
+                            variant_info: item.variant_info,
+                        }))
                         set({ items })
                     }
                 } catch (error) {

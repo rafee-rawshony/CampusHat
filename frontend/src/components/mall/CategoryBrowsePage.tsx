@@ -126,7 +126,7 @@ export function CategoryBrowsePage() {
                 <div className="grid grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)] gap-7">
                     <aside
                         ref={menuRef}
-                        className="hidden lg:block relative sticky top-4 h-fit"
+                        className="hidden lg:block relative sticky top-4 h-fit z-20"
                         onMouseEnter={clearCloseTimer}
                         onMouseLeave={scheduleMegaMenuClose}
                     >
@@ -285,8 +285,8 @@ export function CategoryBrowsePage() {
                         </div>
 
                         {productsLoading || categoriesLoading ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                                {Array(6).fill(0).map((_, i) => <ProductCardSkeleton key={i} />)}
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                                {Array(8).fill(0).map((_, i) => <ProductCardSkeleton key={i} />)}
                             </div>
                         ) : products.length === 0 ? (
                             <div className="bg-white border border-gray-200/80 rounded-lg p-12 text-center shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
@@ -295,7 +295,7 @@ export function CategoryBrowsePage() {
                                 <p className="text-sm text-gray-500 mt-2">Try another category from the sidebar.</p>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                                 {products.map(product => (
                                     <ProductCard key={product.id} product={product} />
                                 ))}
