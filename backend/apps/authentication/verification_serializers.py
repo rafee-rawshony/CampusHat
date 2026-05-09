@@ -278,8 +278,7 @@ class VerificationStatusSerializer(serializers.ModelSerializer):
             )
             return url
         except Exception:
-            # In development, return local path
-            return f'/mediafiles/{key}'
+            return f'/media/{key}'
 
     def get_admin_presigned_url(self, obj):
         """Only provide presigned URL to admin/moderator users."""

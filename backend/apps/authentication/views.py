@@ -385,6 +385,7 @@ def _build_login_user_data(user) -> dict:
         'verification_rejection_reason': verification_rejection_reason,
         'seller_application_status': seller_application_status,
         'is_profile_complete': user.is_profile_complete,
+        'is_checkout_ready': user.is_checkout_ready,
         'profile_completion_percent': user.profile_completion_percent,
     }
 
