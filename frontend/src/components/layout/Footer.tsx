@@ -30,7 +30,7 @@ export function Footer() {
                                     </div>
                                     <div>
                                         <p className="text-xs text-[#9890a8]">Hotline</p>
-                                        <p className="font-semibold text-[#2D2548] text-sm">0 800 300-HAT</p>
+                                        <p className="font-semibold text-[#2D2548] text-sm">+8801813923160</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2.5">
