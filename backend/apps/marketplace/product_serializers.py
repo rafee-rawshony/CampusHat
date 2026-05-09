@@ -136,7 +136,7 @@ class MarketplaceProductCreateSerializer(serializers.ModelSerializer):
                 notification_type='marketplace',
                 title='New Marketplace Listing',
                 message=f'A new ad "{product.title}" has been submitted and is pending review.',
-                action_url=f'/admin/marketplace/ads' # Admin dashboard URL
+                action_url='/admin/marketplace'
             )
         except Exception as e:
             # Don't fail the listing creation if notification fails
@@ -353,7 +353,7 @@ class MarketplaceProductOwnerUpdateSerializer(serializers.ModelSerializer):
                     notification_type='marketplace',
                     title='Marketplace Ad Re-submitted',
                     message=f'The ad "{instance.title}" has been edited and re-submitted for review.',
-                    action_url='/admin/marketplace/ads'
+                    action_url='/admin/marketplace'
                 )
             except Exception as e:
                 import logging

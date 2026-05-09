@@ -67,7 +67,7 @@ def send_order_confirmation(order_id):
                 notification_type='order',
                 title='Order Confirmed',
                 message=f'Your order {order.order_number} has been successfully placed.',
-                action_url=f'/account/orders/{order.id}'
+                action_url=f'/orders/{order.id}'
             )
         except Exception as e:
             logger.warning(f"Failed to send order confirmation platform notification: {e}")
@@ -108,7 +108,7 @@ def notify_seller_new_order(order_id):
                 notification_type='order',
                 title='New Order Received',
                 message=f'You have a new order {order.order_number} for your store "{order.store.name}".',
-                action_url=f'/account/seller/orders/{order.id}'
+                action_url=f'/seller/orders/{order.id}'
             )
         except Exception as e:
             logger.warning(f"Failed to send seller new order platform notification: {e}")
@@ -145,7 +145,7 @@ def notify_order_status_change(order_id, new_status):
                 notification_type='order',
                 title='Order Status Updated',
                 message=f'Your order {order.order_number} is now {new_status}.',
-                action_url=f'/account/orders/{order.id}'
+                action_url=f'/orders/{order.id}'
             )
         except Exception as e:
             logger.warning(f"Failed to send order status platform notification: {e}")

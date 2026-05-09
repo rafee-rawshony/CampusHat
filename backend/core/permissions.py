@@ -186,7 +186,8 @@ class IsSellerModerator(BasePermission):
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
-        if request.user.role == 'admin': return True
+        if request.user.role in ('admin', 'moderator', 'seller_mod'):
+            return True
         from apps.admin_panel.models import RolePermission
         return RolePermission.objects.filter(
             role__user_roles__user=request.user,
@@ -199,7 +200,8 @@ class IsVerificationModerator(BasePermission):
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
-        if request.user.role == 'admin': return True
+        if request.user.role in ('admin', 'moderator'):
+            return True
         from apps.admin_panel.models import RolePermission
         return RolePermission.objects.filter(
             role__user_roles__user=request.user,
@@ -210,7 +212,8 @@ class IsMarketplaceModerator(BasePermission):
     """Has permission codename: moderate_marketplace"""
     def has_permission(self, request, view):
         if not request.user.is_authenticated: return False
-        if request.user.role == 'admin': return True
+        if request.user.role in ('admin', 'moderator', 'marketplace_mod'):
+            return True
         from apps.admin_panel.models import RolePermission
         return RolePermission.objects.filter(
             role__user_roles__user=request.user,

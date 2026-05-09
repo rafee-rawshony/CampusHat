@@ -26,7 +26,7 @@ def notify_admin_new_seller_application(self, seller_id):
                 notification_type='seller',
                 title='New Seller Application',
                 message=f'New application for "{seller.business_name}" by {seller.user.full_name}.',
-                action_url='/admin/review-center?tab=seller-applications'
+                action_url='/admin/sellers'
             )
         except Exception as e:
             logger.warning(f"Failed to send platform notification for seller application: {e}")
@@ -61,7 +61,7 @@ def notify_seller_approval_result(self, seller_id):
                 notification_type='seller',
                 title='Seller Application Update',
                 message=f'Your application for "{seller.business_name}" has been {seller.status}.',
-                action_url='/account/seller'
+                action_url='/seller'
             )
         except Exception as e:
             logger.warning(f"Failed to send seller approval platform notification: {e}")
@@ -92,7 +92,7 @@ def notify_store_approval_result(self, store_id):
                 notification_type='seller',
                 title='Store Review Update',
                 message=msg,
-                action_url='/account/seller'
+                action_url='/seller'
             )
         except Exception as e:
             logger.warning(f"Failed to send store approval platform notification: {e}")
@@ -121,7 +121,7 @@ def notify_payout_processed(self, payout_id):
                 notification_type='payout',
                 title='Payout Status Updated',
                 message=f'Your payout of {payout.amount} BDT has been {payout.status}.',
-                action_url='/account/seller/payouts'
+                action_url='/seller/wallet'
             )
         except Exception as e:
             logger.warning(f"Failed to send payout platform notification: {e}")

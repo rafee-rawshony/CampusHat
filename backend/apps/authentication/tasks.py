@@ -310,7 +310,7 @@ def notify_admin_new_verification(self, verification_id):
                 notification_type='verification',
                 title='New Student Verification',
                 message=f'User {verification.user.full_name} has submitted a {verification.verification_type} request.',
-                action_url='/admin/review-center?tab=verifications'
+                action_url='/admin/approvals'
             )
         except Exception as e:
             logger.warning(f"Failed to send platform notification for verification: {e}")
@@ -387,7 +387,7 @@ def send_verification_result(self, verification_id):
                 notification_type='verification',
                 title='Verification Update',
                 message=f'Your {verification.verification_type} verification has been {verification.status}.',
-                action_url='/account/verification'
+                action_url='/account/verify'
             )
         except Exception as e:
             logger.warning(f"Failed to send verification result platform notification: {e}")

@@ -93,7 +93,7 @@ export function Footer() {
                             </p>
                             <div className="flex gap-2.5">
                                 <a 
-                                    href="https://facebook.com" 
+                                    href="https://www.facebook.com/CampusHat" 
                                     target="_blank" 
                                     rel="noreferrer"
                                     aria-label="Follow us on Facebook"
@@ -102,7 +102,7 @@ export function Footer() {
                                     <Facebook className="w-4 h-4" />
                                 </a>
                                 <a 
-                                    href="https://twitter.com" 
+                                    href="https://x.com/campushat" 
                                     target="_blank" 
                                     rel="noreferrer"
                                     aria-label="Follow us on Twitter"
@@ -111,7 +111,7 @@ export function Footer() {
                                     <Twitter className="w-4 h-4" />
                                 </a>
                                 <a 
-                                    href="https://instagram.com" 
+                                    href="https://instagram.com/campushat" 
                                     target="_blank" 
                                     rel="noreferrer"
                                     aria-label="Follow us on Instagram"
@@ -120,7 +120,7 @@ export function Footer() {
                                     <Instagram className="w-4 h-4" />
                                 </a>
                                 <a 
-                                    href="https://linkedin.com" 
+                                    href="https://www.linkedin.com/company/campushat" 
                                     target="_blank" 
                                     rel="noreferrer"
                                     aria-label="Follow us on LinkedIn"
