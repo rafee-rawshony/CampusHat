@@ -283,7 +283,7 @@ class StoreProductListSerializer(serializers.ModelSerializer):
         return first.image_url if first else None
 
     def get_images(self, obj):
-        imgs = obj.images.order_by('sort_order')[:3]
+        imgs = obj.images.order_by('sort_order')[:10]
         return StoreProductImageSerializer(imgs, many=True).data
 
 
@@ -330,10 +330,14 @@ class StoreProductCreateUpdateSerializer(serializers.ModelSerializer):
     """Seller-only product create/update serializer."""
 
     # Frontend uploads images first via /uploads/ and gets back URL strings.
-    # We accept those URLs directly here — no raw file upload needed.
-    image_url_1 = serializers.URLField(required=False, allow_blank=True, write_only=True, default='')
-    image_url_2 = serializers.URLField(required=False, allow_blank=True, write_only=True, default='')
-    image_url_3 = serializers.URLField(required=False, allow_blank=True, write_only=True, default='')
+    # Accepts a list of up to 10 URL strings — no raw file upload needed.
+    image_urls = serializers.ListField(
+        child=serializers.CharField(allow_blank=True, allow_null=True, default=''),
+        required=False,
+        max_length=10,
+        default=list,
+        write_only=True,
+    )
 
     brand = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
@@ -343,8 +347,11 @@ class StoreProductCreateUpdateSerializer(serializers.ModelSerializer):
             'category', 'brand', 'name', 'description', 'short_description',
             'base_price', 'discount_price', 'sku', 'stock_quantity',
             'has_variants', 'is_featured', 'is_active', 'weight_grams',
-            'tags', 'image_url_1', 'image_url_2', 'image_url_3',
+            'tags', 'image_urls',
         ]
+        extra_kwargs = {
+            'description': {'required': False, 'allow_blank': True},
+        }
 
     def validate_tags(self, value):
         if value and not isinstance(value, list):
@@ -380,21 +387,20 @@ class StoreProductCreateUpdateSerializer(serializers.ModelSerializer):
 
     def _save_images(self, product, image_urls):
         """Create StoreProductImage records from a list of URL strings."""
+        first = True
         for i, url in enumerate(image_urls):
+            url = (url or '').strip()
             if url:
                 StoreProductImage.objects.create(
                     product=product,
                     image_url=url,
                     sort_order=i,
-                    is_primary=(i == 0),
+                    is_primary=first,
                 )
+                first = False
 
     def create(self, validated_data):
-        image_urls = [
-            validated_data.pop('image_url_1', ''),
-            validated_data.pop('image_url_2', ''),
-            validated_data.pop('image_url_3', ''),
-        ]
+        image_urls = validated_data.pop('image_urls', [])
         request = self.context['request']
         store = request.user.seller_profile.store
 
@@ -404,20 +410,17 @@ class StoreProductCreateUpdateSerializer(serializers.ModelSerializer):
         return product
 
     def update(self, instance, validated_data):
-        image_urls = [
-            validated_data.pop('image_url_1', None),
-            validated_data.pop('image_url_2', None),
-            validated_data.pop('image_url_3', None),
-        ]
+        # None means the key was not sent — preserve existing images.
+        # An empty list means the user cleared all images.
+        image_urls = validated_data.pop('image_urls', None)
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
 
-        # Only replace images if at least one URL field was sent in the request
-        if any(url is not None for url in image_urls):
+        if image_urls is not None:
             instance.images.all().delete()
-            self._save_images(instance, [url or '' for url in image_urls])
+            self._save_images(instance, image_urls)
         return instance
 
 

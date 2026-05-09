@@ -14,7 +14,7 @@ import toast from 'react-hot-toast'
 import { ImageUpload } from '@/components/common/ImageUpload'
 
 const productSchema = z.object({
-    name: z.string().min(3).max(300),
+    name: z.string().min(3, 'Name must be at least 3 characters').max(300),
     brand: z.string().optional(),
     sku: z.string().optional(),
     category: z.string().min(1, 'Select a category'),
@@ -22,16 +22,12 @@ const productSchema = z.object({
     discount_price: z.coerce.number().min(0).optional().nullable(),
     stock_quantity: z.coerce.number().min(0),
     is_active: z.boolean(),
-    image_url_1: z.string().optional(),
-    image_url_2: z.string().optional(),
-    image_url_3: z.string().optional(),
     short_description: z.string().max(200).optional(),
-    description: z.string().max(1000).optional(),
+    description: z.string().max(5000).optional(),
 })
 
 type ProductFormValues = z.infer<typeof productSchema>
 
-// Variant shape from the backend
 interface ProductVariant {
     id: string
     name: string
@@ -70,7 +66,6 @@ function VariantsSection({ productSlug }: { productSlug: string }) {
     const [addingVariant, setAddingVariant] = useState(false)
     const [editingId, setEditingId] = useState<string | null>(null)
 
-    // Inline form state
     const [formName, setFormName] = useState('')
     const [formSku, setFormSku] = useState('')
     const [formPrice, setFormPrice] = useState('')
@@ -177,7 +172,6 @@ function VariantsSection({ productSlug }: { productSlug: string }) {
     const totalStock = variants.reduce((sum, v) => sum + v.stock_quantity, 0)
     const isMutating = createMutation.isPending || updateMutation.isPending
 
-    // Inline form row (shared between add & edit)
     const renderFormRow = (vid?: string) => (
         <div className="bg-gray-50 border border-dashed border-gray-300 rounded-lg p-3 space-y-3">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -231,7 +225,6 @@ function VariantsSection({ productSlug }: { productSlug: string }) {
 
     return (
         <div className="border border-gray-200 rounded-lg overflow-hidden">
-            {/* Collapsible header */}
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
@@ -239,9 +232,7 @@ function VariantsSection({ productSlug }: { productSlug: string }) {
             >
                 <div className="flex items-center gap-2">
                     <Package className="w-4 h-4 text-[#4C3B8A]" />
-                    <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">
-                        Variants
-                    </span>
+                    <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">Variants</span>
                     {variants.length > 0 && (
                         <span className="text-[10px] bg-[#4C3B8A] text-white rounded-full px-1.5 py-0.5 font-bold">
                             {variants.length}
@@ -258,9 +249,7 @@ function VariantsSection({ productSlug }: { productSlug: string }) {
                             <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
                         </div>
                     ) : variants.length === 0 && !addingVariant ? (
-                        <p className="text-sm text-gray-400 text-center py-4">
-                            No variants yet. Add size/color options above.
-                        </p>
+                        <p className="text-sm text-gray-400 text-center py-4">No variants yet. Add size/color options above.</p>
                     ) : (
                         <div className="space-y-2">
                             {variants.map(v => (
@@ -274,23 +263,18 @@ function VariantsSection({ productSlug }: { productSlug: string }) {
                                         <div className="flex items-center gap-4 text-sm flex-1 min-w-0">
                                             <span className="font-semibold text-gray-900 truncate">{v.name}</span>
                                             {v.sku && (
-                                                <span className="text-[11px] font-mono text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">
-                                                    {v.sku}
-                                                </span>
+                                                <span className="text-[11px] font-mono text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">{v.sku}</span>
                                             )}
                                             <span className={`text-xs font-bold ${v.price_override ? 'text-[#4C3B8A]' : 'text-gray-400'}`}>
                                                 {v.price_override ? `৳${Number(v.price_override).toLocaleString()}` : '—'}
                                             </span>
-                                            <span className="text-xs text-gray-500">
-                                                {v.stock_quantity} in stock
-                                            </span>
+                                            <span className="text-xs text-gray-500">{v.stock_quantity} in stock</span>
                                         </div>
                                         <div className="flex items-center gap-1 shrink-0">
                                             <button
                                                 type="button"
                                                 onClick={() => startEdit(v)}
                                                 className="p-1.5 text-gray-400 hover:text-[#4C3B8A] rounded hover:bg-gray-50 transition-colors"
-                                                title="Edit variant"
                                             >
                                                 <Pencil className="w-3.5 h-3.5" />
                                             </button>
@@ -298,7 +282,6 @@ function VariantsSection({ productSlug }: { productSlug: string }) {
                                                 type="button"
                                                 onClick={() => handleDelete(v.id)}
                                                 className="p-1.5 text-gray-400 hover:text-red-500 rounded hover:bg-red-50 transition-colors"
-                                                title="Delete variant"
                                             >
                                                 <Trash2 className="w-3.5 h-3.5" />
                                             </button>
@@ -309,10 +292,8 @@ function VariantsSection({ productSlug }: { productSlug: string }) {
                         </div>
                     )}
 
-                    {/* Add variant form */}
                     {addingVariant && !editingId && renderFormRow()}
 
-                    {/* Add variant button */}
                     {!addingVariant && !editingId && (
                         <button
                             type="button"
@@ -323,7 +304,6 @@ function VariantsSection({ productSlug }: { productSlug: string }) {
                         </button>
                     )}
 
-                    {/* Total stock counter */}
                     {variants.length > 0 && (
                         <p className="text-xs text-gray-500 border-t border-gray-100 pt-2">
                             Total stock across variants: <span className="font-bold text-gray-700">{totalStock} units</span>
@@ -338,10 +318,11 @@ function VariantsSection({ productSlug }: { productSlug: string }) {
 // ─── Main Form Panel ───────────────────────────────────────────────
 export function ProductFormPanel({ editProduct, onClose }: ProductFormPanelProps) {
     const queryClient = useQueryClient()
+    const [imageUrls, setImageUrls] = useState<string[]>(Array(10).fill(''))
 
     const { data: categoriesData } = useQuery({
         queryKey: ['mall-categories', 'flat'],
-        queryFn: () => api.get('/mall/categories/?flat=true').then(r => {
+        queryFn: () => api.get('/mall/categories/').then(r => {
             const res = r.data?.data?.results || r.data?.results || r.data?.data || r.data
             return Array.isArray(res) ? res : []
         }),
@@ -366,7 +347,7 @@ export function ProductFormPanel({ editProduct, onClose }: ProductFormPanelProps
         },
     })
 
-    // Pre-fill for edit mode
+    // Pre-fill for edit mode, reset for add mode
     useEffect(() => {
         if (editProduct) {
             reset({
@@ -378,12 +359,14 @@ export function ProductFormPanel({ editProduct, onClose }: ProductFormPanelProps
                 discount_price: editProduct.discount_price ? parseFloat(editProduct.discount_price) : undefined,
                 stock_quantity: editProduct.stock_quantity || 0,
                 is_active: editProduct.is_active ?? true,
-                image_url_1: editProduct.images?.[0]?.image_url || '',
-                image_url_2: editProduct.images?.[1]?.image_url || '',
-                image_url_3: editProduct.images?.[2]?.image_url || '',
                 short_description: editProduct.short_description || '',
                 description: editProduct.description || '',
             })
+            const existingUrls = (editProduct.images || []).map((img: any) => img.image_url || img.image || '')
+            setImageUrls([...existingUrls, ...Array(10).fill('')].slice(0, 10))
+        } else {
+            reset({ is_active: true, stock_quantity: 0, base_price: 0 })
+            setImageUrls(Array(10).fill(''))
         }
     }, [editProduct, reset])
 
@@ -397,11 +380,11 @@ export function ProductFormPanel({ editProduct, onClose }: ProductFormPanelProps
             discount_price: (data.discount_price && data.discount_price > 0) ? data.discount_price : null,
             stock_quantity: data.stock_quantity,
             is_active: data.is_active,
-            has_variants: false, is_featured: false, short_description: data.short_description || '',
+            has_variants: false,
+            is_featured: false,
+            short_description: data.short_description || '',
             description: data.description || '',
-            image_url_1: data.image_url_1 || '',
-            image_url_2: data.image_url_2 || '',
-            image_url_3: data.image_url_3 || '',
+            image_urls: imageUrls.filter(url => url && url.trim()),
         }
     }
 
@@ -442,9 +425,16 @@ export function ProductFormPanel({ editProduct, onClose }: ProductFormPanelProps
     const isLoading = addMutation.isPending || editMutation.isPending
     const isActive = watch('is_active')
 
+    const setImageUrl = (index: number, url: string | null) => {
+        setImageUrls(prev => {
+            const next = [...prev]
+            next[index] = url || ''
+            return next
+        })
+    }
+
     return (
         <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6 shadow-sm">
-            {/* Header */}
             <div className="flex justify-between items-center mb-6">
                 <h2 className="font-bold text-gray-900 text-base">
                     {editProduct ? 'Edit Product' : 'Add New Product'}
@@ -498,7 +488,7 @@ export function ProductFormPanel({ editProduct, onClose }: ProductFormPanelProps
                             <SelectContent>
                                 {categories.map((cat: any) => (
                                     <SelectItem key={cat.id} value={String(cat.id)}>
-                                        {cat.level > 1 ? '\u00A0\u00A0'.repeat(cat.level - 1) + '↳ ' : ''}{cat.name}
+                                        {cat.level > 1 ? '  '.repeat(cat.level - 1) + '↳ ' : ''}{cat.name}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -563,63 +553,63 @@ export function ProductFormPanel({ editProduct, onClose }: ProductFormPanelProps
                     </div>
                 </div>
 
-                {/* ─── Variants Section ─── */}
+                {/* Variants Section */}
                 {editProduct ? (
                     <VariantsSection productSlug={editProduct.slug} />
                 ) : (
                     <div className="bg-blue-50 border border-blue-100 rounded-lg px-4 py-3">
                         <p className="text-xs text-blue-700">
-                            <strong>💡 Variants:</strong> Save the product first, then add size/color variants.
+                            <strong>Variants:</strong> Save the product first, then add size/color variants from the edit view.
                         </p>
                     </div>
                 )}
 
-                {/* Row 5: Product Images — first one is the main, rest are gallery. */}
+                {/* Product Images — up to 10 */}
                 <div className="space-y-2">
                     <label className="block text-xs font-semibold text-gray-700">Product Images</label>
                     <p className="text-[11px] text-gray-500 -mt-1 mb-2">
-                        Upload up to 3 photos. The first one is shown as the main image.
+                        Upload up to 10 photos. The first one is shown as the main image.
                     </p>
-                    <div className="grid grid-cols-3 gap-3">
-                        {(['image_url_1', 'image_url_2', 'image_url_3'] as const).map((field, i) => (
-                            <div key={field}>
-                                <ImageUpload
-                                    value={watch(field)}
-                                    onChange={(url) => setValue(field, url || '', { shouldDirty: true })}
-                                    category="product"
-                                    variant="rectangle"
-                                    label={i === 0 ? 'Main image' : `Image ${i + 1}`}
-                                />
-                                {/* Hidden input still registered so the form submit picks it up */}
-                                <input type="hidden" {...register(field)} />
-                            </div>
+                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                        {imageUrls.map((url, i) => (
+                            <ImageUpload
+                                key={i}
+                                value={url || null}
+                                onChange={(newUrl) => setImageUrl(i, newUrl)}
+                                category="product"
+                                variant="rectangle"
+                                label={i === 0 ? 'Main image' : `Image ${i + 1}`}
+                            />
                         ))}
                     </div>
-                    {(errors.image_url_1 || errors.image_url_2 || errors.image_url_3) && (
-                        <p className="text-red-500 text-xs">One of the images is invalid.</p>
-                    )}
                 </div>
 
-                {/* Row 6: Short Description */}
+                {/* Short Description */}
                 <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">Short Description <span className="text-gray-400 font-normal">(max 200 chars)</span></label>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                        Short Description <span className="text-gray-400 font-normal">(max 200 chars)</span>
+                    </label>
                     <textarea
                         rows={2}
                         {...register('short_description')}
                         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#4C3B8A] bg-gray-50 resize-none"
                         placeholder="Brief product summary..."
                     />
+                    {errors.short_description && <p className="text-red-500 text-xs mt-1">{errors.short_description.message}</p>}
                 </div>
 
-                {/* Row 7: Full Description */}
+                {/* Full Description */}
                 <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">Full Description <span className="text-gray-400 font-normal">(max 1000 chars)</span></label>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                        Full Description <span className="text-gray-400 font-normal">(optional)</span>
+                    </label>
                     <textarea
                         rows={4}
                         {...register('description')}
                         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#4C3B8A] bg-gray-50 resize-none"
                         placeholder="Detailed product description..."
                     />
+                    {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message}</p>}
                 </div>
 
                 {/* Submit Buttons */}
