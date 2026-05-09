@@ -129,6 +129,9 @@ class MarketplaceProductCreateSerializer(serializers.ModelSerializer):
 
         product = MarketplaceProduct.objects.create(**validated_data)
 
+        import logging as _logging
+        _log = _logging.getLogger(__name__)
+
         # Notify admins about new listing
         try:
             from apps.admin_panel.notification_utils import notify_admins
@@ -139,9 +142,40 @@ class MarketplaceProductCreateSerializer(serializers.ModelSerializer):
                 action_url='/admin/marketplace'
             )
         except Exception as e:
-            # Don't fail the listing creation if notification fails
-            import logging
-            logging.getLogger(__name__).error(f"Failed to notify admins: {e}")
+            _log.error(f"Failed to notify admins: {e}")
+
+        # Confirmation notification to the poster
+        try:
+            from apps.admin_panel.notification_utils import send_notification
+            send_notification(
+                user=user,
+                notification_type='marketplace',
+                title='Ad Submitted for Review',
+                message=f'Your ad "{product.title}" has been submitted and is pending review. We\'ll notify you once it\'s approved.',
+                action_url='/marketplace/my-listings'
+            )
+        except Exception as e:
+            _log.error(f"Failed to notify poster: {e}")
+
+        # Confirmation email to the poster
+        try:
+            from django.core.mail import send_mail
+            from django.conf import settings
+            msg = (
+                f'Hello {user.full_name},\n\n'
+                f'Your marketplace ad "{product.title}" has been submitted and is now pending review.\n'
+                f'Our team will review your listing and notify you of the outcome.\n\n'
+                f'— The CampusHat Team'
+            )
+            send_mail(
+                'Your marketplace ad is under review',
+                msg,
+                settings.DEFAULT_FROM_EMAIL,
+                [user.email],
+                fail_silently=True,
+            )
+        except Exception as e:
+            _log.error(f"Failed to send listing confirmation email: {e}")
 
         for idx, image_url in enumerate(image_urls):
             MarketplaceProductImage.objects.create(

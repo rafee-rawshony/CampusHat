@@ -19,7 +19,7 @@ def notify_admin_new_seller_application(self, seller_id):
             'New seller application: %s (%s)', seller.business_name, seller.user.email,
         )
         
-        # Platform Notification
+        # Platform Notification to admins
         try:
             from apps.admin_panel.notification_utils import notify_admins
             notify_admins(
@@ -30,6 +30,38 @@ def notify_admin_new_seller_application(self, seller_id):
             )
         except Exception as e:
             logger.warning(f"Failed to send platform notification for seller application: {e}")
+
+        # Confirmation email to applicant
+        try:
+            msg = (
+                f'Hello {seller.user.full_name},\n\n'
+                f'We have received your seller application for "{seller.business_name}".\n'
+                f'Our team will review your application and notify you of the outcome.\n\n'
+                f'Thank you for your patience.\n\n'
+                f'— The CampusHat Team'
+            )
+            send_mail(
+                'We received your seller application',
+                msg,
+                settings.DEFAULT_FROM_EMAIL,
+                [seller.user.email],
+                fail_silently=True,
+            )
+        except Exception as e:
+            logger.warning(f"Failed to send seller application confirmation email: {e}")
+
+        # Platform notification to applicant
+        try:
+            from apps.admin_panel.notification_utils import send_notification
+            send_notification(
+                user=seller.user,
+                notification_type='seller',
+                title='Application Received',
+                message=f'Your seller application for "{seller.business_name}" has been received and is under review.',
+                action_url='/seller'
+            )
+        except Exception as e:
+            logger.warning(f"Failed to send seller application confirmation notification: {e}")
 
     except SellerProfile.DoesNotExist:
         logger.error('Seller %s not found for notification.', seller_id)
