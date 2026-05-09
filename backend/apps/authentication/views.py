@@ -201,12 +201,25 @@ class ResendVerificationView(APIView):
     
     Resend verification email to an unverified user.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request):
-        user = request.user
+        email = request.data.get('email', '').strip().lower()
+        if not email:
+            return Response({
+                'success': False,
+                'message': 'Email is required.',
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Block already-verified users
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            # Don't leak whether the email exists
+            return Response({
+                'success': True,
+                'message': 'If that email exists and is unverified, we sent a verification link.',
+            }, status=status.HTTP_200_OK)
+
         if user.is_email_verified:
             return Response({
                 'success': False,
