@@ -186,10 +186,24 @@ export function NotificationBell() {
         } catch { /* silently fail */ }
     }
 
+    const remapLegacyUrl = (url: string): string => {
+        const exact: Record<string, string> = {
+            '/admin/review-center?tab=verifications': '/admin/approvals',
+            '/admin/review-center?tab=seller-applications': '/admin/sellers',
+            '/account/seller/payouts': '/seller/wallet',
+            '/account/seller': '/seller',
+            '/account/verification': '/account/verify',
+        }
+        if (exact[url]) return exact[url]
+        if (url.startsWith('/account/seller/orders/')) return url.replace('/account/seller/orders/', '/seller/orders/')
+        if (url.startsWith('/account/orders/')) return url.replace('/account/orders/', '/orders/')
+        return url
+    }
+
     const handleNotifClick = (notif: Notification) => {
         if (!notif.is_read) handleMarkRead(notif.id)
         if (notif.action_url) {
-            router.push(notif.action_url)
+            router.push(remapLegacyUrl(notif.action_url))
         }
         setIsOpen(false)
     }

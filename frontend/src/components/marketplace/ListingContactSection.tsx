@@ -52,8 +52,8 @@ export function ListingContactSection({ listing, isAuthenticated, onOpenOfferMod
         // normal_user, seller, or unknown — marketplace is student-only
         return {
             message: 'Marketplace is for verified university students and faculty only.',
-            cta: 'Learn More',
-            action: () => router.push('/help'),
+            cta: 'Verify Student / Faculty ID',
+            action: () => router.push('/account/verify'),
         }
     }
 
