@@ -51,7 +51,7 @@ def send_verification_email(self, user_id):
         return
 
     frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
-    verification_link = f'{frontend_url}/verify-email?token={token_obj.token}'
+    verification_link = f'{frontend_url}/auth/verify-email?token={token_obj.token}'
 
     context = {
         'user_name': user.full_name,
