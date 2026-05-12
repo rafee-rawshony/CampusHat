@@ -8,18 +8,24 @@ import { api } from '@/lib/api'
 import { toast } from 'react-hot-toast'
 import {
     Ticket, Zap, Search,
-    Trash2, Eye, ToggleLeft, ToggleRight, Clock
+    Trash2, Eye, ToggleLeft, ToggleRight, Clock, Plus, Pencil, Package,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
-    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog'
 
 const TABS = [
     { id: 'coupons', label: 'Coupons', icon: Ticket },
     { id: 'flash-sales', label: 'Flash Sales', icon: Zap },
 ]
+
+function pad(n: number) { return String(n).padStart(2, '0') }
+function isoToLocalInput(iso: string) {
+    const d = new Date(iso)
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
 
 export default function AdminCouponsPage() {
     const { isAdmin } = useAuthStore()
@@ -28,6 +34,9 @@ export default function AdminCouponsPage() {
     const [activeTab, setActiveTab] = useState('coupons')
     const [search, setSearch] = useState('')
     const [selectedItem, setSelectedItem] = useState<any>(null)
+    const [flashSaleFormOpen, setFlashSaleFormOpen] = useState(false)
+    const [editingSale, setEditingSale] = useState<any>(null)
+    const [viewingSale, setViewingSale] = useState<any>(null)
 
     useEffect(() => {
         if (!isAdmin()) router.replace('/admin/approvals')
@@ -57,6 +66,15 @@ export default function AdminCouponsPage() {
         }),
         enabled: activeTab === 'flash-sales',
         staleTime: 30_000,
+    })
+
+    // Fetch stores (for flash sale creation)
+    const { data: storesData } = useQuery({
+        queryKey: ['admin-stores-active'],
+        queryFn: () => api.get('/admin/stores/', { params: { status: 'active' } })
+            .then(r => r.data?.data || r.data?.results || r.data || []),
+        enabled: activeTab === 'flash-sales' && flashSaleFormOpen,
+        staleTime: 60_000,
     })
 
     // Toggle flash sale active/inactive
@@ -103,6 +121,7 @@ export default function AdminCouponsPage() {
 
     const coupons = Array.isArray(couponsData) ? couponsData : []
     const flashSales = Array.isArray(flashSalesData) ? flashSalesData : []
+    const stores = Array.isArray(storesData) ? storesData : []
 
     if (!isAdmin()) return null
 
@@ -114,6 +133,14 @@ export default function AdminCouponsPage() {
                     <h1 className="font-bold text-2xl text-gray-900 tracking-tight">Coupons & Promotions</h1>
                     <p className="text-sm text-gray-500 mt-1">Manage discount coupons and flash sale events.</p>
                 </div>
+                {activeTab === 'flash-sales' && (
+                    <Button
+                        onClick={() => { setEditingSale(null); setFlashSaleFormOpen(true) }}
+                        className="bg-[#4C3B8A] hover:bg-[#3b2c6b] text-white gap-2"
+                    >
+                        <Plus className="w-4 h-4" /> Create Flash Sale
+                    </Button>
+                )}
             </div>
 
             {/* Tabs */}
@@ -286,7 +313,11 @@ export default function AdminCouponsPage() {
                     {flashSalesLoading ? (
                         <LoadingSkeleton rows={4} />
                     ) : flashSales.length === 0 ? (
-                        <EmptyState icon={Zap} message="No flash sales" description="No flash sale events have been created." />
+                        <EmptyState
+                            icon={Zap}
+                            message="No flash sales"
+                            description="Click 'Create Flash Sale' to set up your first event."
+                        />
                     ) : (
                         <>
                             {/* Desktop table */}
@@ -341,6 +372,22 @@ export default function AdminCouponsPage() {
                                                         <div className="flex items-center justify-end gap-1.5">
                                                             <Button
                                                                 size="sm" variant="ghost"
+                                                                className="h-8 w-8 p-0 text-gray-400 hover:text-gray-700"
+                                                                title="View products"
+                                                                onClick={() => setViewingSale(sale)}
+                                                            >
+                                                                <Package className="w-4 h-4" />
+                                                            </Button>
+                                                            <Button
+                                                                size="sm" variant="ghost"
+                                                                className="h-8 w-8 p-0 text-gray-400 hover:text-[#4C3B8A]"
+                                                                title="Edit"
+                                                                onClick={() => { setEditingSale(sale); setFlashSaleFormOpen(true) }}
+                                                            >
+                                                                <Pencil className="w-4 h-4" />
+                                                            </Button>
+                                                            <Button
+                                                                size="sm" variant="ghost"
                                                                 className="h-8 w-8 p-0 text-gray-400 hover:text-blue-600"
                                                                 onClick={() => toggleFlashSale(sale)}
                                                             >
@@ -391,6 +438,9 @@ export default function AdminCouponsPage() {
                                             <div className="flex items-center justify-between text-xs text-gray-400">
                                                 <span>{sale.store_name || '—'} | {sale.products?.length || 0} products</span>
                                                 <div className="flex gap-2">
+                                                    <button onClick={() => { setEditingSale(sale); setFlashSaleFormOpen(true) }} className="text-[#4C3B8A]">
+                                                        <Pencil className="w-4 h-4" />
+                                                    </button>
                                                     <button onClick={() => toggleFlashSale(sale)} className="text-blue-600">
                                                         {sale.is_active ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
                                                     </button>
@@ -439,7 +489,235 @@ export default function AdminCouponsPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Flash Sale Products Viewer */}
+            <Dialog open={!!viewingSale} onOpenChange={open => !open && setViewingSale(null)}>
+                <DialogContent className="max-w-2xl rounded-2xl">
+                    <DialogHeader>
+                        <DialogTitle>{viewingSale?.title} — Products</DialogTitle>
+                        <DialogDescription>
+                            Sellers can add and edit their own products. Admin cannot edit per-product prices.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {viewingSale && (
+                        <div className="max-h-96 overflow-y-auto space-y-2">
+                            {(!viewingSale.products || viewingSale.products.length === 0) ? (
+                                <p className="text-sm text-gray-500 text-center py-8">
+                                    No products added yet. Sellers will add their products from the seller dashboard.
+                                </p>
+                            ) : (
+                                viewingSale.products.map((p: any) => {
+                                    const isStockOut = p.quantity_limit != null && p.sold_count >= p.quantity_limit
+                                    return (
+                                        <div key={p.id} className={`flex items-center justify-between text-sm rounded p-2 ${isStockOut ? 'bg-red-50' : 'bg-gray-50'}`}>
+                                            <span className={`font-medium ${isStockOut ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+                                                {p.product_name}
+                                            </span>
+                                            <div className="flex items-center gap-2 text-xs">
+                                                <span className="text-gray-400 line-through">৳{Number(p.original_price || 0).toLocaleString()}</span>
+                                                <span className="font-bold text-red-600">৳{Number(p.override_price || p.sale_price || 0).toLocaleString()}</span>
+                                                <span className="text-gray-500">
+                                                    {p.quantity_limit != null
+                                                        ? `${p.sold_count}/${p.quantity_limit} sold`
+                                                        : `${p.sold_count} sold`}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )
+                                })
+                            )}
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setViewingSale(null)}>Close</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Flash Sale Create/Edit Form */}
+            <FlashSaleFormDialog
+                open={flashSaleFormOpen}
+                onOpenChange={(open) => {
+                    setFlashSaleFormOpen(open)
+                    if (!open) setEditingSale(null)
+                }}
+                editingSale={editingSale}
+                stores={stores}
+            />
         </div>
+    )
+}
+
+function FlashSaleFormDialog({
+    open, onOpenChange, editingSale, stores,
+}: { open: boolean; onOpenChange: (o: boolean) => void; editingSale: any; stores: any[] }) {
+    const queryClient = useQueryClient()
+    const [title, setTitle] = useState('')
+    const [storeId, setStoreId] = useState('')
+    const [startTime, setStartTime] = useState('')
+    const [endTime, setEndTime] = useState('')
+    const [isActive, setIsActive] = useState(true)
+
+    useEffect(() => {
+        if (editingSale) {
+            setTitle(editingSale.title || '')
+            setStoreId(
+                typeof editingSale.store === 'string'
+                    ? editingSale.store
+                    : (editingSale.store?.id || editingSale.store_id || '')
+            )
+            setStartTime(editingSale.starts_at ? isoToLocalInput(editingSale.starts_at) : '')
+            setEndTime(editingSale.ends_at ? isoToLocalInput(editingSale.ends_at) : '')
+            setIsActive(editingSale.is_active ?? true)
+        } else {
+            setTitle('')
+            setStoreId('')
+            setStartTime('')
+            setEndTime('')
+            setIsActive(true)
+        }
+    }, [editingSale, open])
+
+    const createMutation = useMutation({
+        mutationFn: (payload: any) => api.post('/admin/flash-sales/', payload),
+        onSuccess: () => {
+            toast.success('Flash sale created! Seller has been notified.')
+            queryClient.invalidateQueries({ queryKey: ['admin-flash-sales'] })
+            onOpenChange(false)
+        },
+        onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to create flash sale.'),
+    })
+
+    const updateMutation = useMutation({
+        mutationFn: (payload: any) => api.patch(`/admin/flash-sales/${editingSale.id}/`, payload),
+        onSuccess: () => {
+            toast.success('Flash sale updated.')
+            queryClient.invalidateQueries({ queryKey: ['admin-flash-sales'] })
+            onOpenChange(false)
+        },
+        onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to update flash sale.'),
+    })
+
+    const handleSubmit = () => {
+        if (!title.trim()) { toast.error('Title is required'); return }
+        if (!editingSale && !storeId) { toast.error('Please select a store'); return }
+        if (!startTime || !endTime) { toast.error('Start and end times are required'); return }
+        if (new Date(endTime) <= new Date(startTime)) { toast.error('End time must be after start time'); return }
+
+        const payload: any = {
+            title: title.trim(),
+            starts_at: new Date(startTime).toISOString(),
+            ends_at: new Date(endTime).toISOString(),
+            is_active: isActive,
+        }
+
+        if (editingSale) {
+            updateMutation.mutate(payload)
+        } else {
+            payload.store = storeId
+            createMutation.mutate(payload)
+        }
+    }
+
+    const isSaving = createMutation.isPending || updateMutation.isPending
+    const inputCls = 'w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#4C3B8A] bg-gray-50'
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-md rounded-2xl">
+                <DialogHeader>
+                    <DialogTitle>{editingSale ? 'Edit Flash Sale' : 'Create Flash Sale'}</DialogTitle>
+                    <DialogDescription>
+                        {editingSale
+                            ? 'Update sale details. Sellers manage their products separately.'
+                            : 'Create a new flash sale for a specific store. The seller will be notified.'}
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1.5">Title *</label>
+                        <input
+                            value={title}
+                            onChange={e => setTitle(e.target.value)}
+                            placeholder="e.g. Mid-Year Mega Sale"
+                            className={inputCls}
+                        />
+                    </div>
+
+                    {!editingSale && (
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Store *</label>
+                            <select
+                                value={storeId}
+                                onChange={e => setStoreId(e.target.value)}
+                                className={inputCls}
+                            >
+                                <option value="">Select a store...</option>
+                                {stores.map((s: any) => (
+                                    <option key={s.id} value={s.id}>
+                                        {s.store_name || s.name} {s.seller_name ? `(${s.seller_name})` : ''}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
+                    {editingSale && (
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Store</label>
+                            <div className="text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                                {editingSale.store_name || editingSale.store?.name || '—'}
+                            </div>
+                        </div>
+                    )}
+
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1.5">Start Time *</label>
+                        <input
+                            type="datetime-local"
+                            value={startTime}
+                            onChange={e => setStartTime(e.target.value)}
+                            className={inputCls}
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1.5">End Time *</label>
+                        <input
+                            type="datetime-local"
+                            value={endTime}
+                            onChange={e => setEndTime(e.target.value)}
+                            className={inputCls}
+                        />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <input
+                            id="is_active"
+                            type="checkbox"
+                            checked={isActive}
+                            onChange={e => setIsActive(e.target.checked)}
+                            className="w-4 h-4 text-[#4C3B8A] border-gray-300 rounded focus:ring-[#4C3B8A]"
+                        />
+                        <label htmlFor="is_active" className="text-sm font-medium text-gray-700">
+                            Active
+                        </label>
+                    </div>
+                </div>
+
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                    <Button
+                        onClick={handleSubmit}
+                        disabled={isSaving}
+                        className="bg-[#4C3B8A] hover:bg-[#3b2c6b] text-white"
+                    >
+                        {isSaving ? 'Saving...' : editingSale ? 'Update Sale' : 'Create Sale'}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     )
 }
 

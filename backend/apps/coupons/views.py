@@ -236,25 +236,88 @@ class SellerFlashSaleListView(GenericAPIView):
         })
 
 
-class SellerFlashSaleUpdateView(GenericAPIView):
-    """PATCH /api/v1/seller/flash-sales/{id}/"""
+class SellerFlashSaleProductDetailView(APIView):
+    """
+    PATCH/DELETE /api/v1/seller/flash-sales/{flash_sale_id}/products/{fsp_id}/
+
+    Sellers can edit (flash_price, quantity_limit) or remove only their own
+    products from a flash sale. They cannot edit the sale meta itself.
+    """
 
     permission_classes = [IsAuthenticated, IsApprovedSeller]
-    serializer_class = FlashSaleCreateSerializer
 
-    def patch(self, request, flash_sale_id):
+    def _get_fsp(self, request, flash_sale_id, fsp_id):
         try:
             store = request.user.seller_profile.store
-            sale = FlashSale.objects.get(id=flash_sale_id, store=store)
-        except (FlashSale.DoesNotExist, Exception):
-            return Response({'success': False, 'message': 'Not found.'}, status=404)
+        except Exception:
+            return None, Response({'success': False, 'message': 'Store not found.'}, status=404)
 
-        serializer = self.get_serializer(sale, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        sale = _refetch_sale(sale.id)
+        try:
+            fsp = FlashSaleProduct.objects.select_related(
+                'flash_sale', 'product__store',
+            ).get(id=fsp_id, flash_sale_id=flash_sale_id)
+        except FlashSaleProduct.DoesNotExist:
+            return None, Response({'success': False, 'message': 'Not found.'}, status=404)
+
+        # Ownership: product must belong to this seller's store
+        if fsp.product.store_id != store.id:
+            return None, Response(
+                {'success': False, 'message': 'You can only manage your own products.'},
+                status=403,
+            )
+        return fsp, None
+
+    def patch(self, request, flash_sale_id, fsp_id):
+        fsp, err = self._get_fsp(request, flash_sale_id, fsp_id)
+        if err:
+            return err
+
+        flash_price = request.data.get('flash_price') or request.data.get('override_price')
+        quantity_limit = request.data.get('quantity_limit')
+
+        update_fields = []
+        if flash_price is not None and str(flash_price) != '':
+            try:
+                fsp.override_price = flash_price
+                update_fields.append('override_price')
+            except Exception:
+                return Response(
+                    {'success': False, 'message': 'Invalid flash_price.'}, status=400,
+                )
+        if quantity_limit is not None and str(quantity_limit) != '':
+            try:
+                ql = int(quantity_limit)
+                if ql < fsp.sold_count:
+                    return Response({
+                        'success': False,
+                        'message': f'Quantity limit cannot be less than already sold ({fsp.sold_count}).',
+                    }, status=400)
+                fsp.quantity_limit = ql
+                update_fields.append('quantity_limit')
+            except (TypeError, ValueError):
+                return Response(
+                    {'success': False, 'message': 'Invalid quantity_limit.'}, status=400,
+                )
+
+        if update_fields:
+            fsp.save(update_fields=update_fields)
+
+        sale = _refetch_sale(fsp.flash_sale_id)
         return Response({
-            'success': True, 'message': 'Flash sale updated.',
+            'success': True, 'message': 'Flash sale product updated.',
+            'data': FlashSaleDetailSerializer(sale).data,
+        })
+
+    def delete(self, request, flash_sale_id, fsp_id):
+        fsp, err = self._get_fsp(request, flash_sale_id, fsp_id)
+        if err:
+            return err
+
+        sale_id = fsp.flash_sale_id
+        fsp.delete()
+        sale = _refetch_sale(sale_id)
+        return Response({
+            'success': True, 'message': 'Product removed from flash sale.',
             'data': FlashSaleDetailSerializer(sale).data,
         })
 

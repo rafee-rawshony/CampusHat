@@ -16,7 +16,7 @@ from .views import (
     SellerCouponListView,
     SellerFlashSaleAddProductsView,
     SellerFlashSaleListView,
-    SellerFlashSaleUpdateView,
+    SellerFlashSaleProductDetailView,
 )
 
 app_name = 'coupons'
@@ -39,11 +39,15 @@ seller_coupon_urlpatterns = [
     path('<uuid:coupon_id>/', SellerCouponDetailView.as_view(), name='seller-detail'),
 ]
 
-# Seller flash sales
+# Seller flash sales — sellers can only manage their own products in admin-created sales
 seller_flash_sale_urlpatterns = [
     path('', SellerFlashSaleListView.as_view(), name='seller-list'),
-    path('<uuid:flash_sale_id>/', SellerFlashSaleUpdateView.as_view(), name='seller-update'),
     path('<uuid:flash_sale_id>/add-products/', SellerFlashSaleAddProductsView.as_view(), name='seller-add-products'),
+    path(
+        '<uuid:flash_sale_id>/products/<uuid:fsp_id>/',
+        SellerFlashSaleProductDetailView.as_view(),
+        name='seller-product-detail',
+    ),
 ]
 
 # Admin coupons

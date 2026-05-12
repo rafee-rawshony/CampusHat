@@ -4,12 +4,9 @@ import { useState, useEffect, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
-import { Switch } from '@/components/ui/switch'
 import {
-    Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
-} from '@/components/ui/sheet'
-import {
-    Zap, Plus, Loader2, Pencil, Search, Clock, CheckCircle2, XCircle, ShoppingBag, AlertTriangle,
+    Zap, Plus, Loader2, Search, Clock, CheckCircle2, XCircle, ShoppingBag, AlertTriangle,
+    Pencil, Trash2, Check, X as XIcon,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { normalizeListResponse } from '@/lib/response'
@@ -17,12 +14,14 @@ import { normalizeListResponse } from '@/lib/response'
 interface FlashSaleProduct {
     id: string
     product: any
+    product_id?: string
     product_name: string
     original_price: string
     override_price: string
     sale_price: string
     quantity_limit: number | null
     sold_count: number
+    store_id?: string
 }
 
 interface FlashSale {
@@ -36,7 +35,6 @@ interface FlashSale {
     products?: FlashSaleProduct[]
 }
 
-// ─── Countdown hook ────────────────────────────────────────────────
 function useCountdown(endsAt: string) {
     const calcRemaining = useCallback(() => {
         const diff = new Date(endsAt).getTime() - Date.now()
@@ -57,7 +55,6 @@ function useCountdown(endsAt: string) {
     return remaining
 }
 
-// ─── Countdown display component ──────────────────────────────────
 function CountdownBadge({ endsAt }: { endsAt: string }) {
     const remaining = useCountdown(endsAt)
     if (!remaining) return null
@@ -68,7 +65,6 @@ function CountdownBadge({ endsAt }: { endsAt: string }) {
     )
 }
 
-// ─── Status helpers ────────────────────────────────────────────────
 function getSaleStatus(sale: FlashSale) {
     const now = Date.now()
     const start = new Date(sale.starts_at).getTime()
@@ -88,7 +84,7 @@ const fmtDateTime = (iso: string) =>
     new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
 // ─── Product Picker ────────────────────────────────────────────────
-function ProductPicker({ saleId, onDone }: { saleId: string; onDone: () => void }) {
+function ProductPicker({ saleId, onDone, existingProductIds }: { saleId: string; onDone: () => void; existingProductIds: Set<string> }) {
     const queryClient = useQueryClient()
     const [search, setSearch] = useState('')
     const [selected, setSelected] = useState<Array<{ product_id: string; name: string; base_price: string; flash_price: string; quantity_limit: string }>>([])
@@ -153,7 +149,6 @@ function ProductPicker({ saleId, onDone }: { saleId: string; onDone: () => void 
                 Add Products to Sale
             </h4>
 
-            {/* Search */}
             <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
@@ -164,45 +159,45 @@ function ProductPicker({ saleId, onDone }: { saleId: string; onDone: () => void 
                 />
             </div>
 
-            {/* Product list */}
             <div className="max-h-48 overflow-y-auto space-y-1 custom-scrollbar">
                 {isFetching && (
                     <div className="flex justify-center py-3"><Loader2 className="w-4 h-4 animate-spin text-gray-400" /></div>
                 )}
-                {!isFetching && Array.isArray(products) && products.map((p: any) => {
-                    const isSelected = selected.some(s => s.product_id === p.id)
-                    return (
-                        <button
-                            key={p.id}
-                            type="button"
-                            onClick={() => toggleProduct(p)}
-                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors text-sm ${
-                                isSelected
-                                    ? 'bg-purple-50 border border-[#4C3B8A]/20'
-                                    : 'hover:bg-gray-50 border border-transparent'
-                            }`}
-                        >
-                            {p.images?.[0]?.image_url || p.images?.[0]?.image ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                    src={p.images[0].image_url || p.images[0].image}
-                                    alt={p.name}
-                                    className="w-8 h-8 rounded object-cover border border-gray-100"
-                                />
-                            ) : (
-                                <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center text-xs text-gray-400">N/A</div>
-                            )}
-                            <div className="flex-1 min-w-0">
-                                <p className="font-medium text-gray-900 truncate">{p.name}</p>
-                            </div>
-                            <span className="text-xs font-bold text-gray-500">৳{Number(p.base_price).toLocaleString()}</span>
-                            {isSelected && <CheckCircle2 className="w-4 h-4 text-[#4C3B8A] shrink-0" />}
-                        </button>
-                    )
-                })}
+                {!isFetching && Array.isArray(products) && products
+                    .filter(p => !existingProductIds.has(p.id))
+                    .map((p: any) => {
+                        const isSelected = selected.some(s => s.product_id === p.id)
+                        return (
+                            <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => toggleProduct(p)}
+                                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors text-sm ${
+                                    isSelected
+                                        ? 'bg-purple-50 border border-[#4C3B8A]/20'
+                                        : 'hover:bg-gray-50 border border-transparent'
+                                }`}
+                            >
+                                {p.images?.[0]?.image_url || p.images?.[0]?.image ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
+                                        src={p.images[0].image_url || p.images[0].image}
+                                        alt={p.name}
+                                        className="w-8 h-8 rounded object-cover border border-gray-100"
+                                    />
+                                ) : (
+                                    <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center text-xs text-gray-400">N/A</div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-gray-900 truncate">{p.name}</p>
+                                </div>
+                                <span className="text-xs font-bold text-gray-500">৳{Number(p.base_price).toLocaleString()}</span>
+                                {isSelected && <CheckCircle2 className="w-4 h-4 text-[#4C3B8A] shrink-0" />}
+                            </button>
+                        )
+                    })}
             </div>
 
-            {/* Selected products with pricing */}
             {selected.length > 0 && (
                 <div className="space-y-2 border-t border-gray-100 pt-3">
                     <p className="text-xs font-bold text-gray-500 uppercase">Selected ({selected.length})</p>
@@ -273,18 +268,127 @@ function StockBadge({ product }: { product: FlashSaleProduct }) {
     )
 }
 
+// ─── Single seller product row in flash sale ───────────────────────
+function SellerProductRow({ saleId, fsp }: { saleId: string; fsp: FlashSaleProduct }) {
+    const queryClient = useQueryClient()
+    const [editing, setEditing] = useState(false)
+    const [price, setPrice] = useState(fsp.override_price || fsp.sale_price || '')
+    const [qty, setQty] = useState(fsp.quantity_limit?.toString() ?? '')
+
+    const isStockOut = fsp.quantity_limit != null && fsp.sold_count >= fsp.quantity_limit
+
+    const updateMutation = useMutation({
+        mutationFn: (payload: any) =>
+            api.patch(`/seller/flash-sales/${saleId}/products/${fsp.id}/`, payload),
+        onSuccess: () => {
+            toast.success('Product updated')
+            queryClient.invalidateQueries({ queryKey: ['seller-flash-sales'] })
+            setEditing(false)
+        },
+        onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to update'),
+    })
+
+    const deleteMutation = useMutation({
+        mutationFn: () => api.delete(`/seller/flash-sales/${saleId}/products/${fsp.id}/`),
+        onSuccess: () => {
+            toast.success('Product removed from flash sale')
+            queryClient.invalidateQueries({ queryKey: ['seller-flash-sales'] })
+        },
+        onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to remove'),
+    })
+
+    const handleSave = () => {
+        if (!price || parseFloat(price) <= 0) { toast.error('Flash price required'); return }
+        const qtyNum = qty ? parseInt(qty) : null
+        if (qtyNum != null && qtyNum < fsp.sold_count) {
+            toast.error(`Cannot reduce below sold (${fsp.sold_count})`)
+            return
+        }
+        updateMutation.mutate({
+            flash_price: parseFloat(price),
+            quantity_limit: qtyNum,
+        })
+    }
+
+    const handleRemove = () => {
+        if (!confirm(`Remove "${fsp.product_name}" from this flash sale?`)) return
+        deleteMutation.mutate()
+    }
+
+    if (editing) {
+        return (
+            <div className="flex items-center gap-2 bg-purple-50 rounded px-2 py-1.5 text-xs">
+                <span className="flex-1 truncate font-medium text-gray-700">{fsp.product_name}</span>
+                <input
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    value={price}
+                    onChange={e => setPrice(e.target.value)}
+                    placeholder="Price"
+                    className="w-20 border border-gray-200 rounded px-1.5 py-0.5 text-xs bg-white"
+                />
+                <input
+                    type="number"
+                    min={fsp.sold_count}
+                    value={qty}
+                    onChange={e => setQty(e.target.value)}
+                    placeholder="Qty"
+                    className="w-14 border border-gray-200 rounded px-1.5 py-0.5 text-xs bg-white"
+                />
+                <button
+                    onClick={handleSave}
+                    disabled={updateMutation.isPending}
+                    className="p-1 text-green-600 hover:bg-green-100 rounded"
+                    title="Save"
+                >
+                    {updateMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                </button>
+                <button
+                    onClick={() => setEditing(false)}
+                    className="p-1 text-gray-500 hover:bg-gray-100 rounded"
+                    title="Cancel"
+                >
+                    <XIcon className="w-3 h-3" />
+                </button>
+            </div>
+        )
+    }
+
+    return (
+        <div className={`flex items-center justify-between text-xs rounded px-2 py-1.5 ${isStockOut ? 'bg-red-50/50' : 'bg-gray-50'}`}>
+            <span className={`truncate font-medium ${isStockOut ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
+                {fsp.product_name}
+            </span>
+            <div className="flex gap-2 shrink-0 ml-2 items-center">
+                <span className="line-through text-gray-400">৳{Number(fsp.original_price).toLocaleString()}</span>
+                <span className={`font-bold ${isStockOut ? 'text-gray-400' : 'text-red-600'}`}>
+                    ৳{Number(fsp.override_price || fsp.sale_price || 0).toLocaleString()}
+                </span>
+                <StockBadge product={fsp} />
+                <button
+                    onClick={() => setEditing(true)}
+                    className="p-1 text-[#4C3B8A] hover:bg-[#4C3B8A]/10 rounded transition-colors"
+                    title="Edit"
+                >
+                    <Pencil className="w-3 h-3" />
+                </button>
+                <button
+                    onClick={handleRemove}
+                    disabled={deleteMutation.isPending}
+                    className="p-1 text-red-500 hover:bg-red-100 rounded transition-colors"
+                    title="Remove"
+                >
+                    {deleteMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                </button>
+            </div>
+        </div>
+    )
+}
+
 // ─── Main Page ─────────────────────────────────────────────────────
 export default function SellerFlashSalesPage() {
-    const queryClient = useQueryClient()
-    const [sheetOpen, setSheetOpen] = useState(false)
-    const [editSale, setEditSale] = useState<FlashSale | null>(null)
     const [addingProductsTo, setAddingProductsTo] = useState<string | null>(null)
-
-    // Form state (edit only)
-    const [name, setName] = useState('')
-    const [startTime, setStartTime] = useState('')
-    const [endTime, setEndTime] = useState('')
-    const [isActive, setIsActive] = useState(true)
 
     const { data: sales = [], isLoading } = useQuery<FlashSale[]>({
         queryKey: ['seller-flash-sales'],
@@ -295,57 +399,15 @@ export default function SellerFlashSalesPage() {
             }),
     })
 
-    const openEdit = (s: FlashSale) => {
-        setEditSale(s)
-        setName(s.title)
-        const pad = (n: number) => String(n).padStart(2, '0')
-        const fmtLocal = (iso: string) => {
-            const d = new Date(iso)
-            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-        }
-        setStartTime(fmtLocal(s.starts_at))
-        setEndTime(fmtLocal(s.ends_at))
-        setIsActive(s.is_active)
-        setSheetOpen(true)
-    }
-
-    const updateMutation = useMutation({
-        mutationFn: ({ id, payload }: { id: string; payload: any }) =>
-            api.patch(`/seller/flash-sales/${id}/`, payload),
-        onSuccess: () => {
-            toast.success('Flash sale updated!')
-            queryClient.invalidateQueries({ queryKey: ['seller-flash-sales'] })
-            setSheetOpen(false)
-        },
-        onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to update'),
-    })
-
-    const handleSubmit = () => {
-        if (!name.trim()) { toast.error('Sale name is required'); return }
-        if (!startTime || !endTime) { toast.error('Start and end times are required'); return }
-        if (new Date(endTime) <= new Date(startTime)) { toast.error('End time must be after start time'); return }
-
-        const payload = {
-            title: name.trim(),
-            starts_at: new Date(startTime).toISOString(),
-            ends_at: new Date(endTime).toISOString(),
-            is_active: isActive,
-        }
-        if (editSale) {
-            updateMutation.mutate({ id: editSale.id, payload })
-        }
-    }
-
-    const isSaving = updateMutation.isPending
-    const inputCls = 'w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#4C3B8A] bg-gray-50'
-
     return (
         <div>
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>
                     <h1 className="font-bold text-2xl text-gray-900">Flash Sales</h1>
-                    <p className="text-sm text-gray-500 mt-1">Flash sales are created by admin. You can add your products to active sales.</p>
+                    <p className="text-sm text-gray-500 mt-1">
+                        Flash sales are created by admin. You can add, edit price/quantity, or remove your own products.
+                    </p>
                 </div>
             </div>
 
@@ -370,6 +432,7 @@ export default function SellerFlashSalesPage() {
                         const Icon = style.Icon
                         const productCount = sale.products?.length || 0
                         const canAddProducts = new Date(sale.ends_at).getTime() > Date.now()
+                        const existingIds = new Set((sale.products || []).map(p => p.product?.id || p.product_id || '').filter(Boolean))
 
                         return (
                             <div key={sale.id} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
@@ -398,42 +461,24 @@ export default function SellerFlashSalesPage() {
                                     {/* Products in sale */}
                                     {sale.products && sale.products.length > 0 && (
                                         <div className="space-y-1">
-                                            {sale.products.slice(0, 5).map(p => {
-                                                const isStockOut = p.quantity_limit != null && p.sold_count >= p.quantity_limit
-                                                return (
-                                                    <div key={p.id} className={`flex items-center justify-between text-xs rounded px-2 py-1.5 ${isStockOut ? 'bg-red-50/50' : 'bg-gray-50'}`}>
-                                                        <span className={`truncate font-medium ${isStockOut ? 'text-gray-400 line-through' : 'text-gray-700'}`}>{p.product_name}</span>
-                                                        <div className="flex gap-2 shrink-0 ml-2 items-center">
-                                                            <span className="line-through text-gray-400">৳{Number(p.original_price).toLocaleString()}</span>
-                                                            <span className={`font-bold ${isStockOut ? 'text-gray-400' : 'text-red-600'}`}>৳{Number(p.override_price || p.sale_price || 0).toLocaleString()}</span>
-                                                            <StockBadge product={p} />
-                                                        </div>
-                                                    </div>
-                                                )
-                                            })}
-                                            {sale.products.length > 5 && (
-                                                <p className="text-[11px] text-gray-400 text-center">+{sale.products.length - 5} more</p>
-                                            )}
+                                            {sale.products.map(p => (
+                                                <SellerProductRow key={p.id} saleId={sale.id} fsp={p} />
+                                            ))}
                                         </div>
                                     )}
 
                                     {/* Product picker inline */}
                                     {addingProductsTo === sale.id && (
-                                        <ProductPicker saleId={sale.id} onDone={() => setAddingProductsTo(null)} />
+                                        <ProductPicker
+                                            saleId={sale.id}
+                                            onDone={() => setAddingProductsTo(null)}
+                                            existingProductIds={existingIds}
+                                        />
                                     )}
                                 </div>
 
                                 {/* Card footer */}
                                 <div className="px-5 py-3 bg-gray-50/60 border-t border-gray-100 flex gap-2">
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => openEdit(sale)}
-                                        className="text-xs gap-1 border-gray-200"
-                                    >
-                                        <Pencil className="w-3 h-3" /> Edit
-                                    </Button>
                                     {canAddProducts && addingProductsTo !== sale.id && (
                                         <Button
                                             type="button"
@@ -441,7 +486,7 @@ export default function SellerFlashSalesPage() {
                                             onClick={() => setAddingProductsTo(sale.id)}
                                             className="text-xs gap-1 bg-[#4C3B8A] hover:bg-[#3b2c6b] text-white"
                                         >
-                                            <Plus className="w-3 h-3" /> Add Products
+                                            <Plus className="w-3 h-3" /> Add My Products
                                         </Button>
                                     )}
                                 </div>
@@ -450,70 +495,6 @@ export default function SellerFlashSalesPage() {
                     })}
                 </div>
             )}
-
-            {/* Edit Sheet */}
-            <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-                <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
-                    <SheetHeader className="mb-6">
-                        <SheetTitle>Edit Flash Sale</SheetTitle>
-                        <SheetDescription>Update sale details.</SheetDescription>
-                    </SheetHeader>
-
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Sale Name *</label>
-                            <input
-                                value={name}
-                                onChange={e => setName(e.target.value)}
-                                placeholder="e.g. Summer Flash Sale"
-                                className={inputCls}
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Start Time *</label>
-                            <input
-                                type="datetime-local"
-                                value={startTime}
-                                onChange={e => setStartTime(e.target.value)}
-                                className={inputCls}
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1.5">End Time *</label>
-                            <input
-                                type="datetime-local"
-                                value={endTime}
-                                onChange={e => setEndTime(e.target.value)}
-                                className={inputCls}
-                            />
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                            <Switch checked={isActive} onCheckedChange={setIsActive} />
-                            <span className={`text-sm font-medium ${isActive ? 'text-green-600' : 'text-gray-400'}`}>
-                                {isActive ? 'Active' : 'Inactive'}
-                            </span>
-                        </div>
-
-                        <div className="flex gap-3 pt-4">
-                            <Button type="button" variant="outline" onClick={() => setSheetOpen(false)} className="flex-1 border-gray-200">
-                                Cancel
-                            </Button>
-                            <Button
-                                type="button"
-                                onClick={handleSubmit}
-                                disabled={isSaving}
-                                className="flex-1 bg-[#4C3B8A] hover:bg-[#3b2c6b] text-white font-semibold gap-2"
-                            >
-                                {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-                                Update Sale
-                            </Button>
-                        </div>
-                    </div>
-                </SheetContent>
-            </Sheet>
         </div>
     )
 }

@@ -647,6 +647,14 @@ class UpdateCartItemSerializer(serializers.Serializer):
                     raise serializers.ValidationError(
                         f'Only {item.product.stock_quantity} in stock.'
                     )
+            # Validate flash sale stock if this is a flash sale item
+            fsp = getattr(item, 'flash_sale_product', None)
+            if fsp and fsp.quantity_limit is not None:
+                available_flash = fsp.quantity_limit - fsp.sold_count
+                if value > available_flash:
+                    raise serializers.ValidationError(
+                        f'Only {available_flash} left at flash sale price.'
+                    )
         return value
 
 

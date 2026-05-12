@@ -1364,6 +1364,14 @@ class CartAddItemView(APIView):
                 existing.flash_sale_product = flash_sale_product
                 existing.save(update_fields=['quantity', 'unit_price_snapshot', 'flash_sale_product'])
             else:
+                # Validate product stock for new item
+                stock = variant.stock_quantity if variant else product.stock_quantity
+                if quantity > stock:
+                    return Response({
+                        'success': False,
+                        'message': f'Only {stock} in stock.',
+                        'code': 'INSUFFICIENT_STOCK',
+                    }, status=status.HTTP_400_BAD_REQUEST)
                 # Validate flash sale stock for new item
                 if flash_sale_product and flash_sale_product.quantity_limit is not None:
                     available_flash = flash_sale_product.quantity_limit - flash_sale_product.sold_count
