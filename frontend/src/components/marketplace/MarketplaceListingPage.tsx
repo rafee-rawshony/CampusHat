@@ -33,10 +33,10 @@ const SORT_OPTIONS: { label: string; value: SortOption }[] = [
 ]
 
 const CONDITIONS = [
-    { label: 'New', value: 'new' },
-    { label: 'Used - Like New', value: 'used_like_new' },
-    { label: 'Used - Good', value: 'used_good' },
-    { label: 'Used - Fair', value: 'used_fair' },
+    { label: 'Like New', value: 'like_new' },
+    { label: 'Good', value: 'good' },
+    { label: 'Fair', value: 'fair' },
+    { label: 'For Parts', value: 'for_parts' },
 ]
 
 /* ─── collapsible filter section ─────────────────────── */
@@ -243,7 +243,7 @@ export function MarketplaceListingPage({ postType, title, defaultMaxPrice }: Mar
                 ordering: sort,
             }
             if (appliedMinPrice > 0) params.min_price = appliedMinPrice
-            if (appliedMaxPrice < defaultMaxPrice * 100) params.max_price = appliedMaxPrice
+            if (appliedMaxPrice > 0 && appliedMaxPrice !== defaultMaxPrice) params.max_price = appliedMaxPrice
             if (selectedCampusId) params.university = selectedCampusId
             selectedCategories.forEach((c, i) => { params[`category${i > 0 ? i : ''}`] = c }) // fallback
             if (selectedCategories.length > 0) params.category = selectedCategories.join(',')

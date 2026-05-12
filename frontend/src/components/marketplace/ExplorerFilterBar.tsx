@@ -23,10 +23,10 @@ const TYPES = [
 
 const CONDITIONS = [
     { label: 'Any Condition', value: '' },
-    { label: 'New', value: 'new' },
-    { label: 'Used - Like New', value: 'used_like_new' },
-    { label: 'Used - Good', value: 'used_good' },
-    { label: 'Used - Fair', value: 'used_fair' },
+    { label: 'Like New', value: 'like_new' },
+    { label: 'Good', value: 'good' },
+    { label: 'Fair', value: 'fair' },
+    { label: 'For Parts', value: 'for_parts' },
 ]
 
 const SORT_OPTIONS = [
@@ -80,7 +80,7 @@ export function ExplorerFilterBar({ typeCounts }: ExplorerFilterBarProps) {
 
     const handleTypeChange = (value: string) => {
         // If switching away from buy/all, condition is mostly irrelevant but we can just clear it to be safe
-        updateUrl({ type: value, condition: value === 'buy' || value === 'all' ? currentCondition : null })
+        updateUrl({ type: value, condition: value === 'sell' || value === 'all' ? currentCondition : null })
     }
 
     const clearAll = () => {
@@ -158,7 +158,7 @@ export function ExplorerFilterBar({ typeCounts }: ExplorerFilterBarProps) {
                 )}
 
                 {/* Condition Dropdown (only if Type is All or Buy) */}
-                {(currentType === 'all' || currentType === 'buy') && (
+                {(currentType === 'all' || currentType === 'sell') && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <button className={`flex shrink-0 items-center gap-2 px-4 py-1.5 text-sm font-medium rounded-full whitespace-nowrap transition-colors border ${
