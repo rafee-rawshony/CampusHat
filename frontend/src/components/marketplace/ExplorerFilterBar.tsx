@@ -15,8 +15,8 @@ import {
 
 const TYPES = [
     { label: 'All', value: 'all' },
-    { label: 'Buy', value: 'buy' },
-    { label: 'Rental', value: 'rental' },
+    { label: 'Buy', value: 'sell' },
+    { label: 'Rental', value: 'rent' },
     { label: 'Services', value: 'service' },
     { label: 'Food', value: 'food' },
 ]

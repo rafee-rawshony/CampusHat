@@ -50,7 +50,7 @@ function ExplorerContent() {
     const listings = response?.results || response?.data?.results || response?.data || []
     
     // Attempt to extract total count from Django REST API pagination
-    const totalCount = response?.count || response?.data?.count || Array.isArray(listings) ? listings.length : 0
+    const totalCount = response?.count ?? response?.data?.count ?? (Array.isArray(listings) ? listings.length : 0)
 
     // Fetch type counts using standard API meta if available, else we just ignore.
     const typeCounts = response?.type_counts || response?.data?.type_counts || undefined

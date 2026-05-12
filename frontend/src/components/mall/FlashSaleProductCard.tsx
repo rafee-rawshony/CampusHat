@@ -26,7 +26,8 @@ interface FlashSaleItem {
         category?: { name: string }
         category_name?: string
     }
-    sale_price: number | string
+    sale_price?: number | string | null
+    override_price?: number | string | null
     quantity_limit: number | null
     sold_count: number
 }
@@ -40,8 +41,9 @@ export function FlashSaleProductCard({ item }: FlashSaleProductCardProps) {
     const { addItem } = useCartStore()
     const { product } = item
 
-    const basePrice = typeof product.base_price === 'string' ? parseFloat(product.base_price) : product.base_price
-    const salePrice = typeof item.sale_price === 'string' ? parseFloat(item.sale_price) : item.sale_price
+    const basePrice = typeof product.base_price === 'string' ? parseFloat(product.base_price) : (product.base_price || 0)
+    const rawSale = item.sale_price ?? item.override_price
+    const salePrice = (typeof rawSale === 'string' ? parseFloat(rawSale) : rawSale) || basePrice
     const discountPercent = basePrice > 0 ? Math.round((1 - salePrice / basePrice) * 100) : 0
     const imageUrl = product.primary_image_url || product.images?.[0]?.image_url || product.images?.[0]?.image || null
     const remaining = item.quantity_limit ? item.quantity_limit - item.sold_count : null
