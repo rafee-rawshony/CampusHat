@@ -5,7 +5,10 @@ from .models import Coupon, CouponUsage, FlashSale, FlashSaleProduct
 
 class FlashSaleProductInline(admin.TabularInline):
     model = FlashSaleProduct
-    extra = 0
+    extra = 1
+    raw_id_fields = ('product',)
+    fields = ('product', 'override_price', 'quantity_limit', 'sold_count')
+    readonly_fields = ('sold_count',)
 
 
 @admin.register(Coupon)
@@ -24,5 +27,8 @@ class CouponUsageAdmin(admin.ModelAdmin):
 @admin.register(FlashSale)
 class FlashSaleAdmin(admin.ModelAdmin):
     list_display = ('title', 'store', 'discount_percentage', 'starts_at', 'ends_at', 'is_active')
-    list_filter = ('is_active',)
+    list_filter = ('is_active', 'starts_at')
+    search_fields = ('title',)
+    list_editable = ('is_active',)
     inlines = [FlashSaleProductInline]
+    readonly_fields = ('created_at', 'updated_at')

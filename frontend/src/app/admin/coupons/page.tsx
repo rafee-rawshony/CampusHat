@@ -283,8 +283,8 @@ export default function AdminCouponsPage() {
                                     <tbody className="divide-y divide-gray-50">
                                         {flashSales.map((sale: any) => {
                                             const now = new Date()
-                                            const start = sale.start_time ? new Date(sale.start_time) : null
-                                            const end = sale.end_time ? new Date(sale.end_time) : null
+                                            const start = sale.starts_at ? new Date(sale.starts_at) : null
+                                            const end = sale.ends_at ? new Date(sale.ends_at) : null
                                             const isLive = start && end && now >= start && now <= end
                                             const isUpcoming = start && now < start
 
@@ -293,11 +293,11 @@ export default function AdminCouponsPage() {
                                                     <td className="px-5 py-4">
                                                         <div className="flex items-center gap-2">
                                                             <Zap className={`w-4 h-4 ${isLive ? 'text-orange-500' : 'text-gray-300'}`} />
-                                                            <span className="font-medium text-gray-900">{sale.name || sale.title || '—'}</span>
+                                                            <span className="font-medium text-gray-900">{sale.title || '—'}</span>
                                                         </div>
                                                     </td>
                                                     <td className="px-5 py-4 text-gray-500 text-sm">{sale.store_name || sale.store?.name || '—'}</td>
-                                                    <td className="px-5 py-4 text-gray-600 text-sm">{sale.product_count || sale.products?.length || 0}</td>
+                                                    <td className="px-5 py-4 text-gray-600 text-sm">{sale.products?.length || 0}</td>
                                                     <td className="px-5 py-4 text-xs text-gray-400">
                                                         <div className="flex items-center gap-1.5">
                                                             <Clock className="w-3.5 h-3.5" />
@@ -326,8 +326,8 @@ export default function AdminCouponsPage() {
                             <div className="md:hidden space-y-3">
                                 {flashSales.map((sale: any) => {
                                     const now = new Date()
-                                    const start = sale.start_time ? new Date(sale.start_time) : null
-                                    const end = sale.end_time ? new Date(sale.end_time) : null
+                                    const start = sale.starts_at ? new Date(sale.starts_at) : null
+                                    const end = sale.ends_at ? new Date(sale.ends_at) : null
                                     const isLive = start && end && now >= start && now <= end
 
                                     return (
@@ -335,7 +335,7 @@ export default function AdminCouponsPage() {
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
                                                     <Zap className={`w-4 h-4 ${isLive ? 'text-orange-500' : 'text-gray-300'}`} />
-                                                    <span className="font-medium text-gray-900 text-sm">{sale.name || sale.title || '—'}</span>
+                                                    <span className="font-medium text-gray-900 text-sm">{sale.title || '—'}</span>
                                                 </div>
                                                 <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full uppercase ${
                                                     isLive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
@@ -344,7 +344,7 @@ export default function AdminCouponsPage() {
                                                 </span>
                                             </div>
                                             <p className="text-xs text-gray-400">
-                                                {sale.store_name || '—'} | {sale.product_count || 0} products
+                                                {sale.store_name || '—'} | {sale.products?.length || 0} products
                                             </p>
                                         </div>
                                     )

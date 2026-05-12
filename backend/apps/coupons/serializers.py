@@ -52,10 +52,20 @@ class CouponValidateResponseSerializer(serializers.Serializer):
 
 class FlashSaleProductSerializer(serializers.ModelSerializer):
     product = StoreProductListSerializer(read_only=True)
+    product_name = serializers.CharField(source='product.name', read_only=True)
+    original_price = serializers.DecimalField(
+        source='product.base_price', max_digits=10, decimal_places=2, read_only=True,
+    )
+    sale_price = serializers.DecimalField(
+        source='override_price', max_digits=10, decimal_places=2, read_only=True,
+    )
 
     class Meta:
         model = FlashSaleProduct
-        fields = ['id', 'product', 'override_price']
+        fields = [
+            'id', 'product', 'product_name', 'original_price',
+            'override_price', 'sale_price', 'quantity_limit', 'sold_count',
+        ]
         read_only_fields = ['id']
 
 
@@ -95,14 +105,29 @@ class FlashSaleCreateSerializer(serializers.ModelSerializer):
         model = FlashSale
         fields = [
             'title', 'description', 'discount_percentage',
-            'starts_at', 'ends_at', 'max_items_per_user',
+            'starts_at', 'ends_at', 'max_items_per_user', 'is_active',
         ]
+        extra_kwargs = {
+            'discount_percentage': {'required': False, 'default': 0},
+            'description': {'required': False},
+            'max_items_per_user': {'required': False},
+            'is_active': {'required': False},
+        }
+
+
+class FlashSaleProductInputSerializer(serializers.Serializer):
+    product_id = serializers.UUIDField()
+    flash_price = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True,
+    )
+    quantity_limit = serializers.IntegerField(required=False, allow_null=True)
 
 
 class FlashSaleAddProductsSerializer(serializers.Serializer):
     product_ids = serializers.ListField(
-        child=serializers.UUIDField(), min_length=1,
+        child=serializers.UUIDField(), required=False, default=list,
     )
     override_price = serializers.DecimalField(
         max_digits=10, decimal_places=2, required=False, allow_null=True,
     )
+    products = FlashSaleProductInputSerializer(many=True, required=False, default=list)

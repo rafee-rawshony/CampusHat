@@ -197,11 +197,26 @@ class FlashSaleDetailView(APIView):
 # FLASH SALES — SELLER
 # ═══════════════════════════════════════════════════════════════════
 
-class SellerFlashSaleCreateView(GenericAPIView):
-    """POST /api/v1/seller/flash-sales/"""
+class SellerFlashSaleListCreateView(GenericAPIView):
+    """GET/POST /api/v1/seller/flash-sales/"""
 
     permission_classes = [IsAuthenticated, IsApprovedSeller]
     serializer_class = FlashSaleCreateSerializer
+
+    def get(self, request):
+        try:
+            store = request.user.seller_profile.store
+        except Exception:
+            return Response({'success': False, 'message': 'Store not found.'}, status=404)
+
+        sales = FlashSale.objects.filter(
+            store=store, deleted_at__isnull=True,
+        ).prefetch_related('products', 'products__product').order_by('-created_at')
+
+        return Response({
+            'success': True,
+            'data': FlashSaleDetailSerializer(sales, many=True).data,
+        })
 
     def post(self, request):
         try:
@@ -256,17 +271,30 @@ class SellerFlashSaleAddProductsView(GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        product_ids = serializer.validated_data['product_ids']
+        products_data = serializer.validated_data.get('products', [])
+        product_ids = serializer.validated_data.get('product_ids', [])
         override_price = serializer.validated_data.get('override_price')
 
         created = 0
-        for pid in product_ids:
-            _, was_created = FlashSaleProduct.objects.get_or_create(
-                flash_sale=sale, product_id=pid,
-                defaults={'override_price': override_price},
-            )
-            if was_created:
-                created += 1
+        if products_data:
+            for item in products_data:
+                _, was_created = FlashSaleProduct.objects.update_or_create(
+                    flash_sale=sale, product_id=item['product_id'],
+                    defaults={
+                        'override_price': item.get('flash_price') or override_price,
+                        'quantity_limit': item.get('quantity_limit'),
+                    },
+                )
+                if was_created:
+                    created += 1
+        elif product_ids:
+            for pid in product_ids:
+                _, was_created = FlashSaleProduct.objects.get_or_create(
+                    flash_sale=sale, product_id=pid,
+                    defaults={'override_price': override_price},
+                )
+                if was_created:
+                    created += 1
 
         return Response({
             'success': True,
@@ -337,17 +365,99 @@ class AdminFlashSaleListView(APIView):
     permission_classes = [IsAuthenticated, IsAdminUser]
 
     def get(self, request):
-        sales = FlashSale.objects.select_related('store').order_by('-created_at')
+        sales = FlashSale.objects.select_related('store').prefetch_related(
+            'products', 'products__product',
+        ).order_by('-created_at')
         return Response({
-            'success': True, 'data': FlashSaleListSerializer(sales, many=True).data,
+            'success': True, 'data': FlashSaleDetailSerializer(sales, many=True).data,
         })
 
     def post(self, request):
         serializer = FlashSaleCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         store_id = request.data.get('store')
-        sale = serializer.save(store_id=store_id)
+        if store_id:
+            sale = serializer.save(store_id=store_id)
+        else:
+            return Response({
+                'success': False, 'message': 'store field is required.',
+            }, status=status.HTTP_400_BAD_REQUEST)
         return Response({
             'success': True, 'message': 'Flash sale created.',
             'data': FlashSaleDetailSerializer(sale).data,
         }, status=status.HTTP_201_CREATED)
+
+
+class AdminFlashSaleDetailView(APIView):
+    """PATCH/DELETE /api/v1/admin/flash-sales/{flash_sale_id}/"""
+
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def patch(self, request, flash_sale_id):
+        try:
+            sale = FlashSale.objects.get(id=flash_sale_id)
+        except FlashSale.DoesNotExist:
+            return Response({'success': False, 'message': 'Not found.'}, status=404)
+
+        serializer = FlashSaleCreateSerializer(sale, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({
+            'success': True, 'message': 'Flash sale updated.',
+            'data': FlashSaleDetailSerializer(sale).data,
+        })
+
+    def delete(self, request, flash_sale_id):
+        try:
+            sale = FlashSale.objects.get(id=flash_sale_id)
+        except FlashSale.DoesNotExist:
+            return Response({'success': False, 'message': 'Not found.'}, status=404)
+
+        sale.soft_delete()
+        return Response({'success': True, 'message': 'Flash sale deleted.'})
+
+
+class AdminFlashSaleAddProductsView(APIView):
+    """POST /api/v1/admin/flash-sales/{flash_sale_id}/add-products/"""
+
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def post(self, request, flash_sale_id):
+        try:
+            sale = FlashSale.objects.get(id=flash_sale_id)
+        except FlashSale.DoesNotExist:
+            return Response({'success': False, 'message': 'Not found.'}, status=404)
+
+        serializer = FlashSaleAddProductsSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        products_data = serializer.validated_data.get('products', [])
+        product_ids = serializer.validated_data.get('product_ids', [])
+        override_price = serializer.validated_data.get('override_price')
+
+        created = 0
+        if products_data:
+            for item in products_data:
+                _, was_created = FlashSaleProduct.objects.update_or_create(
+                    flash_sale=sale, product_id=item['product_id'],
+                    defaults={
+                        'override_price': item.get('flash_price') or override_price,
+                        'quantity_limit': item.get('quantity_limit'),
+                    },
+                )
+                if was_created:
+                    created += 1
+        elif product_ids:
+            for pid in product_ids:
+                _, was_created = FlashSaleProduct.objects.get_or_create(
+                    flash_sale=sale, product_id=pid,
+                    defaults={'override_price': override_price},
+                )
+                if was_created:
+                    created += 1
+
+        return Response({
+            'success': True,
+            'message': f'{created} products added to flash sale.',
+            'data': FlashSaleDetailSerializer(sale).data,
+        })

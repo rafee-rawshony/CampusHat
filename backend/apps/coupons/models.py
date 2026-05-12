@@ -205,6 +205,14 @@ class FlashSaleProduct(UUIDMixin):
         max_digits=10, decimal_places=2, blank=True, null=True,
         help_text='Override price for this product during the sale.',
     )
+    quantity_limit = models.PositiveIntegerField(
+        blank=True, null=True,
+        help_text='Maximum quantity available at flash price.',
+    )
+    sold_count = models.PositiveIntegerField(
+        default=0,
+        help_text='Number of units sold during this flash sale.',
+    )
 
     class Meta:
         db_table = 'flash_sale_products'

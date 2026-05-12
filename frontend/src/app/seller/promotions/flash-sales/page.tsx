@@ -16,33 +16,36 @@ import { normalizeListResponse } from '@/lib/response'
 
 interface FlashSaleProduct {
     id: string
-    product_id: string
+    product: any
     product_name: string
     original_price: string
-    flash_price: string
-    quantity_limit: number
+    override_price: string
+    sale_price: string
+    quantity_limit: number | null
     sold_count: number
 }
 
 interface FlashSale {
     id: string
-    name: string
-    start_time: string
-    end_time: string
+    title: string
+    description?: string
+    discount_percentage?: string
+    starts_at: string
+    ends_at: string
     is_active: boolean
     products?: FlashSaleProduct[]
 }
 
 // ─── Countdown hook ────────────────────────────────────────────────
-function useCountdown(endTime: string) {
+function useCountdown(endsAt: string) {
     const calcRemaining = useCallback(() => {
-        const diff = new Date(endTime).getTime() - Date.now()
+        const diff = new Date(endsAt).getTime() - Date.now()
         if (diff <= 0) return null
         const h = Math.floor(diff / 3600000)
         const m = Math.floor((diff % 3600000) / 60000)
         const s = Math.floor((diff % 60000) / 1000)
         return `${h}h ${m}m ${s}s`
-    }, [endTime])
+    }, [endsAt])
 
     const [remaining, setRemaining] = useState(calcRemaining)
 
@@ -55,8 +58,8 @@ function useCountdown(endTime: string) {
 }
 
 // ─── Countdown display component ──────────────────────────────────
-function CountdownBadge({ endTime }: { endTime: string }) {
-    const remaining = useCountdown(endTime)
+function CountdownBadge({ endsAt }: { endsAt: string }) {
+    const remaining = useCountdown(endsAt)
     if (!remaining) return null
     return (
         <span className="inline-flex items-center gap-1 text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full animate-pulse">
@@ -68,8 +71,8 @@ function CountdownBadge({ endTime }: { endTime: string }) {
 // ─── Status helpers ────────────────────────────────────────────────
 function getSaleStatus(sale: FlashSale) {
     const now = Date.now()
-    const start = new Date(sale.start_time).getTime()
-    const end = new Date(sale.end_time).getTime()
+    const start = new Date(sale.starts_at).getTime()
+    const end = new Date(sale.ends_at).getTime()
     if (now < start) return 'upcoming'
     if (now >= start && now <= end && sale.is_active) return 'active'
     return 'ended'
@@ -103,7 +106,7 @@ function ProductPicker({ saleId, onDone }: { saleId: string; onDone: () => void 
             api.post(`/seller/flash-sales/${saleId}/add-products/`, payload),
         onSuccess: () => {
             toast.success('Products added to flash sale!')
-            queryClient.invalidateQueries({ queryKey: ['flash-sales'] })
+            queryClient.invalidateQueries({ queryKey: ['seller-flash-sales'] })
             onDone()
         },
         onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to add products'),
@@ -260,12 +263,12 @@ export default function SellerFlashSalesPage() {
     const [endTime, setEndTime] = useState('')
     const [isActive, setIsActive] = useState(true)
 
-    // Fetch active flash sales (public endpoint, filter client-side)
     const { data: sales = [], isLoading } = useQuery<FlashSale[]>({
-        queryKey: ['flash-sales'],
+        queryKey: ['seller-flash-sales'],
         queryFn: () =>
-            api.get('/flash-sales/active/').then(r => {
-                return normalizeListResponse<FlashSale>(r.data?.data ?? r.data)
+            api.get('/seller/flash-sales/').then(r => {
+                const d = r.data?.data ?? r.data
+                return Array.isArray(d) ? d : normalizeListResponse<FlashSale>(d)
             }),
     })
 
@@ -280,15 +283,14 @@ export default function SellerFlashSalesPage() {
 
     const openEdit = (s: FlashSale) => {
         setEditSale(s)
-        setName(s.name)
-        // Format for datetime-local input
+        setName(s.title)
         const pad = (n: number) => String(n).padStart(2, '0')
         const fmtLocal = (iso: string) => {
             const d = new Date(iso)
             return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
         }
-        setStartTime(fmtLocal(s.start_time))
-        setEndTime(fmtLocal(s.end_time))
+        setStartTime(fmtLocal(s.starts_at))
+        setEndTime(fmtLocal(s.ends_at))
         setIsActive(s.is_active)
         setSheetOpen(true)
     }
@@ -297,7 +299,7 @@ export default function SellerFlashSalesPage() {
         mutationFn: (payload: any) => api.post('/seller/flash-sales/', payload),
         onSuccess: () => {
             toast.success('Flash sale created!')
-            queryClient.invalidateQueries({ queryKey: ['flash-sales'] })
+            queryClient.invalidateQueries({ queryKey: ['seller-flash-sales'] })
             setSheetOpen(false)
         },
         onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to create flash sale'),
@@ -308,7 +310,7 @@ export default function SellerFlashSalesPage() {
             api.patch(`/seller/flash-sales/${id}/`, payload),
         onSuccess: () => {
             toast.success('Flash sale updated!')
-            queryClient.invalidateQueries({ queryKey: ['flash-sales'] })
+            queryClient.invalidateQueries({ queryKey: ['seller-flash-sales'] })
             setSheetOpen(false)
         },
         onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to update'),
@@ -320,9 +322,9 @@ export default function SellerFlashSalesPage() {
         if (new Date(endTime) <= new Date(startTime)) { toast.error('End time must be after start time'); return }
 
         const payload = {
-            name: name.trim(),
-            start_time: new Date(startTime).toISOString(),
-            end_time: new Date(endTime).toISOString(),
+            title: name.trim(),
+            starts_at: new Date(startTime).toISOString(),
+            ends_at: new Date(endTime).toISOString(),
             is_active: isActive,
         }
         if (editSale) {
@@ -368,7 +370,7 @@ export default function SellerFlashSalesPage() {
                         const style = STATUS_STYLES[status]
                         const Icon = style.Icon
                         const productCount = sale.products?.length || 0
-                        const canAddProducts = new Date(sale.end_time).getTime() > Date.now()
+                        const canAddProducts = new Date(sale.ends_at).getTime() > Date.now()
 
                         return (
                             <div key={sale.id} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
@@ -376,16 +378,16 @@ export default function SellerFlashSalesPage() {
                                 <div className="px-5 py-4 border-b border-gray-100">
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="min-w-0">
-                                            <h3 className="font-bold text-gray-900 truncate">{sale.name}</h3>
+                                            <h3 className="font-bold text-gray-900 truncate">{sale.title}</h3>
                                             <p className="text-xs text-gray-500 mt-1">
-                                                {fmtDateTime(sale.start_time)} → {fmtDateTime(sale.end_time)}
+                                                {fmtDateTime(sale.starts_at)} → {fmtDateTime(sale.ends_at)}
                                             </p>
                                         </div>
                                         <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full border shrink-0 ${style.cls}`}>
                                             <Icon className="w-3 h-3" /> {style.label}
                                         </span>
                                     </div>
-                                    {status === 'active' && <div className="mt-2"><CountdownBadge endTime={sale.end_time} /></div>}
+                                    {status === 'active' && <div className="mt-2"><CountdownBadge endsAt={sale.ends_at} /></div>}
                                 </div>
 
                                 {/* Card body */}
@@ -402,8 +404,8 @@ export default function SellerFlashSalesPage() {
                                                     <span className="truncate text-gray-700 font-medium">{p.product_name}</span>
                                                     <div className="flex gap-2 shrink-0 ml-2">
                                                         <span className="line-through text-gray-400">৳{Number(p.original_price).toLocaleString()}</span>
-                                                        <span className="font-bold text-red-600">৳{Number(p.flash_price).toLocaleString()}</span>
-                                                        <span className="text-gray-400">{p.sold_count}/{p.quantity_limit} sold</span>
+                                                        <span className="font-bold text-red-600">৳{Number(p.override_price || p.sale_price || 0).toLocaleString()}</span>
+                                                        {p.quantity_limit != null && <span className="text-gray-400">{p.sold_count}/{p.quantity_limit} sold</span>}
                                                     </div>
                                                 </div>
                                             ))}

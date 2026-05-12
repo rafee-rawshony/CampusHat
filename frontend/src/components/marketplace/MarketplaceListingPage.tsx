@@ -157,7 +157,7 @@ function FilterSidebarContent({
             </FilterSection>
 
             {/* Condition — Buy page only */}
-            {postType === 'buy' && (
+            {postType === 'sell' && (
                 <FilterSection title="Condition">
                     {CONDITIONS.map((c) => (
                         <CheckboxItem

@@ -44,9 +44,9 @@ export function ExplorerFilterBar({ typeCounts }: ExplorerFilterBarProps) {
     const router = useRouter()
     const pathname = usePathname()
     const searchParams = useSearchParams()
-    const { selectedCampusId, getCampusById } = useCampusStore()
+    const { selectedCampusId, selectedCampusName, clearCampus } = useCampusStore()
     
-    const campusName = selectedCampusId ? getCampusById(selectedCampusId)?.name : null
+    const campusName = selectedCampusName
 
     // Read URL state
     const currentType = searchParams.get('type') || 'all'
@@ -95,7 +95,7 @@ export function ExplorerFilterBar({ typeCounts }: ExplorerFilterBarProps) {
         // The prompt says "× removes campus filter (resets to All Campuses)".
         // Wait, useCampusStore controls it gobally. We can ignore the store for a moment by setting a URL param, 
         // or just updating the store directly.
-        useCampusStore.getState().setSelectedCampusId('')
+        clearCampus()
     }
 
     const handleApplyPrice = () => {

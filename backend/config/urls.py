@@ -113,6 +113,7 @@ from apps.coupons.urls import (
     admin_coupon_urlpatterns,
     admin_flash_sale_urlpatterns,
 )
+# Note: SellerFlashSaleCreateView renamed to SellerFlashSaleListCreateView (GET+POST)
 
 # --- Phase 09 URL patterns ---
 from apps.admin_panel.urls import (
