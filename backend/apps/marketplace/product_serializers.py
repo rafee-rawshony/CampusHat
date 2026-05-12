@@ -29,7 +29,7 @@ class MarketplaceCategorySerializer(serializers.ModelSerializer):
         model = MarketplaceCategory
         fields = [
             'id', 'name', 'slug', 'ad_type', 'parent',
-            'icon_url', 'sort_order', 'is_active', 'children',
+            'sort_order', 'is_active', 'children',
         ]
         read_only_fields = fields
 

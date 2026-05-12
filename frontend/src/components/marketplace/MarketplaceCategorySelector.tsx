@@ -8,11 +8,10 @@ import { Label } from '@/components/ui/label'
 import { Loader2 } from 'lucide-react'
 
 interface CategoryOption {
-    id: string
+    id: number
     name: string
     slug: string
     ad_type: string
-    icon_url?: string | null
     children?: CategoryOption[]
 }
 

@@ -145,7 +145,6 @@ class MarketplaceCategory(BaseModel):
         blank=True,
         related_name='children',
     )
-    icon_url = models.CharField(max_length=300, blank=True, null=True)
     sort_order = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True)
 

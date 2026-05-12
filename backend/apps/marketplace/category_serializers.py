@@ -21,7 +21,7 @@ class AdminCategoryCreateSerializer(serializers.ModelSerializer):
         model = MarketplaceCategory
         fields = [
             'name', 'slug', 'ad_type', 'parent',
-            'icon_url', 'sort_order', 'is_active',
+            'sort_order', 'is_active',
         ]
 
     def validate_name(self, value):
@@ -74,7 +74,7 @@ class AdminCategoryUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = MarketplaceCategory
         fields = [
-            'name', 'slug', 'icon_url', 'sort_order', 'is_active',
+            'name', 'slug', 'sort_order', 'is_active',
         ]
         extra_kwargs = {
             'name': {'required': False},
@@ -114,7 +114,7 @@ class AdminCategoryTreeSerializer(serializers.ModelSerializer):
         model = MarketplaceCategory
         fields = [
             'id', 'name', 'slug', 'ad_type', 'parent',
-            'icon_url', 'sort_order', 'is_active',
+            'sort_order', 'is_active',
             'children', 'listing_count',
             'created_at', 'updated_at',
         ]
@@ -138,7 +138,7 @@ class AdminCategoryListSerializer(serializers.ModelSerializer):
         model = MarketplaceCategory
         fields = [
             'id', 'name', 'slug', 'ad_type', 'parent', 'parent_name',
-            'icon_url', 'sort_order', 'is_active',
+            'sort_order', 'is_active',
             'children_count', 'listing_count',
             'created_at', 'updated_at',
         ]

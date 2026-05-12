@@ -19,7 +19,6 @@ import { Loader2 } from 'lucide-react'
 const categorySchema = z.object({
     name: z.string().min(2, 'Name must be at least 2 chars').max(100),
     slug: z.string().min(2).max(120).regex(/^[a-z0-9-]+$/, 'Only lowercase letters, numbers, hyphens'),
-    icon_url: z.string().optional().nullable(),
     sort_order: z.coerce.number().min(0).max(999),
     is_active: z.boolean(),
     parent: z.string().nullable().optional(),
@@ -33,7 +32,6 @@ interface CategoryNode {
     slug: string
     ad_type: string
     parent: string | null
-    icon_url?: string | null
     sort_order: number
     is_active: boolean
     children?: CategoryNode[]
@@ -85,7 +83,6 @@ export default function MarketplaceCategoryDrawer({
         defaultValues: {
             name: '',
             slug: '',
-            icon_url: '',
             sort_order: 0,
             is_active: true,
             parent: null,
@@ -112,7 +109,6 @@ export default function MarketplaceCategoryDrawer({
             reset({
                 name: category.name,
                 slug: category.slug,
-                icon_url: category.icon_url || '',
                 sort_order: category.sort_order,
                 is_active: category.is_active,
                 parent: category.parent || null,
@@ -121,7 +117,6 @@ export default function MarketplaceCategoryDrawer({
             reset({
                 name: '',
                 slug: '',
-                icon_url: '',
                 sort_order: 0,
                 is_active: true,
                 parent: parentCategory?.id || null,
@@ -137,7 +132,6 @@ export default function MarketplaceCategoryDrawer({
                 slug: data.slug,
                 sort_order: data.sort_order,
                 is_active: data.is_active,
-                icon_url: data.icon_url || null,
             }
 
             if (mode === 'add') {
@@ -238,19 +232,6 @@ export default function MarketplaceCategoryDrawer({
                                 <p className="text-xs font-medium text-purple-700">
                                     Adding subcategory under: <strong>{parentCategory.name}</strong>
                                 </p>
-                            </div>
-                        )}
-
-                        {/* Icon URL (for root categories) */}
-                        {!isSubcategory && (
-                            <div className="space-y-1.5">
-                                <Label>Icon URL</Label>
-                                <Input
-                                    {...register('icon_url')}
-                                    placeholder="https://img.icons8.com/..."
-                                    className="text-sm"
-                                />
-                                <p className="text-[10px] text-gray-400">Optional. URL to a 48x48 icon image.</p>
                             </div>
                         )}
 

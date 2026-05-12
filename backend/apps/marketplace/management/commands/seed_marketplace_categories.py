@@ -7,6 +7,7 @@ Seed the complete Marketplace category hierarchy.
   - Subcategory = child of a category (parent=category)
 
 Usage: python manage.py seed_marketplace_categories
+       python manage.py seed_marketplace_categories --clear
 """
 
 from django.core.management.base import BaseCommand
@@ -15,159 +16,136 @@ from django.utils.text import slugify
 from apps.marketplace.models import MarketplaceCategory
 
 
-# Complete category structure per ad_type
 CATEGORY_DATA = {
     'sell': {
         'Electronics': [
-            'Smartphones', 'Laptops', 'Desktop PCs', 'Tablets',
-            'Smart Watches', 'Headphones & Earbuds', 'Cameras',
-            'Gaming Consoles', 'Computer Accessories', 'Mobile Accessories',
-            'Networking Devices', 'Printers & Scanners',
+            'Smartphones', 'Laptops & Computers', 'Tablets', 'Smart Watches',
+            'Headphones & Earbuds', 'Cameras', 'Gaming Consoles', 'Monitors',
+            'Printers', 'Routers', 'Keyboards & Mouse', 'Power Banks',
+            'Pendrives & Hard Disks', 'Speakers', 'Scientific Calculators',
+            'Electronic Accessories',
         ],
-        'Gaming': [
-            'Gaming PCs', 'Gaming Accessories', 'Console Games',
-            'Gaming Chairs', 'Gaming Accounts', 'Gaming Peripherals',
-        ],
-        'Books & Study Materials': [
-            'Academic Books', 'Admission Books', 'Notes & PDFs',
-            'Research Papers', 'Story Books', 'Magazines', 'Stationery',
+        'Furniture & Room Essentials': [
+            'Study Table', 'Computer Table', 'Chair', 'Bookshelf', 'Bed',
+            'Mattress', 'Pillow', 'Wardrobe', 'Drawer', 'Shoe Rack',
+            'Mirror', 'Table Lamp', 'Fan', 'Cloth Hanger', 'Storage Box',
         ],
         'Fashion & Lifestyle': [
-            'Men\'s Clothing', 'Women\'s Clothing', 'Shoes', 'Bags',
-            'Watches', 'Jewelry', 'Sunglasses', 'Cosmetics',
+            "Men's Clothing", "Women's Clothing", 'Shoes', 'Bags', 'Watches',
+            'Jewelry', 'Sunglasses', 'Cosmetics & Skincare', 'Perfume',
         ],
         'Home & Living': [
-            'Furniture', 'Home Decor', 'Kitchen Items',
-            'Appliances', 'Lighting', 'Bedding',
+            'Furniture', 'Home Decor', 'Kitchen Appliances', 'Lighting',
+            'Bedding', 'Bathroom Accessories', 'Storage Items', 'Rice Cooker',
+            'Electric Kettle', 'Induction Cooker', 'Blender', 'Mini Fridge',
+            'Iron', 'Water Filter', 'Kitchen Utensils',
         ],
-        'Vehicles & Transport': [
-            'Bicycles', 'Motorcycles', 'Car Accessories',
-            'Helmets', 'Vehicle Parts',
+        'Books & Study Materials': [
+            'Academic Books', 'Semester Books', 'Admission Books', 'Story Books',
+            'Notes & PDFs', 'Stationery', 'Lab Equipment', 'Lab Manuals',
+            'Drawing Tools',
         ],
-        'Health & Personal Care': [
-            'Fitness Equipment', 'Supplements', 'Personal Care Products',
+        'Sports & Outdoor': [
+            'Gym Equipment', 'Sports Gear', 'Bicycles', 'Outdoor Accessories',
+            'Gaming Accessories',
         ],
-        'Pets & Accessories': [
-            'Pet Food', 'Pet Accessories', 'Pet Adoption',
+        'Vehicles': [
+            'Bikes', 'Cars', 'Vehicle Parts', 'Helmets & Safety Gear',
+            'Bike Accessories',
         ],
         'Musical Instruments': [
-            'Guitars', 'Keyboards', 'Drums', 'Audio Equipment',
+            'Guitar', 'Keyboard', 'Drums', 'Audio Equipment',
+        ],
+        'Pets & Accessories': [
+            'Pet Food', 'Pet Accessories', 'Pet Care Products',
         ],
         'Others': [
-            'Collectibles', 'Gift Items', 'Miscellaneous Products',
+            'Gift Items', 'Collectibles', 'Handmade Products',
+            'Decoration Items', 'Travel Bags', 'Backpacks',
+            'Cameras & Tripods', 'Projectors',
         ],
     },
     'rent': {
-        'Accommodation': [
-            'Hostel Seat', 'Flat / Apartment', 'Sublet',
-            'Room Sharing', 'Paying Guest (PG)',
+        'Room & Accommodation': [
+            'Room Rent', 'Seat Rent', 'Flat/Sublet', 'Hostel Seat',
+            'Shared Room', 'Roommate Finder',
         ],
-        'Vehicle Rental': [
-            'Bicycle Rental', 'Motorcycle Rental', 'Car Rental',
+        'Study & Academic': [
+            'Semester Books', 'Admission Books', 'Lab Equipment',
+            'Scientific Calculator', 'Drawing Board', 'Project Materials',
         ],
-        'Electronics Rental': [
-            'Laptop Rental', 'Camera Rental',
-            'Projector Rental', 'Gaming Console Rental',
+        'Electronics Rent': [
+            'Laptop', 'Desktop Computer', 'Tablet', 'Monitor', 'Projector',
+            'Camera', 'DSLR Camera', 'Gaming Console',
         ],
-        'Event & Equipment Rental': [
-            'Sound System', 'Decoration Equipment',
-            'Lighting Equipment', 'Photography Equipment',
+        'Transport': [
+            'Bicycle', 'Bike',
         ],
-        'Fashion Rental': [
-            'Dress Rental', 'Costume Rental',
+        'Event & Presentation Items': [
+            'Tripod', 'Microphone', 'Sound Box', 'Lighting Equipment',
         ],
-        'Academic Rental': [
-            'Book Rental', 'Calculator Rental',
-        ],
+        'Others': [],
     },
     'service': {
-        'Education & Tutoring': [
-            'Home Tutoring', 'Online Tutoring', 'Assignment Help',
-            'Project Assistance', 'Language Learning',
+        'Academic & Education': [
+            'Home Tutoring', 'Group Tutoring', 'Assignment Help', 'Project Help',
+            'Thesis Assistance', 'Lab Report Help', 'Research Assistance',
+            'Notes Sharing', 'Academic Consultancy', 'Course Guideline',
+            'Programming Help', 'Database Design Help',
         ],
-        'Tech Services': [
-            'Web Development', 'App Development', 'Graphic Design',
-            'Video Editing', 'UI/UX Design', 'Cyber Security Help',
-            'PC Servicing', 'Software Installation',
+        'Writing & Documentation': [
+            'Content Writing', 'Copywriting', 'Translation Service',
+            'CV/Resume Writing',
         ],
-        'Creative Services': [
-            'Photography', 'Videography', 'Content Writing',
-            'Social Media Management',
+        'Design & Creative': [
+            'Graphic Design', 'UI/UX Design', 'Logo Design',
+            'Presentation Design', 'Handmade Craft Service',
         ],
-        'Delivery & Moving': [
-            'Parcel Delivery', 'Moving Assistance',
+        'Development & Technology': [
+            'Web Development', 'App Development', 'Tech Support',
+            'Laptop Repair', 'Mobile Repair',
         ],
-        'Home Services': [
-            'Cleaning Service', 'Repair Service',
+        'Media & Production': [
+            'Video Editing', 'Photography', 'Voice Over Service',
         ],
-        'Freelance & Professional': [
-            'CV Writing', 'Translation', 'Data Entry', 'Digital Marketing',
+        'Marketing & Online Services': [
+            'Social Media Management', 'Digital Marketing', 'SEO Service',
+            'Data Entry',
         ],
-        'Food Related Services': [
-            'Catering', 'Homemade Food Service', 'Event Food Service',
+        'Career & Professional': [
+            'Career Mentorship', 'Public Speaking Coaching',
+            'Online Form Fill-up',
+        ],
+        'Printing & Event Services': [
+            'Printing & Photocopy', 'Event Management', 'Delivery Service',
+        ],
+        'Lifestyle & Personal': [
+            'Fitness Training', 'Makeup Service', 'Gaming Coaching',
         ],
     },
     'food': {
-        'Fast Food': [
-            'Burgers', 'Pizza', 'Sandwiches', 'Fried Chicken',
-        ],
-        'Meals & Rice Items': [
-            'Lunch Packages', 'Dinner Packages', 'Biriyani', 'Khichuri',
-        ],
-        'Snacks & Street Food': [
-            'Fuchka', 'Chotpoti', 'Rolls', 'Fries',
-        ],
-        'Drinks & Beverages': [
-            'Tea', 'Coffee', 'Soft Drinks', 'Juices', 'Smoothies',
-        ],
-        'Desserts & Bakery': [
-            'Cakes', 'Pastries', 'Cookies', 'Ice Cream',
-        ],
-        'Healthy Food': [
-            'Diet Meals', 'Salads', 'Protein Meals',
-        ],
         'Homemade Food': [
-            'Homemade Lunch', 'Homemade Dinner', 'Tiffin Service',
+            'Bengali Food', 'Meal Box', 'Homemade Snacks', 'Healthy Food',
+            'Student Meal Package',
         ],
-        'Event Food': [
-            'Party Food', 'Catering Packages',
+        'Bakery & Desserts': [
+            'Cake', 'Pastry', 'Bakery Items', 'Cookies', 'Brownies',
+            'Cupcakes',
+        ],
+        'Beverages': [
+            'Tea', 'Coffee', 'Juice', 'Homemade Drinks',
+        ],
+        'Fast Food': [
+            'Burger', 'Sandwich', 'Pizza', 'Fried Chicken',
+        ],
+        'Meal System': [
+            'Daily Meal Service', 'Weekly Meal Package', 'Monthly Meal Package',
+            'Lunch Package', 'Dinner Package', 'Hostel Meal Service',
+        ],
+        'Others': [
+            'Custom Food Orders', 'Event Food Supply', 'Seasonal Food Items',
         ],
     },
-}
-
-# Icon mapping for categories
-ICON_MAP = {
-    'Electronics': 'https://img.icons8.com/fluency/48/smartphone.png',
-    'Gaming': 'https://img.icons8.com/fluency/48/game-controller.png',
-    'Books & Study Materials': 'https://img.icons8.com/fluency/48/book.png',
-    'Fashion & Lifestyle': 'https://img.icons8.com/fluency/48/t-shirt.png',
-    'Home & Living': 'https://img.icons8.com/fluency/48/home.png',
-    'Vehicles & Transport': 'https://img.icons8.com/fluency/48/bicycle.png',
-    'Health & Personal Care': 'https://img.icons8.com/fluency/48/heart-health.png',
-    'Pets & Accessories': 'https://img.icons8.com/fluency/48/cat-footprint.png',
-    'Musical Instruments': 'https://img.icons8.com/fluency/48/guitar.png',
-    'Others': 'https://img.icons8.com/fluency/48/box.png',
-    'Accommodation': 'https://img.icons8.com/fluency/48/home.png',
-    'Vehicle Rental': 'https://img.icons8.com/fluency/48/car.png',
-    'Electronics Rental': 'https://img.icons8.com/fluency/48/laptop.png',
-    'Event & Equipment Rental': 'https://img.icons8.com/fluency/48/party-baloons.png',
-    'Fashion Rental': 'https://img.icons8.com/fluency/48/dress.png',
-    'Academic Rental': 'https://img.icons8.com/fluency/48/book.png',
-    'Education & Tutoring': 'https://img.icons8.com/fluency/48/graduation-cap.png',
-    'Tech Services': 'https://img.icons8.com/fluency/48/source-code.png',
-    'Creative Services': 'https://img.icons8.com/fluency/48/camera.png',
-    'Delivery & Moving': 'https://img.icons8.com/fluency/48/delivery.png',
-    'Home Services': 'https://img.icons8.com/fluency/48/broom.png',
-    'Freelance & Professional': 'https://img.icons8.com/fluency/48/briefcase.png',
-    'Food Related Services': 'https://img.icons8.com/fluency/48/cooking-pot.png',
-    'Fast Food': 'https://img.icons8.com/fluency/48/hamburger.png',
-    'Meals & Rice Items': 'https://img.icons8.com/fluency/48/rice-bowl.png',
-    'Snacks & Street Food': 'https://img.icons8.com/fluency/48/french-fries.png',
-    'Drinks & Beverages': 'https://img.icons8.com/fluency/48/coffee-cup.png',
-    'Desserts & Bakery': 'https://img.icons8.com/fluency/48/cake.png',
-    'Healthy Food': 'https://img.icons8.com/fluency/48/salad.png',
-    'Homemade Food': 'https://img.icons8.com/fluency/48/cooking-pot.png',
-    'Event Food': 'https://img.icons8.com/fluency/48/party-baloons.png',
 }
 
 
@@ -210,14 +188,12 @@ class Command(BaseCommand):
             self.stdout.write(f'\n  [{ad_type.upper()}]')
 
             for cat_order, (cat_name, subcategories) in enumerate(categories.items()):
-                # Create or get root category
                 parent_cat, created = MarketplaceCategory.objects.get_or_create(
                     name=cat_name,
                     ad_type=ad_type,
                     parent=None,
                     defaults={
                         'slug': _make_unique_slug(ad_type, cat_name),
-                        'icon_url': ICON_MAP.get(cat_name),
                         'sort_order': cat_order,
                         'is_active': True,
                     }
@@ -230,7 +206,6 @@ class Command(BaseCommand):
                     total_existing += 1
                     self.stdout.write(f'    = {cat_name} (exists)')
 
-                # Create subcategories
                 for sub_order, sub_name in enumerate(subcategories):
                     sub_cat, sub_created = MarketplaceCategory.objects.get_or_create(
                         name=sub_name,

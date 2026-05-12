@@ -24,7 +24,6 @@ interface CategoryNode {
     ad_type: string
     parent: string | null
     parent_name?: string
-    icon_url?: string | null
     sort_order: number
     is_active: boolean
     children: CategoryNode[]
@@ -180,14 +179,10 @@ export default function MarketplaceCategoryTab() {
                         {hasChildren && (isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />)}
                     </button>
 
-                    {/* Category icon or folder indicator */}
+                    {/* Category folder indicator */}
                     {level === 0 ? (
                         <div className="w-8 h-8 rounded-lg bg-[#4C3B8A]/10 flex items-center justify-center shrink-0">
-                            {cat.icon_url ? (
-                                <img src={cat.icon_url} alt="" className="w-5 h-5" />
-                            ) : (
-                                <FolderOpen className="w-4 h-4 text-[#4C3B8A]" />
-                            )}
+                            <FolderOpen className="w-4 h-4 text-[#4C3B8A]" />
                         </div>
                     ) : (
                         <div className="w-2 h-2 rounded-full bg-gray-300 shrink-0" />
