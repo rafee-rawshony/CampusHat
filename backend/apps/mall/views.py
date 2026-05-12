@@ -1302,11 +1302,39 @@ class CartAddItemView(APIView):
             variant = data.get('variant')
             quantity = data['quantity']
 
-            # Determine price snapshot
-            if variant:
-                price = variant.effective_price
-            else:
-                price = product.current_price
+            # Check if product is in an active flash sale with stock available
+            flash_sale_product = None
+            price = None
+            if not variant:
+                from apps.coupons.models import FlashSaleProduct
+                from django.utils import timezone as tz
+                now = tz.now()
+                fsp = (
+                    FlashSaleProduct.objects
+                    .filter(
+                        product=product,
+                        flash_sale__is_active=True,
+                        flash_sale__starts_at__lte=now,
+                        flash_sale__ends_at__gte=now,
+                        flash_sale__deleted_at__isnull=True,
+                    )
+                    .select_related('flash_sale')
+                    .first()
+                )
+                if fsp and fsp.override_price:
+                    has_stock = (
+                        fsp.quantity_limit is None
+                        or fsp.sold_count < fsp.quantity_limit
+                    )
+                    if has_stock:
+                        flash_sale_product = fsp
+                        price = fsp.override_price
+
+            if price is None:
+                if variant:
+                    price = variant.effective_price
+                else:
+                    price = product.current_price
 
             # Check if item already in cart
             existing = CartItem.objects.filter(
@@ -1323,14 +1351,35 @@ class CartAddItemView(APIView):
                         'message': f'Only {stock} in stock.',
                         'code': 'INSUFFICIENT_STOCK',
                     }, status=status.HTTP_400_BAD_REQUEST)
-                existing.save(update_fields=['quantity'])
+                # Validate flash sale stock
+                if flash_sale_product and flash_sale_product.quantity_limit is not None:
+                    available_flash = flash_sale_product.quantity_limit - flash_sale_product.sold_count
+                    if existing.quantity > available_flash:
+                        return Response({
+                            'success': False,
+                            'message': f'Only {available_flash} left at flash sale price.',
+                            'code': 'FLASH_STOCK_LIMITED',
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                existing.unit_price_snapshot = price
+                existing.flash_sale_product = flash_sale_product
+                existing.save(update_fields=['quantity', 'unit_price_snapshot', 'flash_sale_product'])
             else:
+                # Validate flash sale stock for new item
+                if flash_sale_product and flash_sale_product.quantity_limit is not None:
+                    available_flash = flash_sale_product.quantity_limit - flash_sale_product.sold_count
+                    if quantity > available_flash:
+                        return Response({
+                            'success': False,
+                            'message': f'Only {available_flash} left at flash sale price.',
+                            'code': 'FLASH_STOCK_LIMITED',
+                        }, status=status.HTTP_400_BAD_REQUEST)
                 CartItem.objects.create(
                     cart=cart,
                     product=product,
                     variant=variant,
                     quantity=quantity,
                     unit_price_snapshot=price,
+                    flash_sale_product=flash_sale_product,
                 )
 
         serializer = CartSerializer(cart)

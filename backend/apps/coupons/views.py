@@ -213,11 +213,10 @@ class FlashSaleDetailView(APIView):
 # FLASH SALES — SELLER
 # ═══════════════════════════════════════════════════════════════════
 
-class SellerFlashSaleListCreateView(GenericAPIView):
-    """GET/POST /api/v1/seller/flash-sales/"""
+class SellerFlashSaleListView(GenericAPIView):
+    """GET /api/v1/seller/flash-sales/ — list flash sales for seller's store."""
 
     permission_classes = [IsAuthenticated, IsApprovedSeller]
-    serializer_class = FlashSaleCreateSerializer
 
     def get(self, request):
         try:
@@ -235,21 +234,6 @@ class SellerFlashSaleListCreateView(GenericAPIView):
             'success': True,
             'data': FlashSaleDetailSerializer(sales, many=True).data,
         })
-
-    def post(self, request):
-        try:
-            store = request.user.seller_profile.store
-        except Exception:
-            return Response({'success': False, 'message': 'Store not found.'}, status=404)
-
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        sale = serializer.save(store=store)
-        sale = _refetch_sale(sale.id)
-        return Response({
-            'success': True, 'message': 'Flash sale created.',
-            'data': FlashSaleDetailSerializer(sale).data,
-        }, status=status.HTTP_201_CREATED)
 
 
 class SellerFlashSaleUpdateView(GenericAPIView):
@@ -404,6 +388,20 @@ class AdminFlashSaleListView(APIView):
                 'success': False, 'message': 'store field is required.',
             }, status=status.HTTP_400_BAD_REQUEST)
         sale = _refetch_sale(sale.id)
+
+        try:
+            from apps.admin_panel.notification_utils import send_notification
+            seller_user = sale.store.seller.user
+            send_notification(
+                user=seller_user,
+                notification_type='promotion',
+                title='New Flash Sale Created',
+                message=f'A flash sale "{sale.title}" has been created for your store. You can now add products to it.',
+                action_url='/seller/promotions/flash-sales',
+            )
+        except Exception:
+            pass
+
         return Response({
             'success': True, 'message': 'Flash sale created.',
             'data': FlashSaleDetailSerializer(sale).data,

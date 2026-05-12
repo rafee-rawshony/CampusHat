@@ -478,6 +478,13 @@ class CartItem(UUIDMixin, TimestampMixin):
         blank=True,
         related_name='cart_items',
     )
+    flash_sale_product = models.ForeignKey(
+        'coupons.FlashSaleProduct',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='cart_items',
+    )
     quantity = models.PositiveIntegerField(
         default=1,
         validators=[MinValueValidator(1)]

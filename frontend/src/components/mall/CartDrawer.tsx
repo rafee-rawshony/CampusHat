@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { ShoppingBag, X, Plus, Minus } from 'lucide-react'
+import { ShoppingBag, X, Plus, Minus, Zap } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -125,10 +125,22 @@ export function CartDrawer() {
                                             </div>
 
                                             <div className="flex items-center justify-between mt-3">
-                                                {/* Price — always from backend (backend is source of truth) */}
-                                                <span className="font-bold text-brand-primary">
-                                                    ৳{Number(item.unit_price_snapshot || item.price || 0).toLocaleString()}
-                                                </span>
+                                                <div className="flex items-center gap-1.5">
+                                                    {item.is_flash_sale && (
+                                                        <span className="inline-flex items-center gap-0.5 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                                                            <Zap className="w-2.5 h-2.5" />
+                                                            Sale
+                                                        </span>
+                                                    )}
+                                                    <span className="font-bold text-brand-primary">
+                                                        ৳{Number(item.unit_price_snapshot || item.price || 0).toLocaleString()}
+                                                    </span>
+                                                    {item.is_flash_sale && item.original_price && (
+                                                        <span className="text-xs text-gray-400 line-through">
+                                                            ৳{Number(item.original_price).toLocaleString()}
+                                                        </span>
+                                                    )}
+                                                </div>
 
                                                 {/* Stepper */}
                                                 <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg h-8">

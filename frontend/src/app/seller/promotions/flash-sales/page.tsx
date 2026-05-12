@@ -9,7 +9,7 @@ import {
     Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from '@/components/ui/sheet'
 import {
-    Zap, Plus, Loader2, Pencil, Search, Clock, CheckCircle2, XCircle, ShoppingBag,
+    Zap, Plus, Loader2, Pencil, Search, Clock, CheckCircle2, XCircle, ShoppingBag, AlertTriangle,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { normalizeListResponse } from '@/lib/response'
@@ -250,6 +250,29 @@ function ProductPicker({ saleId, onDone }: { saleId: string; onDone: () => void 
     )
 }
 
+// ─── Stock badge helper ──────────────────────────────────────────
+function StockBadge({ product }: { product: FlashSaleProduct }) {
+    if (product.quantity_limit == null) return null
+    const remaining = product.quantity_limit - product.sold_count
+    if (remaining <= 0) {
+        return (
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded">
+                <XCircle className="w-3 h-3" /> STOCK OUT
+            </span>
+        )
+    }
+    if (remaining <= 5) {
+        return (
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
+                <AlertTriangle className="w-3 h-3" /> {remaining} left
+            </span>
+        )
+    }
+    return (
+        <span className="text-[10px] text-gray-400">{product.sold_count}/{product.quantity_limit} sold</span>
+    )
+}
+
 // ─── Main Page ─────────────────────────────────────────────────────
 export default function SellerFlashSalesPage() {
     const queryClient = useQueryClient()
@@ -257,7 +280,7 @@ export default function SellerFlashSalesPage() {
     const [editSale, setEditSale] = useState<FlashSale | null>(null)
     const [addingProductsTo, setAddingProductsTo] = useState<string | null>(null)
 
-    // Form state
+    // Form state (edit only)
     const [name, setName] = useState('')
     const [startTime, setStartTime] = useState('')
     const [endTime, setEndTime] = useState('')
@@ -272,15 +295,6 @@ export default function SellerFlashSalesPage() {
             }),
     })
 
-    const openCreate = () => {
-        setEditSale(null)
-        setName('')
-        setStartTime('')
-        setEndTime('')
-        setIsActive(true)
-        setSheetOpen(true)
-    }
-
     const openEdit = (s: FlashSale) => {
         setEditSale(s)
         setName(s.title)
@@ -294,16 +308,6 @@ export default function SellerFlashSalesPage() {
         setIsActive(s.is_active)
         setSheetOpen(true)
     }
-
-    const createMutation = useMutation({
-        mutationFn: (payload: any) => api.post('/seller/flash-sales/', payload),
-        onSuccess: () => {
-            toast.success('Flash sale created!')
-            queryClient.invalidateQueries({ queryKey: ['seller-flash-sales'] })
-            setSheetOpen(false)
-        },
-        onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to create flash sale'),
-    })
 
     const updateMutation = useMutation({
         mutationFn: ({ id, payload }: { id: string; payload: any }) =>
@@ -329,12 +333,10 @@ export default function SellerFlashSalesPage() {
         }
         if (editSale) {
             updateMutation.mutate({ id: editSale.id, payload })
-        } else {
-            createMutation.mutate(payload)
         }
     }
 
-    const isSaving = createMutation.isPending || updateMutation.isPending
+    const isSaving = updateMutation.isPending
     const inputCls = 'w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#4C3B8A] bg-gray-50'
 
     return (
@@ -343,11 +345,8 @@ export default function SellerFlashSalesPage() {
             <div className="flex items-center justify-between mb-6">
                 <div>
                     <h1 className="font-bold text-2xl text-gray-900">Flash Sales</h1>
-                    <p className="text-sm text-gray-500 mt-1">Run time-limited sales on your products.</p>
+                    <p className="text-sm text-gray-500 mt-1">Flash sales are created by admin. You can add your products to active sales.</p>
                 </div>
-                <Button onClick={openCreate} className="bg-[#4C3B8A] hover:bg-[#3b2c6b] text-white font-semibold gap-2">
-                    <Plus className="w-4 h-4" /> Create Flash Sale
-                </Button>
             </div>
 
             {/* List */}
@@ -361,7 +360,7 @@ export default function SellerFlashSalesPage() {
                         <Zap className="h-8 w-8 text-amber-500" />
                     </div>
                     <h3 className="text-base font-semibold text-gray-900 mb-1">No flash sales yet</h3>
-                    <p className="text-sm text-gray-500">Create one to boost sales.</p>
+                    <p className="text-sm text-gray-500">Flash sales will appear here when admin creates one for your store.</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -399,18 +398,21 @@ export default function SellerFlashSalesPage() {
                                     {/* Products in sale */}
                                     {sale.products && sale.products.length > 0 && (
                                         <div className="space-y-1">
-                                            {sale.products.slice(0, 3).map(p => (
-                                                <div key={p.id} className="flex items-center justify-between text-xs bg-gray-50 rounded px-2 py-1.5">
-                                                    <span className="truncate text-gray-700 font-medium">{p.product_name}</span>
-                                                    <div className="flex gap-2 shrink-0 ml-2">
-                                                        <span className="line-through text-gray-400">৳{Number(p.original_price).toLocaleString()}</span>
-                                                        <span className="font-bold text-red-600">৳{Number(p.override_price || p.sale_price || 0).toLocaleString()}</span>
-                                                        {p.quantity_limit != null && <span className="text-gray-400">{p.sold_count}/{p.quantity_limit} sold</span>}
+                                            {sale.products.slice(0, 5).map(p => {
+                                                const isStockOut = p.quantity_limit != null && p.sold_count >= p.quantity_limit
+                                                return (
+                                                    <div key={p.id} className={`flex items-center justify-between text-xs rounded px-2 py-1.5 ${isStockOut ? 'bg-red-50/50' : 'bg-gray-50'}`}>
+                                                        <span className={`truncate font-medium ${isStockOut ? 'text-gray-400 line-through' : 'text-gray-700'}`}>{p.product_name}</span>
+                                                        <div className="flex gap-2 shrink-0 ml-2 items-center">
+                                                            <span className="line-through text-gray-400">৳{Number(p.original_price).toLocaleString()}</span>
+                                                            <span className={`font-bold ${isStockOut ? 'text-gray-400' : 'text-red-600'}`}>৳{Number(p.override_price || p.sale_price || 0).toLocaleString()}</span>
+                                                            <StockBadge product={p} />
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            ))}
-                                            {sale.products.length > 3 && (
-                                                <p className="text-[11px] text-gray-400 text-center">+{sale.products.length - 3} more</p>
+                                                )
+                                            })}
+                                            {sale.products.length > 5 && (
+                                                <p className="text-[11px] text-gray-400 text-center">+{sale.products.length - 5} more</p>
                                             )}
                                         </div>
                                     )}
@@ -449,14 +451,12 @@ export default function SellerFlashSalesPage() {
                 </div>
             )}
 
-            {/* Create/Edit Sheet */}
+            {/* Edit Sheet */}
             <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
                 <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
                     <SheetHeader className="mb-6">
-                        <SheetTitle>{editSale ? 'Edit Flash Sale' : 'Create Flash Sale'}</SheetTitle>
-                        <SheetDescription>
-                            {editSale ? 'Update sale details.' : 'Set up a new time-limited sale.'}
-                        </SheetDescription>
+                        <SheetTitle>Edit Flash Sale</SheetTitle>
+                        <SheetDescription>Update sale details.</SheetDescription>
                     </SheetHeader>
 
                     <div className="space-y-4">
@@ -508,7 +508,7 @@ export default function SellerFlashSalesPage() {
                                 className="flex-1 bg-[#4C3B8A] hover:bg-[#3b2c6b] text-white font-semibold gap-2"
                             >
                                 {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-                                {editSale ? 'Update Sale' : 'Create Sale'}
+                                Update Sale
                             </Button>
                         </div>
                     </div>

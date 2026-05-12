@@ -505,6 +505,8 @@ class CartItemSerializer(serializers.ModelSerializer):
         max_digits=10, decimal_places=2, read_only=True,
     )
     primary_image_url = serializers.SerializerMethodField()
+    is_flash_sale = serializers.SerializerMethodField()
+    original_price = serializers.SerializerMethodField()
 
     class Meta:
         model = CartItem
@@ -512,6 +514,7 @@ class CartItemSerializer(serializers.ModelSerializer):
             'id', 'product', 'product_name', 'product_slug',
             'variant', 'variant_name', 'quantity',
             'unit_price_snapshot', 'line_total', 'primary_image_url',
+            'is_flash_sale', 'original_price',
         ]
         read_only_fields = fields
 
@@ -521,6 +524,14 @@ class CartItemSerializer(serializers.ModelSerializer):
             return primary.image_url
         first = obj.product.images.order_by('sort_order').first()
         return first.image_url if first else None
+
+    def get_is_flash_sale(self, obj):
+        return obj.flash_sale_product_id is not None
+
+    def get_original_price(self, obj):
+        if obj.flash_sale_product_id:
+            return str(obj.product.current_price)
+        return None
 
 
 class CartSerializer(serializers.ModelSerializer):

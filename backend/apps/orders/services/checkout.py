@@ -70,7 +70,7 @@ def process_checkout(user, cart, delivery_address_id, payment_method,
         # 1. VALIDATE cart not empty
         cart_items = list(cart.items.select_related(
             'product', 'product__store', 'product__store__seller',
-            'variant',
+            'variant', 'flash_sale_product',
         ).all())
 
         if not cart_items:
@@ -210,6 +210,21 @@ def process_checkout(user, cart, delivery_address_id, payment_method,
             StoreProduct.objects.filter(pk=item.product_id).update(
                 sold_count=F('sold_count') + item.quantity,
             )
+
+        # 10b. INCREMENT FLASH SALE sold_count
+        from apps.coupons.models import FlashSaleProduct
+        flash_sale_product_ids = [
+            item.flash_sale_product_id
+            for item in cart_items
+            if item.flash_sale_product_id
+        ]
+        for item in cart_items:
+            if item.flash_sale_product_id:
+                FlashSaleProduct.objects.filter(
+                    pk=item.flash_sale_product_id,
+                ).update(
+                    sold_count=F('sold_count') + item.quantity,
+                )
 
         # 11. CREDIT SELLER + PLATFORM WALLETS (if payment confirmed)
         if order.payment_status == 'paid':

@@ -15,7 +15,7 @@ from .views import (
     SellerCouponDetailView,
     SellerCouponListView,
     SellerFlashSaleAddProductsView,
-    SellerFlashSaleListCreateView,
+    SellerFlashSaleListView,
     SellerFlashSaleUpdateView,
 )
 
@@ -41,7 +41,7 @@ seller_coupon_urlpatterns = [
 
 # Seller flash sales
 seller_flash_sale_urlpatterns = [
-    path('', SellerFlashSaleListCreateView.as_view(), name='seller-list-create'),
+    path('', SellerFlashSaleListView.as_view(), name='seller-list'),
     path('<uuid:flash_sale_id>/', SellerFlashSaleUpdateView.as_view(), name='seller-update'),
     path('<uuid:flash_sale_id>/add-products/', SellerFlashSaleAddProductsView.as_view(), name='seller-add-products'),
 ]

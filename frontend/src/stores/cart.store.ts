@@ -24,6 +24,8 @@ export interface CartItem {
     variant?: string // backend variant ID
     variant_name?: string
     variant_info?: Record<string, string>
+    is_flash_sale?: boolean
+    original_price?: string | null
 }
 
 interface CartState {
@@ -166,6 +168,8 @@ export const useCartStore = create<CartState>()(
                             variant: item.variant,
                             variant_name: item.variant_name || '',
                             variant_info: item.variant_info,
+                            is_flash_sale: item.is_flash_sale || false,
+                            original_price: item.original_price || null,
                         }))
                         set({ items })
                     }
