@@ -68,15 +68,6 @@ export default function AdminCouponsPage() {
         staleTime: 30_000,
     })
 
-    // Fetch stores (for flash sale creation)
-    const { data: storesData } = useQuery({
-        queryKey: ['admin-stores-active'],
-        queryFn: () => api.get('/admin/stores/', { params: { status: 'active' } })
-            .then(r => r.data?.data || r.data?.results || r.data || []),
-        enabled: activeTab === 'flash-sales' && flashSaleFormOpen,
-        staleTime: 60_000,
-    })
-
     // Toggle flash sale active/inactive
     const { mutate: toggleFlashSale } = useMutation({
         mutationFn: (sale: any) =>
@@ -121,7 +112,6 @@ export default function AdminCouponsPage() {
 
     const coupons = Array.isArray(couponsData) ? couponsData : []
     const flashSales = Array.isArray(flashSalesData) ? flashSalesData : []
-    const stores = Array.isArray(storesData) ? storesData : []
 
     if (!isAdmin()) return null
 
@@ -349,7 +339,13 @@ export default function AdminCouponsPage() {
                                                             <span className="font-medium text-gray-900">{sale.title || '—'}</span>
                                                         </div>
                                                     </td>
-                                                    <td className="px-5 py-4 text-gray-500 text-sm">{sale.store_name || sale.store?.name || '—'}</td>
+                                                    <td className="px-5 py-4 text-gray-500 text-sm">
+                                                        {sale.store_name || sale.store?.name || (
+                                                            <span className="inline-flex items-center text-[10px] font-bold uppercase bg-purple-50 text-[#4C3B8A] px-2 py-0.5 rounded">
+                                                                Platform-wide
+                                                            </span>
+                                                        )}
+                                                    </td>
                                                     <td className="px-5 py-4 text-gray-600 text-sm">{sale.products?.length || 0}</td>
                                                     <td className="px-5 py-4 text-xs text-gray-400">
                                                         <div className="flex items-center gap-1.5">
@@ -436,7 +432,7 @@ export default function AdminCouponsPage() {
                                                 </span>
                                             </div>
                                             <div className="flex items-center justify-between text-xs text-gray-400">
-                                                <span>{sale.store_name || '—'} | {sale.products?.length || 0} products</span>
+                                                <span>{sale.store_name || 'Platform-wide'} | {sale.products?.length || 0} products</span>
                                                 <div className="flex gap-2">
                                                     <button onClick={() => { setEditingSale(sale); setFlashSaleFormOpen(true) }} className="text-[#4C3B8A]">
                                                         <Pencil className="w-4 h-4" />
@@ -542,18 +538,16 @@ export default function AdminCouponsPage() {
                     if (!open) setEditingSale(null)
                 }}
                 editingSale={editingSale}
-                stores={stores}
             />
         </div>
     )
 }
 
 function FlashSaleFormDialog({
-    open, onOpenChange, editingSale, stores,
-}: { open: boolean; onOpenChange: (o: boolean) => void; editingSale: any; stores: any[] }) {
+    open, onOpenChange, editingSale,
+}: { open: boolean; onOpenChange: (o: boolean) => void; editingSale: any }) {
     const queryClient = useQueryClient()
     const [title, setTitle] = useState('')
-    const [storeId, setStoreId] = useState('')
     const [startTime, setStartTime] = useState('')
     const [endTime, setEndTime] = useState('')
     const [isActive, setIsActive] = useState(true)
@@ -561,17 +555,11 @@ function FlashSaleFormDialog({
     useEffect(() => {
         if (editingSale) {
             setTitle(editingSale.title || '')
-            setStoreId(
-                typeof editingSale.store === 'string'
-                    ? editingSale.store
-                    : (editingSale.store?.id || editingSale.store_id || '')
-            )
             setStartTime(editingSale.starts_at ? isoToLocalInput(editingSale.starts_at) : '')
             setEndTime(editingSale.ends_at ? isoToLocalInput(editingSale.ends_at) : '')
             setIsActive(editingSale.is_active ?? true)
         } else {
             setTitle('')
-            setStoreId('')
             setStartTime('')
             setEndTime('')
             setIsActive(true)
@@ -600,7 +588,6 @@ function FlashSaleFormDialog({
 
     const handleSubmit = () => {
         if (!title.trim()) { toast.error('Title is required'); return }
-        if (!editingSale && !storeId) { toast.error('Please select a store'); return }
         if (!startTime || !endTime) { toast.error('Start and end times are required'); return }
         if (new Date(endTime) <= new Date(startTime)) { toast.error('End time must be after start time'); return }
 
@@ -614,7 +601,6 @@ function FlashSaleFormDialog({
         if (editingSale) {
             updateMutation.mutate(payload)
         } else {
-            payload.store = storeId
             createMutation.mutate(payload)
         }
     }
@@ -630,7 +616,7 @@ function FlashSaleFormDialog({
                     <DialogDescription>
                         {editingSale
                             ? 'Update sale details. Sellers manage their products separately.'
-                            : 'Create a new flash sale for a specific store. The seller will be notified.'}
+                            : 'Create a platform-wide flash sale. All approved sellers will be notified and can add their own products.'}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -644,33 +630,6 @@ function FlashSaleFormDialog({
                             className={inputCls}
                         />
                     </div>
-
-                    {!editingSale && (
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Store *</label>
-                            <select
-                                value={storeId}
-                                onChange={e => setStoreId(e.target.value)}
-                                className={inputCls}
-                            >
-                                <option value="">Select a store...</option>
-                                {stores.map((s: any) => (
-                                    <option key={s.id} value={s.id}>
-                                        {s.store_name || s.name} {s.seller_name ? `(${s.seller_name})` : ''}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    )}
-
-                    {editingSale && (
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Store</label>
-                            <div className="text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-                                {editingSale.store_name || editingSale.store?.name || '—'}
-                            </div>
-                        </div>
-                    )}
 
                     <div>
                         <label className="block text-xs font-semibold text-gray-700 mb-1.5">Start Time *</label>

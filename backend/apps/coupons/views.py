@@ -214,18 +214,26 @@ class FlashSaleDetailView(APIView):
 # ═══════════════════════════════════════════════════════════════════
 
 class SellerFlashSaleListView(GenericAPIView):
-    """GET /api/v1/seller/flash-sales/ — list flash sales for seller's store."""
+    """
+    GET /api/v1/seller/flash-sales/
+
+    Lists flash sales available to this seller: platform-wide sales (store=NULL)
+    plus any legacy store-scoped sales for their store.
+    """
 
     permission_classes = [IsAuthenticated, IsApprovedSeller]
 
     def get(self, request):
+        from django.db.models import Q
+
         try:
             store = request.user.seller_profile.store
         except Exception:
             return Response({'success': False, 'message': 'Store not found.'}, status=404)
 
         sales = FlashSale.objects.filter(
-            store=store,
+            Q(store__isnull=True) | Q(store=store),
+            deleted_at__isnull=True,
         ).select_related('store').prefetch_related(
             *FLASH_SALE_PREFETCH,
         ).order_by('-created_at')
@@ -329,10 +337,19 @@ class SellerFlashSaleAddProductsView(GenericAPIView):
     serializer_class = FlashSaleAddProductsSerializer
 
     def post(self, request, flash_sale_id):
+        from django.db.models import Q
+        from apps.mall.models import StoreProduct
+
         try:
             store = request.user.seller_profile.store
-            sale = FlashSale.objects.get(id=flash_sale_id, store=store)
-        except (FlashSale.DoesNotExist, Exception):
+        except Exception:
+            return Response({'success': False, 'message': 'Store not found.'}, status=404)
+
+        try:
+            sale = FlashSale.objects.filter(
+                Q(store__isnull=True) | Q(store=store),
+            ).get(id=flash_sale_id)
+        except FlashSale.DoesNotExist:
             return Response({'success': False, 'message': 'Not found.'}, status=404)
 
         serializer = self.get_serializer(data=request.data)
@@ -342,11 +359,19 @@ class SellerFlashSaleAddProductsView(GenericAPIView):
         product_ids = serializer.validated_data.get('product_ids', [])
         override_price = serializer.validated_data.get('override_price')
 
+        # Ownership guard: sellers may only add products from their own store.
+        owned_ids = set(StoreProduct.objects.filter(
+            store=store, deleted_at__isnull=True,
+        ).values_list('id', flat=True))
+
         created = 0
         if products_data:
             for item in products_data:
+                pid = item['product_id']
+                if pid not in owned_ids:
+                    continue
                 _, was_created = FlashSaleProduct.objects.update_or_create(
-                    flash_sale=sale, product_id=item['product_id'],
+                    flash_sale=sale, product_id=pid,
                     defaults={
                         'override_price': item.get('flash_price') or override_price,
                         'quantity_limit': item.get('quantity_limit'),
@@ -356,6 +381,8 @@ class SellerFlashSaleAddProductsView(GenericAPIView):
                     created += 1
         elif product_ids:
             for pid in product_ids:
+                if pid not in owned_ids:
+                    continue
                 _, was_created = FlashSaleProduct.objects.get_or_create(
                     flash_sale=sale, product_id=pid,
                     defaults={'override_price': override_price},
@@ -443,25 +470,43 @@ class AdminFlashSaleListView(APIView):
     def post(self, request):
         serializer = FlashSaleCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        store_id = request.data.get('store')
-        if store_id:
-            sale = serializer.save(store_id=store_id)
-        else:
-            return Response({
-                'success': False, 'message': 'store field is required.',
-            }, status=status.HTTP_400_BAD_REQUEST)
+        # store is optional — admin can create platform-wide flash sales
+        store_id = request.data.get('store') or None
+        sale = serializer.save(store_id=store_id) if store_id else serializer.save()
         sale = _refetch_sale(sale.id)
 
+        # Notify recipients: scoped sale → that store's seller only,
+        # platform-wide sale → every approved seller.
         try:
             from apps.admin_panel.notification_utils import send_notification
-            seller_user = sale.store.seller.user
-            send_notification(
-                user=seller_user,
-                notification_type='promotion',
-                title='New Flash Sale Created',
-                message=f'A flash sale "{sale.title}" has been created for your store. You can now add products to it.',
-                action_url='/seller/promotions/flash-sales',
-            )
+            from apps.sellers.models import Store
+
+            if sale.store_id:
+                recipients = [sale.store.seller.user]
+                msg = (
+                    f'A flash sale "{sale.title}" has been created for your store. '
+                    'You can now add products to it.'
+                )
+            else:
+                recipients = [
+                    s.seller.user for s in Store.objects.filter(
+                        status='active', deleted_at__isnull=True,
+                    ).select_related('seller__user')
+                    if s.seller and s.seller.user
+                ]
+                msg = (
+                    f'A new platform-wide flash sale "{sale.title}" is now open. '
+                    'Add your products to participate.'
+                )
+
+            for user in recipients:
+                send_notification(
+                    user=user,
+                    notification_type='promotion',
+                    title='New Flash Sale Available',
+                    message=msg,
+                    action_url='/seller/promotions/flash-sales',
+                )
         except Exception:
             pass
 

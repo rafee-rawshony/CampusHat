@@ -168,7 +168,9 @@ class FlashSale(BaseModel):
 
     store = models.ForeignKey(
         'sellers.Store', on_delete=models.CASCADE,
+        null=True, blank=True,
         related_name='flash_sales', db_index=True,
+        help_text='NULL = platform-wide flash sale (admin only). Any seller can add their products.',
     )
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True, null=True)
