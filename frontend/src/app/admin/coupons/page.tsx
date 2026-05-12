@@ -59,6 +59,27 @@ export default function AdminCouponsPage() {
         staleTime: 30_000,
     })
 
+    // Toggle flash sale active/inactive
+    const { mutate: toggleFlashSale } = useMutation({
+        mutationFn: (sale: any) =>
+            api.patch(`/admin/flash-sales/${sale.id}/`, { is_active: !sale.is_active }),
+        onSuccess: () => {
+            toast.success('Flash sale updated.')
+            queryClient.invalidateQueries({ queryKey: ['admin-flash-sales'] })
+        },
+        onError: () => toast.error('Failed to update flash sale.'),
+    })
+
+    // Delete flash sale
+    const { mutate: deleteFlashSale } = useMutation({
+        mutationFn: (id: string) => api.delete(`/admin/flash-sales/${id}/`),
+        onSuccess: () => {
+            toast.success('Flash sale deleted.')
+            queryClient.invalidateQueries({ queryKey: ['admin-flash-sales'] })
+        },
+        onError: () => toast.error('Failed to delete flash sale.'),
+    })
+
     // Toggle coupon active/inactive
     const { mutate: toggleCoupon } = useMutation({
         mutationFn: (coupon: any) =>
@@ -278,6 +299,7 @@ export default function AdminCouponsPage() {
                                             <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Products</th>
                                             <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Schedule</th>
                                             <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
+                                            <th className="px-5 py-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-50">
@@ -285,7 +307,7 @@ export default function AdminCouponsPage() {
                                             const now = new Date()
                                             const start = sale.starts_at ? new Date(sale.starts_at) : null
                                             const end = sale.ends_at ? new Date(sale.ends_at) : null
-                                            const isLive = start && end && now >= start && now <= end
+                                            const isLive = start && end && now >= start && now <= end && sale.is_active
                                             const isUpcoming = start && now < start
 
                                             return (
@@ -315,6 +337,29 @@ export default function AdminCouponsPage() {
                                                             {isLive ? 'Live' : isUpcoming ? 'Upcoming' : 'Ended'}
                                                         </span>
                                                     </td>
+                                                    <td className="px-5 py-4">
+                                                        <div className="flex items-center justify-end gap-1.5">
+                                                            <Button
+                                                                size="sm" variant="ghost"
+                                                                className="h-8 w-8 p-0 text-gray-400 hover:text-blue-600"
+                                                                onClick={() => toggleFlashSale(sale)}
+                                                            >
+                                                                {sale.is_active
+                                                                    ? <ToggleRight className="w-4 h-4 text-green-600" />
+                                                                    : <ToggleLeft className="w-4 h-4" />
+                                                                }
+                                                            </Button>
+                                                            <Button
+                                                                size="sm" variant="ghost"
+                                                                className="h-8 w-8 p-0 text-gray-400 hover:text-red-600"
+                                                                onClick={() => {
+                                                                    if (confirm(`Delete flash sale "${sale.title}"?`)) deleteFlashSale(sale.id)
+                                                                }}
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </Button>
+                                                        </div>
+                                                    </td>
                                                 </tr>
                                             )
                                         })}
@@ -328,7 +373,7 @@ export default function AdminCouponsPage() {
                                     const now = new Date()
                                     const start = sale.starts_at ? new Date(sale.starts_at) : null
                                     const end = sale.ends_at ? new Date(sale.ends_at) : null
-                                    const isLive = start && end && now >= start && now <= end
+                                    const isLive = start && end && now >= start && now <= end && sale.is_active
 
                                     return (
                                         <div key={sale.id} className="bg-white border border-gray-100 rounded-xl p-4 space-y-2">
@@ -343,9 +388,17 @@ export default function AdminCouponsPage() {
                                                     {isLive ? 'Live' : start && now < start ? 'Upcoming' : 'Ended'}
                                                 </span>
                                             </div>
-                                            <p className="text-xs text-gray-400">
-                                                {sale.store_name || '—'} | {sale.products?.length || 0} products
-                                            </p>
+                                            <div className="flex items-center justify-between text-xs text-gray-400">
+                                                <span>{sale.store_name || '—'} | {sale.products?.length || 0} products</span>
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => toggleFlashSale(sale)} className="text-blue-600">
+                                                        {sale.is_active ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
+                                                    </button>
+                                                    <button onClick={() => { if (confirm('Delete?')) deleteFlashSale(sale.id) }} className="text-red-500">
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
                                     )
                                 })}

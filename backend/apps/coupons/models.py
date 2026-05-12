@@ -172,7 +172,7 @@ class FlashSale(BaseModel):
     )
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True, null=True)
-    discount_percentage = models.DecimalField(max_digits=5, decimal_places=2)
+    discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     starts_at = models.DateTimeField(db_index=True)
     ends_at = models.DateTimeField(db_index=True)
     max_items_per_user = models.IntegerField(blank=True, null=True)

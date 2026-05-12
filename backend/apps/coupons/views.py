@@ -26,6 +26,20 @@ from .serializers import (
     FlashSaleListSerializer,
 )
 
+FLASH_SALE_PREFETCH = [
+    'products',
+    'products__product',
+    'products__product__images',
+    'products__product__category',
+    'products__product__store',
+]
+
+
+def _refetch_sale(sale_id):
+    return FlashSale.objects.select_related('store').prefetch_related(
+        *FLASH_SALE_PREFETCH,
+    ).get(id=sale_id)
+
 
 # ═══════════════════════════════════════════════════════════════════
 # COUPON VALIDATION
@@ -168,7 +182,9 @@ class ActiveFlashSalesView(APIView):
         now = timezone.now()
         sales = FlashSale.objects.filter(
             is_active=True, starts_at__lte=now, ends_at__gte=now,
-        ).select_related('store').prefetch_related('products', 'products__product').order_by('-starts_at')
+        ).select_related('store').prefetch_related(
+            *FLASH_SALE_PREFETCH,
+        ).order_by('-starts_at')
 
         return Response({
             'success': True, 'data': FlashSaleDetailSerializer(sales, many=True).data,
@@ -183,7 +199,7 @@ class FlashSaleDetailView(APIView):
     def get(self, request, flash_sale_id):
         try:
             sale = FlashSale.objects.prefetch_related(
-                'products', 'products__product',
+                *FLASH_SALE_PREFETCH,
             ).select_related('store').get(id=flash_sale_id)
         except FlashSale.DoesNotExist:
             return Response({'success': False, 'message': 'Not found.'}, status=404)
@@ -210,8 +226,10 @@ class SellerFlashSaleListCreateView(GenericAPIView):
             return Response({'success': False, 'message': 'Store not found.'}, status=404)
 
         sales = FlashSale.objects.filter(
-            store=store, deleted_at__isnull=True,
-        ).prefetch_related('products', 'products__product').order_by('-created_at')
+            store=store,
+        ).select_related('store').prefetch_related(
+            *FLASH_SALE_PREFETCH,
+        ).order_by('-created_at')
 
         return Response({
             'success': True,
@@ -227,6 +245,7 @@ class SellerFlashSaleListCreateView(GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         sale = serializer.save(store=store)
+        sale = _refetch_sale(sale.id)
         return Response({
             'success': True, 'message': 'Flash sale created.',
             'data': FlashSaleDetailSerializer(sale).data,
@@ -249,6 +268,7 @@ class SellerFlashSaleUpdateView(GenericAPIView):
         serializer = self.get_serializer(sale, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        sale = _refetch_sale(sale.id)
         return Response({
             'success': True, 'message': 'Flash sale updated.',
             'data': FlashSaleDetailSerializer(sale).data,
@@ -296,6 +316,7 @@ class SellerFlashSaleAddProductsView(GenericAPIView):
                 if was_created:
                     created += 1
 
+        sale = _refetch_sale(sale.id)
         return Response({
             'success': True,
             'message': f'{created} products added to flash sale.',
@@ -366,7 +387,7 @@ class AdminFlashSaleListView(APIView):
 
     def get(self, request):
         sales = FlashSale.objects.select_related('store').prefetch_related(
-            'products', 'products__product',
+            *FLASH_SALE_PREFETCH,
         ).order_by('-created_at')
         return Response({
             'success': True, 'data': FlashSaleDetailSerializer(sales, many=True).data,
@@ -382,6 +403,7 @@ class AdminFlashSaleListView(APIView):
             return Response({
                 'success': False, 'message': 'store field is required.',
             }, status=status.HTTP_400_BAD_REQUEST)
+        sale = _refetch_sale(sale.id)
         return Response({
             'success': True, 'message': 'Flash sale created.',
             'data': FlashSaleDetailSerializer(sale).data,
@@ -402,6 +424,7 @@ class AdminFlashSaleDetailView(APIView):
         serializer = FlashSaleCreateSerializer(sale, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        sale = _refetch_sale(sale.id)
         return Response({
             'success': True, 'message': 'Flash sale updated.',
             'data': FlashSaleDetailSerializer(sale).data,
@@ -456,6 +479,7 @@ class AdminFlashSaleAddProductsView(APIView):
                 if was_created:
                     created += 1
 
+        sale = _refetch_sale(sale.id)
         return Response({
             'success': True,
             'message': f'{created} products added to flash sale.',
