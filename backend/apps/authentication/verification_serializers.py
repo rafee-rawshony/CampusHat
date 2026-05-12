@@ -251,9 +251,16 @@ class VerificationStatusSerializer(serializers.ModelSerializer):
 
     def _is_admin(self):
         request = self.context.get('request')
-        if request and hasattr(request, 'user'):
-            return getattr(request.user, 'role', None) in ('admin', 'moderator')
-        return False
+        if not request or not hasattr(request, 'user'):
+            return False
+        user = request.user
+        if getattr(user, 'role', None) in ('admin', 'moderator'):
+            return True
+        from apps.admin_panel.models import RolePermission
+        return RolePermission.objects.filter(
+            role__user_roles__user=user,
+            permission__codename='review_verifications',
+        ).exists()
 
     def _generate_presigned_url(self, key):
         """Generate a presigned URL for an S3 object (15-min expiry)."""

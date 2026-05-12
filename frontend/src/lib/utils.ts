@@ -57,7 +57,8 @@ export function timeAgo(dateString: string): string {
 export function getMediaUrl(url?: string | null): string {
     if (!url) return ''
     if (url.startsWith('http')) return url
+    if (url.startsWith('/')) return url
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api/v1'
     const host = apiUrl.split('/api/')[0] || 'http://localhost:8081'
-    return `${host}${url.startsWith("/") ? "" : "/"}${url}`
+    return `${host}/${url}`
 }
