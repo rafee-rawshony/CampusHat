@@ -37,7 +37,7 @@ const postAdSchema = z.object({
         url: z.string().url('Must be a valid URL').or(z.literal(''))
     })).optional(),
 }).superRefine((data, ctx) => {
-    if ((data.post_type === 'buy' || data.post_type === 'rental') && !data.condition) {
+    if (data.post_type === 'buy' && !data.condition) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: "Condition is required for this ad type",
@@ -132,7 +132,7 @@ export function PostAdForm({ editId }: PostAdFormProps) {
                         description: data.description,
                         category: data.category?.id || data.category?.slug || data.category || '',
                         subcategory: '',
-                        condition: data.condition || 'good',
+                        condition: (data.post_type === 'rent' || data.post_type === 'rental') ? '' : (data.condition || 'good'),
                         price: Number(data.price),
                         duration_days: 15,
                         is_anonymous: Boolean(data.is_anonymous),
@@ -152,9 +152,9 @@ export function PostAdForm({ editId }: PostAdFormProps) {
         if (!editId) {
             setValue('category', '')
             setValue('subcategory', '')
-            if (currentType === 'service' || currentType === 'food') {
+            if (currentType === 'service' || currentType === 'food' || currentType === 'rental') {
                 setValue('condition', '')
-                setValue('duration_days', 30)
+                setValue('duration_days', currentType === 'rental' ? 15 : 30)
             } else {
                 setValue('condition', 'good')
                 setValue('duration_days', 15)
@@ -300,8 +300,8 @@ export function PostAdForm({ editId }: PostAdFormProps) {
                         error={errors.category?.message}
                     />
 
-                    {/* Condition — only for Buy & Rental */}
-                    {(currentType === 'buy' || currentType === 'rental') && (
+                    {/* Condition — only for Buy */}
+                    {currentType === 'buy' && (
                         <div className="space-y-2">
                             <Label className="font-semibold text-gray-800">Condition</Label>
                             <Controller
