@@ -100,7 +100,7 @@ export function PostAdForm({ editId }: PostAdFormProps) {
             price: 0,
             duration_days: 15,
             is_anonymous: false,
-            images: [{ url: '' }],
+            images: [],
         }
     })
 
