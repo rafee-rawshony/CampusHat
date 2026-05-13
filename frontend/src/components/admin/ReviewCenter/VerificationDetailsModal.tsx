@@ -1,6 +1,6 @@
 import React from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog'
-import { X, Mail, Phone, User, GraduationCap, Building2, Calendar, FileText } from 'lucide-react'
+import { X, Mail, Phone, User, GraduationCap, Building2, Calendar, FileText, AlertTriangle, ShieldAlert, RotateCcw } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { getInitials } from '@/lib/utils'
 
@@ -102,19 +102,80 @@ export function VerificationDetailsModal({ isOpen, onClose, verification }: Veri
                         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1">
                                 <InfoRow icon={Calendar} label="Submitted On" value={createdDate} />
-                                <InfoRow 
-                                    icon={FileText} 
-                                    label="Status" 
+                                <InfoRow
+                                    icon={FileText}
+                                    label="Status"
                                     value={
                                         <span className="capitalize px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded text-xs font-semibold">
                                             {verification.status}
                                         </span>
-                                    } 
+                                    }
                                 />
+                                <InfoRow icon={RotateCcw} label="Attempt #" value={verification.attempt_number} />
+                                <InfoRow icon={ShieldAlert} label="Submission IP" value={verification.submission_ip} />
                             </div>
                         </div>
                     </section>
-                    
+
+                    {/* Security Flags */}
+                    {(verification.is_duplicate_document || (verification.attempt_number && verification.attempt_number > 1)) && (
+                        <section>
+                            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <AlertTriangle className="w-4 h-4 text-red-500" />
+                                Security Flags
+                            </h3>
+                            <div className="space-y-2">
+                                {verification.is_duplicate_document && (
+                                    <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+                                        <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                                        <div className="text-sm text-red-900">
+                                            <span className="font-bold">Duplicate document detected.</span>{' '}
+                                            This exact file has been submitted by{' '}
+                                            <span className="font-semibold">{verification.duplicate_users_count || 'another'}</span>{' '}
+                                            other user{(verification.duplicate_users_count || 1) > 1 ? 's' : ''}. Verify the applicant&apos;s identity carefully before approving.
+                                        </div>
+                                    </div>
+                                )}
+                                {verification.attempt_number && verification.attempt_number > 1 && (
+                                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+                                        <RotateCcw className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                                        <div className="text-sm text-amber-900">
+                                            <span className="font-bold">Re-submission.</span>{' '}
+                                            This is attempt #{verification.attempt_number} for this verification type.
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </section>
+                    )}
+
+                    {/* Rejection History */}
+                    {Array.isArray(verification.rejection_history) && verification.rejection_history.length > 0 && (
+                        <section>
+                            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <FileText className="w-4 h-4 text-red-500" />
+                                Past Rejections ({verification.rejection_history.length})
+                            </h3>
+                            <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100 shadow-sm">
+                                {verification.rejection_history.map((entry: any) => (
+                                    <div key={entry.id} className="p-4">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className="text-xs font-bold text-gray-700">
+                                                Attempt #{entry.attempt_number}
+                                            </span>
+                                            <span className="text-xs text-gray-400">
+                                                {entry.created_at ? new Date(entry.created_at).toLocaleString('en-BD') : ''}
+                                            </span>
+                                        </div>
+                                        <p className="text-sm text-gray-700">
+                                            {entry.rejection_reason || 'No reason provided.'}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    )}
+
                 </div>
             </DialogContent>
         </Dialog>

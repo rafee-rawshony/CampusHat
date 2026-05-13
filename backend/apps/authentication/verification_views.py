@@ -5,6 +5,9 @@ Endpoints for submitting verification documents, checking status,
 and admin review queue.
 """
 
+from datetime import timedelta
+
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -18,6 +21,11 @@ from .verification_serializers import (
     SubmitVerificationSerializer,
     VerificationStatusSerializer,
 )
+
+
+# Max submissions per user across all verification types within the window.
+SUBMIT_RATE_LIMIT_COUNT = 3
+SUBMIT_RATE_LIMIT_WINDOW_HOURS = 24
 
 
 # =============================================================================
@@ -45,6 +53,27 @@ class SubmitVerificationView(APIView):
                     'code': 'PROFILE_INCOMPLETE',
                 },
                 status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Rate limit: count submissions in the last 24 hours.
+        window_start = timezone.now() - timedelta(hours=SUBMIT_RATE_LIMIT_WINDOW_HOURS)
+        recent_count = UserVerification.objects.filter(
+            user=request.user,
+            created_at__gte=window_start,
+        ).count()
+        if recent_count >= SUBMIT_RATE_LIMIT_COUNT:
+            return Response(
+                {
+                    'success': False,
+                    'message': (
+                        f'You have reached the limit of {SUBMIT_RATE_LIMIT_COUNT} '
+                        f'verification submissions in the last {SUBMIT_RATE_LIMIT_WINDOW_HOURS} hours. '
+                        'Please wait before trying again.'
+                    ),
+                    'code': 'RATE_LIMIT_EXCEEDED',
+                    'retry_after_hours': SUBMIT_RATE_LIMIT_WINDOW_HOURS,
+                },
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
             )
 
         try:

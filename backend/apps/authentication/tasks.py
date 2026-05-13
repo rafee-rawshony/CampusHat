@@ -286,15 +286,28 @@ def notify_admin_new_verification(self, verification_id):
         logger.warning('No admin users found to notify.')
         return
 
+    # Build security flags for the notification body so admins triage faster.
+    flags = []
+    if getattr(verification, 'is_duplicate_document', False):
+        flags.append('Duplicate document detected (same hash used by another user).')
+    attempt = getattr(verification, 'attempt_number', 1) or 1
+    if attempt > 1:
+        flags.append(f'Re-submission: attempt #{attempt} for this verification type.')
+
     try:
         from django.core.mail import send_mail
         subject = f'New Verification Request: {verification.verification_type}'
+        if flags:
+            subject = '[FLAGGED] ' + subject
         message = (
             f'User {verification.user.full_name} ({verification.user.email}) '
             f'has submitted a {verification.verification_type} verification.\n\n'
             f'Student ID: {verification.student_id_number or "N/A"}\n'
-            f'Please review it in the admin panel.'
         )
+        if flags:
+            message += '\nSecurity flags:\n  - ' + '\n  - '.join(flags) + '\n'
+        message += '\nPlease review it in the admin panel.'
+
         send_mail(
             subject=subject,
             message=message,
@@ -306,10 +319,16 @@ def notify_admin_new_verification(self, verification_id):
         # 2. Platform Notification for Admins
         try:
             from apps.admin_panel.notification_utils import notify_admins
+            title = 'New Student Verification'
+            if flags:
+                title = '[FLAGGED] ' + title
+            inapp_message = f'User {verification.user.full_name} has submitted a {verification.verification_type} request.'
+            if flags:
+                inapp_message += ' ' + ' '.join(flags)
             notify_admins(
                 notification_type='verification',
-                title='New Student Verification',
-                message=f'User {verification.user.full_name} has submitted a {verification.verification_type} request.',
+                title=title,
+                message=inapp_message,
                 action_url='/admin/approvals'
             )
         except Exception as e:

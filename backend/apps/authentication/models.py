@@ -681,6 +681,34 @@ class UserVerification(UUIDMixin, TimestampMixin):
         null=True,
         help_text='Expiration date for this verification (annual renewal).',
     )
+    document_hash = models.CharField(
+        max_length=64,
+        blank=True,
+        null=True,
+        db_index=True,
+        help_text='SHA-256 hash of the submitted document for duplicate detection.',
+    )
+    cert_hash = models.CharField(
+        max_length=64,
+        blank=True,
+        null=True,
+        db_index=True,
+        help_text='SHA-256 hash of the enrollment certificate.',
+    )
+    is_duplicate_document = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text='Flagged True when this document hash matches another user\'s submission.',
+    )
+    submission_ip = models.GenericIPAddressField(
+        blank=True,
+        null=True,
+        help_text='IP address from which this verification was submitted.',
+    )
+    attempt_number = models.PositiveIntegerField(
+        default=1,
+        help_text='Submission attempt count for this user + type combination.',
+    )
     deleted_at = models.DateTimeField(
         blank=True,
         null=True,
@@ -693,7 +721,6 @@ class UserVerification(UUIDMixin, TimestampMixin):
         verbose_name = 'User Verification'
         verbose_name_plural = 'User Verifications'
         ordering = ['-created_at']
-        unique_together = [('user', 'verification_type')]
         indexes = [
             models.Index(
                 fields=['user', 'status'],
@@ -702,6 +729,17 @@ class UserVerification(UUIDMixin, TimestampMixin):
             models.Index(
                 fields=['user', 'verification_type'],
                 name='idx_verification_user_type',
+            ),
+            models.Index(
+                fields=['user', 'verification_type', 'status'],
+                name='idx_verif_user_type_status',
+            ),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'verification_type'],
+                condition=models.Q(status__in=['pending', 'approved']),
+                name='uniq_user_type_active_verification',
             ),
         ]
 

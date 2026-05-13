@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
-import { FileText, XCircle, CheckCircle } from 'lucide-react'
+import { FileText, XCircle, CheckCircle, AlertTriangle, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'react-hot-toast'
 import Image from 'next/image'
@@ -119,6 +119,20 @@ export function VerificationReviewTab() {
                                 
                                 <div className="absolute top-2 right-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded pointer-events-none">
                                     REQUESTED ON: {createdDate}
+                                </div>
+
+                                {/* Security flag badges (top-left) */}
+                                <div className="absolute top-2 left-2 flex flex-col gap-1 pointer-events-none">
+                                    {item.is_duplicate_document && (
+                                        <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded flex items-center gap-1 font-bold shadow">
+                                            <AlertTriangle className="w-3 h-3" /> DUPLICATE
+                                        </span>
+                                    )}
+                                    {item.attempt_number && item.attempt_number > 1 && (
+                                        <span className="bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded flex items-center gap-1 font-bold shadow">
+                                            <RotateCcw className="w-3 h-3" /> ATTEMPT #{item.attempt_number}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
 
