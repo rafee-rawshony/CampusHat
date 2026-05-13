@@ -101,7 +101,16 @@ export function VerificationStep3({ step1Data, step2Data, onBack, onSuccess }: V
             onSuccess()
             router.refresh() // re-evaluate page logic
         } catch (err: any) {
-            toast.error(err.response?.data?.message || err.response?.data?.detail || 'Failed to submit documents. Please try again.')
+            const data = err.response?.data || {}
+            // Rate-limit response from backend (HTTP 429).
+            if (err.response?.status === 429 || data.code === 'RATE_LIMIT_EXCEEDED') {
+                const hours = data.retry_after_hours || 24
+                const message = data.message || `Too many verification attempts. Please wait ~${hours} hours before trying again.`
+                toast.error(message, { duration: 6000 })
+                setError(message)
+            } else {
+                toast.error(data.message || data.detail || 'Failed to submit documents. Please try again.')
+            }
         } finally {
             setIsSubmitting(false)
         }

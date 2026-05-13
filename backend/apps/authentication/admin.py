@@ -103,13 +103,52 @@ class UserVerificationAdmin(admin.ModelAdmin):
 
     list_display = (
         'user', 'verification_type', 'status',
+        'attempt_number', 'is_duplicate_document',
         'verification_tier', 'reviewed_by', 'valid_until', 'created_at',
     )
-    list_filter = ('status', 'verification_type', 'verification_tier')
-    search_fields = ('user__email', 'user__full_name', 'student_id_number')
-    readonly_fields = ('id', 'created_at', 'updated_at')
+    list_filter = (
+        'status', 'verification_type', 'verification_tier',
+        'is_duplicate_document',
+    )
+    search_fields = (
+        'user__email', 'user__full_name', 'student_id_number',
+        'document_hash', 'submission_ip',
+    )
+    readonly_fields = (
+        'id', 'created_at', 'updated_at',
+        'document_hash', 'cert_hash', 'is_duplicate_document',
+        'submission_ip', 'attempt_number',
+    )
     raw_id_fields = ('user', 'reviewed_by')
     ordering = ('-created_at',)
+
+    fieldsets = (
+        ('Identity', {
+            'fields': (
+                'id', 'user', 'verification_type', 'student_id_number',
+            ),
+        }),
+        ('Documents', {
+            'fields': (
+                'submitted_document_url', 'enrollment_cert_url',
+                'document_hash', 'cert_hash',
+            ),
+        }),
+        ('Review', {
+            'fields': (
+                'status', 'verification_tier', 'reviewed_by',
+                'rejection_reason', 'valid_until',
+            ),
+        }),
+        ('Security & Audit', {
+            'fields': (
+                'is_duplicate_document', 'submission_ip', 'attempt_number',
+            ),
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at', 'deleted_at'),
+        }),
+    )
 
 
 @admin.register(UserSession)
