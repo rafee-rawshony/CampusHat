@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
-import { MessageCircle } from 'lucide-react'
+import { MessageCircle, ShieldCheck } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth.store'
 import { api } from '@/lib/api'
@@ -20,7 +20,6 @@ export default function UnifiedChatPage() {
     const queryClient = useQueryClient()
     const { isAuthenticated, canAccessMarketplace } = useAuthStore()
 
-    // Read initial chatId from URL slug
     const slugParts = params?.slug as string[] | undefined
     const initialChatId = slugParts?.[0] || null
 
@@ -28,7 +27,6 @@ export default function UnifiedChatPage() {
     const [searchQuery, setSearchQuery] = useState('')
     const hasChatAccess = isAuthenticated && canAccessMarketplace()
 
-    // Keep selectedChatId in sync if navigated via external link (e.g. ChatButton)
     const prevSlugRef = useRef(initialChatId)
     useEffect(() => {
         const newId = slugParts?.[0] || null
@@ -46,7 +44,6 @@ export default function UnifiedChatPage() {
         }
     }, [isAuthenticated, router])
 
-    // Fetch thread list once, shared across the whole page
     const { data: threads = [], isLoading: threadsLoading } = useQuery<ChatThread[]>({
         queryKey: ['chat-threads'],
         queryFn: async () => {
@@ -58,7 +55,6 @@ export default function UnifiedChatPage() {
         staleTime: 10000,
     })
 
-    // Fetch chat detail only when a chat is selected
     const { data: chatDetail, isLoading: chatDetailLoading } = useQuery({
         queryKey: ['chat-detail', selectedChatId],
         queryFn: async () => {
@@ -84,14 +80,12 @@ export default function UnifiedChatPage() {
         },
     } : null
 
-    // Select a chat — update state and URL without full navigation
     const handleSelectChat = useCallback((chatId: string) => {
         setSelectedChatId(chatId)
         window.history.replaceState(null, '', `/marketplace/chat/${chatId}`)
         queryClient.invalidateQueries({ queryKey: ['chat-detail', chatId] })
     }, [queryClient])
 
-    // Back to list (mobile)
     const handleBack = useCallback(() => {
         setSelectedChatId(null)
         window.history.replaceState(null, '', '/marketplace/chat')
@@ -101,34 +95,36 @@ export default function UnifiedChatPage() {
 
     if (!canAccessMarketplace()) {
         return (
-            <div className="min-h-[calc(100vh-64px)] bg-white pt-12 flex justify-center px-4">
+            <div className="fixed inset-0 top-16 bg-gradient-to-b from-gray-50 to-white flex items-center justify-center px-4">
                 <UpgradePrompt
                     isOpen={true}
                     onClose={() => router.push('/marketplace')}
                     title="Verification Required"
-                    description="You must verify your university email to use the chat system."
+                    description="You must verify your student account to use the messaging system."
                 />
             </div>
         )
     }
 
     return (
-        <div className="bg-white min-h-[calc(100vh-64px)]">
-            {/* Breadcrumb — desktop */}
-            <div className="container mx-auto max-w-7xl px-4 pt-4 pb-2 hidden md:block">
-                <nav className="flex items-center text-sm text-gray-500 font-medium">
-                    <Link href="/marketplace" className="hover:text-gray-900 transition-colors">Marketplace</Link>
-                    <span className="mx-2">/</span>
-                    <span className="text-gray-900">Messages</span>
-                </nav>
+        <div className="fixed inset-0 top-16 flex flex-col bg-gray-50">
+            {/* Desktop breadcrumb */}
+            <div className="hidden md:block shrink-0 bg-white border-b border-gray-100">
+                <div className="max-w-7xl mx-auto px-6 py-2.5">
+                    <nav className="flex items-center text-sm text-gray-500 font-medium">
+                        <Link href="/marketplace" className="hover:text-[#4C3B8A] transition-colors">Marketplace</Link>
+                        <span className="mx-2 text-gray-300">/</span>
+                        <span className="text-gray-900 font-semibold">Messages</span>
+                    </nav>
+                </div>
             </div>
 
-            <div className="container mx-auto max-w-7xl h-[calc(100dvh-64px)] md:h-[calc(100dvh-120px)] p-0 md:px-4 md:pb-4">
-                <div className="bg-white md:rounded-2xl md:border border-gray-100 md:shadow-sm overflow-hidden flex h-full">
+            {/* Main chat container — fills remaining viewport */}
+            <div className="flex-1 min-h-0 w-full max-w-7xl mx-auto md:p-4">
+                <div className="h-full bg-white md:rounded-2xl md:border border-gray-200 md:shadow-lg overflow-hidden flex">
 
-                    {/* Left panel: Thread list */}
-                    {/* Desktop: always visible. Mobile: visible only when no chat selected */}
-                    <div className={`w-full md:w-[340px] shrink-0 md:border-r border-gray-100 flex flex-col ${
+                    {/* Left: Thread list */}
+                    <div className={`w-full md:w-[380px] lg:w-[400px] shrink-0 md:border-r border-gray-100 flex flex-col ${
                         selectedChatId ? 'hidden md:flex' : 'flex'
                     }`}>
                         <ChatConversationList
@@ -141,16 +137,16 @@ export default function UnifiedChatPage() {
                         />
                     </div>
 
-                    {/* Right panel: Chat window or empty state */}
+                    {/* Right: Chat window or empty state */}
                     <div className={`flex-1 flex flex-col min-w-0 ${
                         selectedChatId ? 'flex' : 'hidden md:flex'
                     }`}>
                         {selectedChatId ? (
                             chatDetailLoading && !chatWindowData ? (
-                                <div className="flex-1 flex items-center justify-center bg-[#FAFAFA]">
+                                <div className="flex-1 flex items-center justify-center bg-gray-50/50">
                                     <div className="text-center">
-                                        <div className="w-7 h-7 border-2 border-[#4C3B8A] border-t-transparent rounded-full animate-spin mx-auto" />
-                                        <p className="text-gray-400 text-xs mt-3">Loading chat...</p>
+                                        <div className="w-8 h-8 border-[3px] border-[#4C3B8A] border-t-transparent rounded-full animate-spin mx-auto" />
+                                        <p className="text-gray-400 text-sm mt-4 font-medium">Loading conversation...</p>
                                     </div>
                                 </div>
                             ) : (
@@ -162,15 +158,19 @@ export default function UnifiedChatPage() {
                                 />
                             )
                         ) : (
-                            <div className="flex-1 flex items-center justify-center bg-[#FAFAFA]">
-                                <div className="text-center px-6">
-                                    <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
-                                        <MessageCircle className="w-9 h-9 text-gray-300" />
+                            <div className="flex-1 flex items-center justify-center bg-gradient-to-b from-gray-50/50 to-white">
+                                <div className="text-center px-8 max-w-sm">
+                                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#4C3B8A]/10 to-[#6B5AAE]/5 flex items-center justify-center mx-auto mb-6">
+                                        <MessageCircle className="w-10 h-10 text-[#4C3B8A]/40" />
                                     </div>
-                                    <h3 className="text-lg font-bold text-gray-400 mb-1">Your Messages</h3>
-                                    <p className="text-sm text-gray-300">
-                                        Select a conversation to start chatting
+                                    <h3 className="text-xl font-bold text-gray-800 mb-2">Your Messages</h3>
+                                    <p className="text-sm text-gray-400 leading-relaxed">
+                                        Select a conversation from the list to start chatting, or message a seller from any listing.
                                     </p>
+                                    <div className="flex items-center justify-center gap-2 mt-6 text-xs text-gray-300">
+                                        <ShieldCheck className="w-3.5 h-3.5" />
+                                        <span>End-to-end campus verified</span>
+                                    </div>
                                 </div>
                             </div>
                         )}

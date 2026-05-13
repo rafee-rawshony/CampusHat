@@ -1,13 +1,16 @@
+'use client'
+
 import Image from 'next/image'
 import Link from 'next/link'
 import {
     Clock, MapPin, Package, User, ShoppingBag, Key, Briefcase,
-    UtensilsCrossed, Tag, Truck, Banknote, Timer, Sparkles
+    UtensilsCrossed, Tag, Truck, Banknote, Timer, Sparkles, Lock
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 
 import { Badge } from '@/components/ui/badge'
 import { absoluteMediaUrl } from '@/services/upload.service'
+import { useAuthStore } from '@/stores/auth.store'
 
 export type MarketplacePostType = 'sell' | 'rent' | 'service' | 'food' | 'buy' | 'rental'
 type CanonicalPostType = 'sell' | 'rent' | 'service' | 'food'
@@ -254,6 +257,9 @@ function FoodMeta({ listing }: { listing: MarketplaceListing }) {
 }
 
 export function MarketplaceListingCard({ listing }: MarketplaceListingCardProps) {
+    const { isAuthenticated, isVerifiedStudent } = useAuthStore()
+    const canSeeSeller = isAuthenticated && isVerifiedStudent()
+
     const postType = normalizePostType(listing.post_type)
     const imageUrl = absoluteMediaUrl(getImageUrl(listing))
     const cfg = TYPE_CONFIG[postType]
@@ -358,23 +364,36 @@ export function MarketplaceListingCard({ listing }: MarketplaceListingCardProps)
 
                 <div className="flex items-center justify-between pt-2.5 mt-2.5 border-t border-gray-100">
                     <div className="flex items-center gap-2 min-w-0">
-                        {sellerAvatar ? (
-                            <Image
-                                src={absoluteMediaUrl(sellerAvatar)}
-                                alt=""
-                                width={24}
-                                height={24}
-                                unoptimized
-                                className="rounded-full object-cover w-6 h-6 border-2 border-gray-100"
-                            />
+                        {canSeeSeller ? (
+                            <>
+                                {sellerAvatar ? (
+                                    <Image
+                                        src={absoluteMediaUrl(sellerAvatar)}
+                                        alt=""
+                                        width={24}
+                                        height={24}
+                                        unoptimized
+                                        className="rounded-full object-cover w-6 h-6 border-2 border-gray-100"
+                                    />
+                                ) : (
+                                    <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center border-2 border-gray-50">
+                                        <User className="w-3 h-3 text-gray-400" />
+                                    </div>
+                                )}
+                                <span className="text-[11px] text-gray-600 font-medium truncate max-w-[100px]">
+                                    {sellerName}
+                                </span>
+                            </>
                         ) : (
-                            <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center border-2 border-gray-50">
-                                <User className="w-3 h-3 text-gray-400" />
-                            </div>
+                            <>
+                                <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center border-2 border-gray-100">
+                                    <Lock className="w-2.5 h-2.5 text-gray-400" />
+                                </div>
+                                <span className="text-[11px] text-gray-400 font-medium select-none blur-[5px]">
+                                    Campus Seller
+                                </span>
+                            </>
                         )}
-                        <span className="text-[11px] text-gray-600 font-medium truncate max-w-[100px]">
-                            {sellerName}
-                        </span>
                     </div>
                     <div className="flex items-center gap-1 text-gray-400 shrink-0">
                         <Clock className="w-3 h-3" />

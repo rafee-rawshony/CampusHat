@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowLeft, Send, Paperclip } from 'lucide-react'
+import { ArrowLeft, Send, Paperclip, ExternalLink } from 'lucide-react'
 import { format, isToday, isYesterday, isSameDay } from 'date-fns'
 import { useAuthStore } from '@/stores/auth.store'
 import toast from 'react-hot-toast'
@@ -43,7 +43,7 @@ function formatDateSeparator(dateStr: string): string {
     const date = new Date(dateStr)
     if (isToday(date)) return 'Today'
     if (isYesterday(date)) return 'Yesterday'
-    return format(date, 'EEE, MMM d')
+    return format(date, 'EEE, MMM d, yyyy')
 }
 
 export function ChatWindow({ chatId, chatData, onBack }: ChatWindowProps) {
@@ -171,12 +171,13 @@ export function ChatWindow({ chatId, chatData, onBack }: ChatWindowProps) {
     const isSeller = chatData ? String(user?.id) === String(chatData.seller_id) : false
 
     return (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full bg-white">
             {/* Header */}
-            <div className="shrink-0 bg-white border-b border-gray-100 px-3 sm:px-4 flex items-center gap-3 h-[60px]">
+            <div className="shrink-0 bg-white border-b border-gray-100 px-3 sm:px-5 flex items-center gap-3 h-[64px] z-10">
                 <button
                     onClick={onBack}
-                    className="md:hidden w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-900 rounded-lg hover:bg-gray-100 -ml-1"
+                    className="md:hidden w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-900 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors -ml-1"
+                    aria-label="Back to conversations"
                 >
                     <ArrowLeft className="w-5 h-5" />
                 </button>
@@ -196,50 +197,54 @@ export function ChatWindow({ chatId, chatData, onBack }: ChatWindowProps) {
                         <h3 className="font-bold text-sm text-gray-900 truncate">
                             {otherUser?.name || 'Chat'}
                         </h3>
-                        <div className={`w-2 h-2 rounded-full shrink-0 ${isConnected ? 'bg-green-500' : 'bg-gray-300'}`} />
+                        <div className={`w-2 h-2 rounded-full shrink-0 transition-colors ${isConnected ? 'bg-emerald-500' : 'bg-gray-300'}`} />
                     </div>
                     {listing && (
-                        <p className="text-[11px] text-gray-400 truncate">{listing.title}</p>
+                        <p className="text-[11px] text-gray-400 truncate leading-none mt-0.5">{listing.title}</p>
                     )}
                 </div>
 
                 {listing && (
                     <Link
                         href={`/marketplace/listings/${listing.id}`}
-                        className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 shrink-0 hidden sm:block hover:opacity-80 transition-opacity"
+                        className="w-10 h-10 rounded-xl overflow-hidden bg-gray-50 border border-gray-200 shrink-0 hover:border-[#4C3B8A]/30 transition-colors group"
+                        title="View listing"
                     >
                         {listingImage ? (
-                            <Image src={absoluteMediaUrl(listingImage)} alt={listing.title} width={40} height={40} unoptimized className="object-cover w-full h-full" />
+                            <Image src={absoluteMediaUrl(listingImage)} alt={listing.title} width={40} height={40} unoptimized className="object-cover w-full h-full group-hover:scale-105 transition-transform" />
                         ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-[#4C3B8A]/10">
-                                <span className="text-[8px] text-[#4C3B8A] font-bold">AD</span>
+                            <div className="w-full h-full flex items-center justify-center bg-[#4C3B8A]/5">
+                                <ExternalLink className="w-3.5 h-3.5 text-[#4C3B8A]/40" />
                             </div>
                         )}
                     </Link>
                 )}
             </div>
 
-            {/* Messages */}
+            {/* Messages area */}
             <div
                 ref={messagesContainerRef}
                 onScroll={handleScroll}
-                className="flex-1 overflow-y-auto overscroll-contain px-3 sm:px-4 py-4 space-y-2 bg-[#FAFAFA]"
+                className="flex-1 overflow-y-auto overscroll-contain px-3 sm:px-5 py-4 bg-[#F8F8FA]"
+                style={{ minHeight: 0 }}
             >
                 {isLoadingHistory ? (
-                    <div className="flex flex-col items-center justify-center h-full gap-2">
-                        <div className="w-7 h-7 border-2 border-[#4C3B8A] border-t-transparent rounded-full animate-spin" />
-                        <p className="text-gray-400 text-xs">Loading messages...</p>
+                    <div className="flex flex-col items-center justify-center h-full gap-3">
+                        <div className="w-8 h-8 border-[3px] border-[#4C3B8A] border-t-transparent rounded-full animate-spin" />
+                        <p className="text-gray-400 text-xs font-medium">Loading messages...</p>
                     </div>
                 ) : messages.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-center px-6">
-                        <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mb-3">
-                            <Send className="w-5 h-5 text-gray-300" />
+                    <div className="flex flex-col items-center justify-center h-full text-center px-8">
+                        <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm border border-gray-100">
+                            <Send className="w-6 h-6 text-gray-300 -rotate-45" />
                         </div>
-                        <p className="text-gray-400 text-sm font-medium">No messages yet</p>
-                        <p className="text-gray-300 text-xs mt-1">Say hello to start the conversation!</p>
+                        <p className="text-gray-500 text-sm font-semibold mb-1">Start the conversation</p>
+                        <p className="text-gray-400 text-xs leading-relaxed">
+                            Send a message to {otherUser?.name || 'this user'} about the listing.
+                        </p>
                     </div>
                 ) : (
-                    <>
+                    <div className="space-y-1.5">
                         {messages.map((msg, idx) => {
                             const isMe = String(msg.sender?.id) === String(user?.id)
                             const showAvatar = !isMe && (idx === 0 || String(messages[idx - 1]?.sender?.id) !== String(msg.sender?.id))
@@ -248,8 +253,8 @@ export function ChatWindow({ chatId, chatData, onBack }: ChatWindowProps) {
                             return (
                                 <React.Fragment key={msg.id}>
                                     {showDateSeparator && (
-                                        <div className="flex items-center justify-center my-3">
-                                            <span className="text-[11px] text-gray-400 bg-white px-3 py-1 rounded-full border border-gray-100 shadow-sm font-medium">
+                                        <div className="flex items-center justify-center my-4">
+                                            <span className="text-[11px] text-gray-400 bg-white px-4 py-1.5 rounded-full border border-gray-100 shadow-sm font-medium">
                                                 {formatDateSeparator(msg.created_at)}
                                             </span>
                                         </div>
@@ -263,52 +268,54 @@ export function ChatWindow({ chatId, chatData, onBack }: ChatWindowProps) {
                             )
                         })}
                         {isTyping && (
-                            <div className="flex items-center gap-2 text-gray-400 text-xs pl-8">
-                                <div className="flex gap-1">
+                            <div className="flex items-center gap-2.5 text-gray-400 text-xs pl-9 py-2">
+                                <div className="flex gap-1 bg-white px-3 py-2 rounded-2xl rounded-tl-sm border border-gray-100 shadow-sm">
                                     <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                                     <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                                     <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                                 </div>
-                                <span>{otherUser?.name || 'User'} is typing...</span>
                             </div>
                         )}
-                        <div ref={messagesEndRef} />
-                    </>
+                        <div ref={messagesEndRef} className="h-1" />
+                    </div>
                 )}
             </div>
 
-            {/* Input */}
-            <div className="shrink-0 bg-white border-t border-gray-100 px-3 sm:px-4 py-2.5 pb-[max(10px,env(safe-area-inset-bottom))]">
-                <div className="flex items-end gap-2">
+            {/* Input area */}
+            <div className="shrink-0 bg-white border-t border-gray-100 px-3 sm:px-5 py-3 pb-[max(12px,env(safe-area-inset-bottom))]">
+                <div className="flex items-end gap-2.5">
                     <button
-                        className="w-9 h-9 flex items-center justify-center text-gray-300 rounded-full shrink-0 cursor-not-allowed"
+                        className="w-10 h-10 flex items-center justify-center text-gray-300 rounded-xl shrink-0 cursor-not-allowed hover:bg-gray-50 transition-colors"
                         disabled
                         title="Attachments coming soon"
                     >
                         <Paperclip className="w-[18px] h-[18px]" />
                     </button>
 
-                    <textarea
-                        ref={textareaRef}
-                        value={inputText}
-                        onChange={handleTextareaChange}
-                        onKeyDown={handleKeyDown}
-                        placeholder="Type a message..."
-                        rows={1}
-                        className="flex-1 bg-gray-50 rounded-2xl px-4 py-2.5 text-sm resize-none outline-none border border-gray-200 focus:border-[#4C3B8A]/40 focus:ring-1 focus:ring-[#4C3B8A]/20 max-h-[120px] placeholder:text-gray-400 transition-colors"
-                        style={{ minHeight: '40px' }}
-                    />
+                    <div className="flex-1 relative">
+                        <textarea
+                            ref={textareaRef}
+                            value={inputText}
+                            onChange={handleTextareaChange}
+                            onKeyDown={handleKeyDown}
+                            placeholder="Type a message..."
+                            rows={1}
+                            className="w-full bg-gray-50 rounded-2xl px-4 py-2.5 text-sm resize-none outline-none border border-gray-200 focus:border-[#4C3B8A]/40 focus:ring-2 focus:ring-[#4C3B8A]/10 focus:bg-white max-h-[120px] placeholder:text-gray-400 transition-all"
+                            style={{ minHeight: '42px' }}
+                        />
+                    </div>
 
                     <button
                         onClick={handleSend}
                         disabled={!inputText.trim()}
-                        className={`w-9 h-9 rounded-full flex items-center justify-center transition-all shrink-0 ${
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shrink-0 ${
                             inputText.trim()
-                                ? 'bg-[#4C3B8A] text-white hover:bg-[#3D2F6E] shadow-sm active:scale-95'
+                                ? 'bg-[#4C3B8A] text-white hover:bg-[#3D2F6E] shadow-md shadow-[#4C3B8A]/20 active:scale-95'
                                 : 'bg-gray-100 text-gray-300'
                         }`}
+                        aria-label="Send message"
                     >
-                        <Send className="w-4 h-4" />
+                        <Send className="w-[18px] h-[18px]" />
                     </button>
                 </div>
             </div>
