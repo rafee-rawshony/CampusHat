@@ -21,8 +21,8 @@ export function VerificationStep1({ data, onUpdate, onNext }: VerificationStep1P
     const handleNext = () => {
         const newErrors: { student_id_number?: string; university_email?: string } = {}
 
-        if (!data.student_id_number.trim() || data.student_id_number.trim().length < 5) {
-            newErrors.student_id_number = 'Student ID must be at least 5 characters.'
+        if (!data.student_id_number.trim()) {
+            newErrors.student_id_number = 'Student ID is required.'
         }
 
         if (data.university_email.trim()) {

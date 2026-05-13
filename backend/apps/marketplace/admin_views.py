@@ -27,8 +27,13 @@ class AdminMarketplaceListSerializer(drf_serializers.ModelSerializer):
     seller_name = drf_serializers.CharField(source='user.full_name', read_only=True)
     seller_email = drf_serializers.CharField(source='user.email', read_only=True)
     university_name = drf_serializers.CharField(source='university.name', read_only=True)
+    university_short = drf_serializers.CharField(source='university.short_name', read_only=True, default='')
     category_name = drf_serializers.CharField(source='category.name', read_only=True, default=None)
     primary_image_url = drf_serializers.SerializerMethodField()
+    images = drf_serializers.SerializerMethodField()
+    user = drf_serializers.SerializerMethodField()
+    category = drf_serializers.SerializerMethodField()
+    university = drf_serializers.SerializerMethodField()
 
     class Meta:
         model = MarketplaceProduct
@@ -36,9 +41,10 @@ class AdminMarketplaceListSerializer(drf_serializers.ModelSerializer):
             'id', 'title', 'description', 'post_type', 'price', 'price_unit',
             'condition', 'is_negotiable', 'status', 'campus_visibility',
             'safe_meetup_location', 'rejection_reason', 'duration_days',
-            'expires_at', 'view_count',
-            'seller_name', 'seller_email', 'university_name', 'category_name',
-            'primary_image_url',
+            'expires_at', 'view_count', 'reviewed_by',
+            'seller_name', 'seller_email', 'university_name', 'university_short',
+            'category_name', 'primary_image_url', 'images', 'user',
+            'category', 'university',
             # Sell-specific
             'brand', 'model_name', 'usage_duration', 'delivery_option',
             # Rent-specific
@@ -59,6 +65,37 @@ class AdminMarketplaceListSerializer(drf_serializers.ModelSerializer):
     def get_primary_image_url(self, obj):
         img = obj.images.filter(is_primary=True).first() or obj.images.first()
         return img.image_url if img else None
+
+    def get_images(self, obj):
+        return [
+            {'id': str(img.id), 'image_url': img.image_url, 'image': img.image_url}
+            for img in obj.images.all()
+        ]
+
+    def get_user(self, obj):
+        u = obj.user
+        return {
+            'id': str(u.id),
+            'full_name': u.full_name,
+            'name': u.full_name,
+            'email': u.email,
+            'profile_picture': getattr(u, 'profile_picture', None),
+            'role': getattr(u, 'role', 'normal_user'),
+        }
+
+    def get_category(self, obj):
+        if not obj.category:
+            return None
+        return {'id': str(obj.category.id), 'name': obj.category.name}
+
+    def get_university(self, obj):
+        if not obj.university:
+            return None
+        return {
+            'name': obj.university.name,
+            'short_name': getattr(obj.university, 'short_name', ''),
+            'short_code': getattr(obj.university, 'short_name', ''),
+        }
 
 
 class AdminAllProductsListView(APIView):
@@ -128,7 +165,7 @@ class AdminPendingListView(APIView):
             .prefetch_related('images')
             .order_by('-updated_at')
         )
-        serializer = MarketplaceProductOwnerSerializer(products, many=True)
+        serializer = AdminMarketplaceListSerializer(products, many=True)
         return Response({
             'success': True,
             'message': 'Data retrieved successfully.',

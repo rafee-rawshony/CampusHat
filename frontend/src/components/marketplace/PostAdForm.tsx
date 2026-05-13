@@ -10,7 +10,6 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
@@ -36,7 +35,6 @@ const postAdSchema = z.object({
     condition: z.string().optional(),
     price: z.coerce.number().positive('Price must be greater than 0'),
     duration_days: z.coerce.number().refine(v => [7, 15, 30, 90, 180].includes(v), 'Invalid duration'),
-    is_anonymous: z.boolean().default(false),
     is_negotiable: z.boolean().default(false),
     images: z.array(z.object({
         url: z.string().url('Must be a valid URL').or(z.literal(''))
@@ -176,7 +174,6 @@ export function PostAdForm({ editId }: PostAdFormProps) {
             condition: 'good',
             price: 0,
             duration_days: 15,
-            is_anonymous: false,
             is_negotiable: false,
             images: [],
             brand: '', model_name: '', usage_duration: '', delivery_option: '',
@@ -220,7 +217,6 @@ export function PostAdForm({ editId }: PostAdFormProps) {
                         condition: (data.post_type === 'rent' || data.post_type === 'rental') ? '' : (data.condition || 'good'),
                         price: Number(data.price),
                         duration_days: 15,
-                        is_anonymous: Boolean(data.is_anonymous),
                         is_negotiable: Boolean(data.is_negotiable),
                         images: Array.isArray(data.images) && data.images.length > 0
                             ? data.images.map((img: any) => ({ url: typeof img === 'string' ? img : (img.image_url || img.image) }))
@@ -291,7 +287,6 @@ export function PostAdForm({ editId }: PostAdFormProps) {
                 category: finalCategory,
                 price: data.price,
                 duration_days: data.duration_days,
-                is_anonymous: data.is_anonymous,
                 is_negotiable: data.is_negotiable,
                 images: urlList,
                 ...(data.condition ? { condition: data.condition } : {}),
@@ -510,30 +505,7 @@ export function PostAdForm({ editId }: PostAdFormProps) {
                         </div>
                     </div>
 
-                    <div className="mt-6 flex items-start space-x-3">
-                        <Controller
-                            name="is_anonymous"
-                            control={control}
-                            render={({ field }) => (
-                                <Checkbox
-                                    id="is_anonymous"
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                    className="mt-1"
-                                />
-                            )}
-                        />
-                        <div className="space-y-1 leading-none">
-                            <Label htmlFor="is_anonymous" className="text-sm font-medium cursor-pointer">
-                                Post Anonymously
-                            </Label>
-                            <p className="text-sm text-gray-500">
-                                Hide your profile name and avatar from this listing. Your verified status badge will still be shown.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="bg-blue-50 rounded-lg p-3 mt-4 flex items-start gap-3">
+                    <div className="bg-blue-50 rounded-lg p-3 mt-6 flex items-start gap-3">
                         <Info className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
                         <p className="text-sm text-blue-800">
                             <strong>Automatic Campus Detection:</strong> This ad will be listed for <strong>{user?.university_name || 'your campus'}</strong>. Only verified users from your campus will see this in their local feed.

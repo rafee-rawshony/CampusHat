@@ -23,9 +23,9 @@ interface DetailListing {
     description: string
     price: string | number
     price_unit?: string
-    images: { id: number, image: string }[]
+    images: { id: number | string, image?: string, image_url?: string }[]
     condition?: string
-    post_type: 'buy' | 'rental' | 'service' | 'food'
+    post_type: 'sell' | 'rent' | 'buy' | 'rental' | 'service' | 'food'
     category: { name: string } | string
     university_name?: string
     meetup_location?: string
@@ -167,7 +167,7 @@ export default function MarketplaceAdDetailPage({ params }: { params: { id: stri
                         </div>
 
                         {/* Type-Specific Details Section */}
-                        {listing.post_type === 'buy' && (listing.brand || listing.model_name || listing.usage_duration || listing.delivery_option) && (
+                        {(listing.post_type === 'buy' || listing.post_type === 'sell') && (listing.brand || listing.model_name || listing.usage_duration || listing.delivery_option) && (
                             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-100">
                                 <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                                     <ShoppingBag className="w-5 h-5 text-blue-600" />
@@ -202,7 +202,7 @@ export default function MarketplaceAdDetailPage({ params }: { params: { id: stri
                             </div>
                         )}
 
-                        {listing.post_type === 'rental' && (listing.location || listing.room_details || listing.facilities || listing.rules_conditions) && (
+                        {(listing.post_type === 'rental' || listing.post_type === 'rent') && (listing.location || listing.room_details || listing.facilities || listing.rules_conditions) && (
                             <div className="space-y-4">
                                 {(listing.location || listing.rental_duration || listing.deposit_amount) && (
                                     <div className="bg-gradient-to-r from-violet-50 to-purple-50 p-6 rounded-2xl border border-violet-100">

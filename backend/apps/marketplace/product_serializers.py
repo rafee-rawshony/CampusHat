@@ -217,6 +217,8 @@ class MarketplaceProductListSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True, default=None)
     primary_image_url = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
+    seller_name = serializers.CharField(source='user.full_name', read_only=True)
+    seller_avatar = serializers.SerializerMethodField()
 
     class Meta:
         model = MarketplaceProduct
@@ -227,6 +229,7 @@ class MarketplaceProductListSerializer(serializers.ModelSerializer):
             'category_name', 'primary_image_url', 'images',
             'status', 'expires_at', 'view_count',
             'is_negotiable', 'created_at',
+            'seller_name', 'seller_avatar',
             # Sell
             'brand', 'model_name', 'delivery_option',
             # Rent
@@ -246,7 +249,6 @@ class MarketplaceProductListSerializer(serializers.ModelSerializer):
         return first.image_url if first else None
 
     def get_images(self, obj):
-        # Compatibility payload for clients that still read listing.images[0].image.
         return [
             {
                 'id': str(img.id),
@@ -255,6 +257,9 @@ class MarketplaceProductListSerializer(serializers.ModelSerializer):
             }
             for img in obj.images.all()
         ]
+
+    def get_seller_avatar(self, obj):
+        return getattr(obj.user, 'profile_picture', None)
 
 
 # =============================================================================
@@ -391,11 +396,19 @@ class MarketplaceProductOwnerUpdateSerializer(serializers.ModelSerializer):
     Only safe fields are writable. Status, university, user are all
     read-only — owners cannot self-approve their ads.
     """
+    images = serializers.ListField(
+        child=serializers.URLField(max_length=500),
+        max_length=8,
+        required=False,
+        write_only=True,
+    )
+
     class Meta:
         model = MarketplaceProduct
         fields = [
             'title', 'description', 'price', 'price_unit',
             'condition', 'is_negotiable', 'safe_meetup_location',
+            'images',
             # Sell-specific
             'brand', 'model_name', 'usage_duration', 'delivery_option',
             # Rent-specific
@@ -430,9 +443,10 @@ class MarketplaceProductOwnerUpdateSerializer(serializers.ModelSerializer):
         return data
 
     def update(self, instance, validated_data):
+        image_urls = validated_data.pop('images', None)
         content_fields = {'title', 'description', 'price'}
         was_resubmitted = False
-        
+
         if instance.status == 'active' and (set(validated_data) & content_fields):
             validated_data['status'] = 'pending'
             was_resubmitted = True
@@ -440,10 +454,20 @@ class MarketplaceProductOwnerUpdateSerializer(serializers.ModelSerializer):
             validated_data['status'] = 'pending'
             validated_data['rejection_reason'] = ''
             was_resubmitted = True
-            
+
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
+
+        if image_urls is not None:
+            instance.images.all().delete()
+            for idx, url in enumerate(image_urls):
+                MarketplaceProductImage.objects.create(
+                    product=instance,
+                    image_url=url,
+                    sort_order=idx,
+                    is_primary=(idx == 0),
+                )
 
         if was_resubmitted:
             try:

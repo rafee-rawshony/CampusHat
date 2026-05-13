@@ -191,28 +191,19 @@ export function MarketplaceAdReviewTab() {
                     </p>
 
                     <div className="mt-3 flex items-center gap-2">
-                        {ad.is_anonymous ? (
-                            <>
-                                <div className="w-6 h-6 rounded-full bg-gray-200 shrink-0" />
-                                <span className="text-sm text-gray-500 italic font-medium">Anonymous Seller</span>
-                            </>
-                        ) : (
-                            <>
-                                <Avatar className="w-6 h-6 rounded-full shrink-0">
-                                    <AvatarImage src={ad.user?.profile_picture} />
-                                    <AvatarFallback className="bg-gray-200 text-gray-600 text-[10px]">{getInitials(sellerName)}</AvatarFallback>
-                                </Avatar>
-                                <span className="text-sm font-medium text-gray-600 truncate">{sellerName}</span>
-                                {ad.user?.role && (
-                                    <span className="bg-gray-100 text-gray-500 text-[9px] px-1.5 py-0.5 rounded-sm uppercase tracking-wider font-bold">
-                                        {ad.user.role.replace('normal_user', 'student')}
-                                    </span>
-                                )}
-                            </>
+                        <Avatar className="w-6 h-6 rounded-full shrink-0">
+                            <AvatarImage src={ad.user?.profile_picture} />
+                            <AvatarFallback className="bg-gray-200 text-gray-600 text-[10px]">{getInitials(sellerName)}</AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm font-medium text-gray-600 truncate">{sellerName}</span>
+                        {ad.user?.role && (
+                            <span className="bg-gray-100 text-gray-500 text-[9px] px-1.5 py-0.5 rounded-sm uppercase tracking-wider font-bold">
+                                {ad.user.role.replace('normal_user', 'student')}
+                            </span>
                         )}
                     </div>
 
-                                        <p className="text-sm text-gray-500 line-clamp-2 mt-3">{ad.description}</p>
+                    <p className="text-sm text-gray-500 line-clamp-2 mt-3">{ad.description}</p>
 
                     {/* Type-specific detail chips for admin review */}
                     {postType === 'buy' && (ad.brand || ad.model_name || ad.delivery_option) && (
