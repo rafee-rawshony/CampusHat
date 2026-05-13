@@ -38,7 +38,21 @@ class AdminMarketplaceListSerializer(drf_serializers.ModelSerializer):
             'safe_meetup_location', 'rejection_reason', 'duration_days',
             'expires_at', 'view_count',
             'seller_name', 'seller_email', 'university_name', 'category_name',
-            'primary_image_url', 'created_at', 'updated_at',
+            'primary_image_url',
+            # Sell-specific
+            'brand', 'model_name', 'usage_duration', 'delivery_option',
+            # Rent-specific
+            'location', 'availability_date', 'rental_duration',
+            'deposit_amount', 'facilities', 'room_details',
+            'rules_conditions', 'contact_preference',
+            # Service-specific
+            'skills', 'experience', 'delivery_time',
+            'availability_hours', 'portfolio_url', 'previous_work_desc',
+            # Food-specific
+            'ingredients', 'portion_size', 'delivery_area',
+            'food_delivery_time', 'daily_availability',
+            'hygiene_certification', 'combo_packages',
+            'created_at', 'updated_at',
         ]
         read_only_fields = fields
 

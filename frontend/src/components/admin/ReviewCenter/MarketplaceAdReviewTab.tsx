@@ -212,7 +212,40 @@ export function MarketplaceAdReviewTab() {
                         )}
                     </div>
 
-                    <p className="text-sm text-gray-500 line-clamp-2 mt-3 flex-1">{ad.description}</p>
+                                        <p className="text-sm text-gray-500 line-clamp-2 mt-3">{ad.description}</p>
+
+                    {/* Type-specific detail chips for admin review */}
+                    {postType === 'buy' && (ad.brand || ad.model_name || ad.delivery_option) && (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                            {ad.brand && <span className="text-[10px] font-medium text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">Brand: {ad.brand}</span>}
+                            {ad.model_name && <span className="text-[10px] font-medium text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">Model: {ad.model_name}</span>}
+                            {ad.usage_duration && <span className="text-[10px] font-medium text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">Used: {ad.usage_duration}</span>}
+                            {ad.delivery_option && <span className="text-[10px] font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">Delivery: {ad.delivery_option}</span>}
+                        </div>
+                    )}
+                    {postType === 'rental' && (ad.location || ad.deposit_amount) && (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                            {ad.location && <span className="text-[10px] font-medium text-violet-700 bg-violet-50 px-1.5 py-0.5 rounded truncate max-w-[180px]">📍 {ad.location}</span>}
+                            {ad.deposit_amount && Number(ad.deposit_amount) > 0 && <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">Deposit: ৳{Number(ad.deposit_amount).toLocaleString()}</span>}
+                            {ad.rental_duration && <span className="text-[10px] font-medium text-violet-700 bg-violet-50 px-1.5 py-0.5 rounded">Duration: {ad.rental_duration}</span>}
+                            {ad.contact_preference && <span className="text-[10px] font-medium text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">Contact: {ad.contact_preference}</span>}
+                        </div>
+                    )}
+                    {postType === 'service' && (ad.skills || ad.experience || ad.delivery_time) && (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                            {ad.skills && ad.skills.split(',').slice(0, 3).map((s: string, i: number) => <span key={i} className="text-[10px] font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">{s.trim()}</span>)}
+                            {ad.experience && <span className="text-[10px] font-medium text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded">Exp: {ad.experience}</span>}
+                            {ad.delivery_time && <span className="text-[10px] font-medium text-orange-700 bg-orange-50 px-1.5 py-0.5 rounded">Delivery: {ad.delivery_time}</span>}
+                        </div>
+                    )}
+                    {postType === 'food' && (ad.portion_size || ad.delivery_area || ad.food_delivery_time) && (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                            {ad.portion_size && <span className="text-[10px] font-medium text-red-700 bg-red-50 px-1.5 py-0.5 rounded">Portion: {ad.portion_size}</span>}
+                            {ad.food_delivery_time && <span className="text-[10px] font-medium text-orange-700 bg-orange-50 px-1.5 py-0.5 rounded">Delivery: {ad.food_delivery_time}</span>}
+                            {ad.delivery_area && <span className="text-[10px] font-medium text-green-700 bg-green-50 px-1.5 py-0.5 rounded truncate max-w-[180px]">Area: {ad.delivery_area}</span>}
+                            {ad.ingredients && <span className="text-[10px] font-medium text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded truncate max-w-[180px]">Ingredients listed</span>}
+                        </div>
+                    )}
                     
                     <div className="mt-2 flex items-center justify-between">
                         <span className="text-xs text-gray-400 font-medium">Submitted {timeAgo(ad.created_at)}</span>

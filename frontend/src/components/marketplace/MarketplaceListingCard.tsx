@@ -1,13 +1,14 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { Clock, MapPin, Package, User } from 'lucide-react'
+import {
+    Clock, MapPin, Package, User, ShoppingBag, Key, Briefcase,
+    UtensilsCrossed, Tag, Truck, Banknote, Timer
+} from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 
 import { Badge } from '@/components/ui/badge'
 import { absoluteMediaUrl } from '@/services/upload.service'
 
-// Types for a marketplace listing card.
-// Exported so pages/sections can type their data properly.
 export type MarketplacePostType = 'sell' | 'rent' | 'service' | 'food' | 'buy' | 'rental'
 type CanonicalPostType = 'sell' | 'rent' | 'service' | 'food'
 
@@ -15,7 +16,7 @@ export interface MarketplaceListing {
     id: string | number
     title: string
     price: string | number
-    price_unit?: string | null          // e.g. "hour", "day" for services
+    price_unit?: string | null
     post_type: MarketplacePostType | string
     images?: Array<{ image?: string; image_url?: string } | string>
     primary_image_url?: string | null
@@ -30,62 +31,78 @@ export interface MarketplaceListing {
         avatar?: string | null
     } | null
     created_at: string
-    // Backend sends false when the viewer is NOT a verified marketplace user.
-    // When false, we must hide the seller's identity.
     contact_visible?: boolean
-    // Optional stock-style indicator for services/food etc.
     remaining_interest?: number | null
+    // Sell extras
+    brand?: string | null
+    model_name?: string | null
+    delivery_option?: string | null
+    // Rent extras
+    location?: string | null
+    deposit_amount?: string | number | null
+    // Service extras
+    skills?: string | null
+    delivery_time?: string | null
+    // Food extras
+    portion_size?: string | null
+    delivery_area?: string | null
+    food_delivery_time?: string | null
+    is_negotiable?: boolean
 }
 
-interface MarketplaceListingCardProps {
+export interface MarketplaceListingCardProps {
     listing: MarketplaceListing
 }
 
-// Badge color + label per post type.
-const TYPE_BADGE: Record<CanonicalPostType, { label: string; bg: string }> = {
-    sell: { label: 'BUY', bg: 'bg-blue-600' },
-    rent: { label: 'RENTAL', bg: 'bg-green-600' },
-    service: { label: 'SERVICE', bg: 'bg-purple-600' },
-    food: { label: 'FOOD', bg: 'bg-amber-600' },
+const TYPE_CONFIG: Record<CanonicalPostType, {
+    label: string
+    badgeBg: string
+    accentColor: string
+    priceColor: string
+    fallbackBg: string
+    icon: React.ReactNode
+    hoverAccent: string
+}> = {
+    sell: {
+        label: 'BUY',
+        badgeBg: 'bg-blue-600',
+        accentColor: 'text-blue-600',
+        priceColor: 'text-blue-700',
+        fallbackBg: 'bg-gradient-to-br from-blue-500 to-indigo-700',
+        icon: <ShoppingBag className="w-3 h-3" />,
+        hoverAccent: 'group-hover:text-blue-600',
+    },
+    rent: {
+        label: 'RENT',
+        badgeBg: 'bg-violet-600',
+        accentColor: 'text-violet-600',
+        priceColor: 'text-violet-700',
+        fallbackBg: 'bg-gradient-to-br from-violet-500 to-purple-700',
+        icon: <Key className="w-3 h-3" />,
+        hoverAccent: 'group-hover:text-violet-600',
+    },
+    service: {
+        label: 'SERVICE',
+        badgeBg: 'bg-emerald-600',
+        accentColor: 'text-emerald-600',
+        priceColor: 'text-emerald-700',
+        fallbackBg: 'bg-gradient-to-br from-emerald-500 to-teal-700',
+        icon: <Briefcase className="w-3 h-3" />,
+        hoverAccent: 'group-hover:text-emerald-600',
+    },
+    food: {
+        label: 'FOOD',
+        badgeBg: 'bg-red-500',
+        accentColor: 'text-red-500',
+        priceColor: 'text-red-600',
+        fallbackBg: 'bg-gradient-to-br from-red-500 to-orange-600',
+        icon: <UtensilsCrossed className="w-3 h-3" />,
+        hoverAccent: 'group-hover:text-red-500',
+    },
 }
 
-// Gradient shown when the listing has no image.
-const FALLBACK_BG: Record<CanonicalPostType, string> = {
-    sell: 'bg-gradient-to-br from-blue-500 to-blue-700',
-    rent: 'bg-gradient-to-br from-gray-500 to-gray-700',
-    service: 'bg-gradient-to-br from-purple-500 to-pink-600',
-    food: 'bg-gradient-to-br from-amber-500 to-orange-600',
-}
+const LISTING_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000
 
-// Default marketplace ad lifetime — used for the "time left" badge.
-const LISTING_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000 // 30 days
-
-// Small helper — how long until the listing expires.
-function getTimeLeft(createdAt: string): string | null {
-    try {
-        const expiresAt = new Date(createdAt).getTime() + LISTING_LIFETIME_MS
-        const diffMs = expiresAt - Date.now()
-        if (diffMs <= 0) return null
-        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-        if (diffDays > 0) return `${diffDays}d LEFT`
-        const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-        return `${diffHours} HRS LEFT`
-    } catch {
-        return null
-    }
-}
-
-// "Posted 2 hours ago" style timestamp.
-function getTimeAgo(dateStr: string): string {
-    try {
-        return formatDistanceToNow(new Date(dateStr), { addSuffix: true })
-    } catch {
-        return 'Recently'
-    }
-}
-
-// Build the displayed price string.
-// Rentals are always monthly. Services may have a price_unit like "hour".
 function normalizePostType(postType: MarketplaceListing['post_type']): CanonicalPostType {
     if (postType === 'buy') return 'sell'
     if (postType === 'rental') return 'rent'
@@ -95,22 +112,17 @@ function normalizePostType(postType: MarketplaceListing['post_type']): Canonical
 
 function formatPrice(listing: MarketplaceListing, postType: CanonicalPostType): string {
     const amount = `৳${Number(listing.price || 0).toLocaleString()}`
-    if (postType === 'rent') return `${amount} / month`
-    if (postType === 'service' && listing.price_unit) {
-        return `${amount} / ${listing.price_unit}`
-    }
+    if (postType === 'rent') return `${amount}/mo`
+    if (postType === 'service' && listing.price_unit) return `${amount}/${listing.price_unit}`
     return amount
 }
 
-// Pick the best image URL available (backend is inconsistent between
-// `image` and `image_url`).
 function getImageUrl(listing: MarketplaceListing): string | null {
     const first = listing.images?.[0]
     const firstImage = typeof first === 'string' ? first : first?.image_url || first?.image || null
     return listing.primary_image_url || firstImage || null
 }
 
-// Short seller name: "First L." — avoids showing the full last name.
 function getSellerLabel(user: MarketplaceListing['user']): string {
     if (!user) return 'Seller'
     if (user.full_name) return user.full_name
@@ -119,10 +131,122 @@ function getSellerLabel(user: MarketplaceListing['user']): string {
     return lastInitial ? `${first} ${lastInitial}.` : first
 }
 
+function getTimeLeft(createdAt: string): string | null {
+    try {
+        const expiresAt = new Date(createdAt).getTime() + LISTING_LIFETIME_MS
+        const diffMs = expiresAt - Date.now()
+        if (diffMs <= 0) return null
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+        if (diffDays > 0) return `${diffDays}d left`
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+        return `${diffHours}h left`
+    } catch {
+        return null
+    }
+}
+
+function getTimeAgo(dateStr: string): string {
+    try {
+        return formatDistanceToNow(new Date(dateStr), { addSuffix: true })
+    } catch {
+        return 'Recently'
+    }
+}
+
+function SellMeta({ listing }: { listing: MarketplaceListing }) {
+    const chips: React.ReactNode[] = []
+    if (listing.brand) {
+        chips.push(
+            <span key="brand" className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">
+                <Tag className="w-2.5 h-2.5" />{listing.brand}
+            </span>
+        )
+    }
+    if (listing.delivery_option) {
+        const label = listing.delivery_option === 'meetup' ? 'Meetup' : listing.delivery_option === 'delivery' ? 'Delivery' : 'Meetup+Delivery'
+        chips.push(
+            <span key="delivery" className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                <Truck className="w-2.5 h-2.5" />{label}
+            </span>
+        )
+    }
+    if (chips.length === 0) return null
+    return <div className="flex flex-wrap gap-1 mt-1.5">{chips}</div>
+}
+
+function RentMeta({ listing }: { listing: MarketplaceListing }) {
+    const hasAny = listing.location || (listing.deposit_amount && Number(listing.deposit_amount) > 0)
+    if (!hasAny) return null
+    return (
+        <div className="mt-1.5 space-y-0.5">
+            {listing.location && (
+                <div className="flex items-center gap-1 text-[10px] text-violet-600 font-medium truncate">
+                    <MapPin className="w-2.5 h-2.5 shrink-0" />{listing.location}
+                </div>
+            )}
+            {listing.deposit_amount && Number(listing.deposit_amount) > 0 && (
+                <div className="flex items-center gap-1 text-[10px] text-amber-600 font-medium">
+                    <Banknote className="w-2.5 h-2.5 shrink-0" />Deposit: ৳{Number(listing.deposit_amount).toLocaleString()}
+                </div>
+            )}
+        </div>
+    )
+}
+
+function ServiceMeta({ listing }: { listing: MarketplaceListing }) {
+    const chips: React.ReactNode[] = []
+    if (listing.skills) {
+        listing.skills.split(',').slice(0, 2).map(s => s.trim()).filter(Boolean).forEach((s, i) => {
+            chips.push(
+                <span key={`skill-${i}`} className="text-[10px] font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                    {s}
+                </span>
+            )
+        })
+    }
+    if (listing.delivery_time) {
+        chips.push(
+            <span key="dt" className="inline-flex items-center gap-1 text-[10px] font-medium text-orange-700 bg-orange-50 px-1.5 py-0.5 rounded">
+                <Timer className="w-2.5 h-2.5" />{listing.delivery_time}
+            </span>
+        )
+    }
+    if (chips.length === 0) return null
+    return <div className="flex flex-wrap gap-1 mt-1.5">{chips}</div>
+}
+
+function FoodMeta({ listing }: { listing: MarketplaceListing }) {
+    const chips: React.ReactNode[] = []
+    if (listing.portion_size) {
+        const label = listing.portion_size.charAt(0).toUpperCase() + listing.portion_size.slice(1)
+        chips.push(
+            <span key="portion" className="inline-flex items-center gap-1 text-[10px] font-medium text-red-700 bg-red-50 px-1.5 py-0.5 rounded">
+                <Package className="w-2.5 h-2.5" />{label}
+            </span>
+        )
+    }
+    if (listing.food_delivery_time) {
+        chips.push(
+            <span key="fdt" className="inline-flex items-center gap-1 text-[10px] font-medium text-orange-700 bg-orange-50 px-1.5 py-0.5 rounded">
+                <Timer className="w-2.5 h-2.5" />{listing.food_delivery_time}
+            </span>
+        )
+    }
+    if (listing.delivery_area) {
+        chips.push(
+            <span key="area" className="inline-flex items-center gap-1 text-[10px] font-medium text-green-700 bg-green-50 px-1.5 py-0.5 rounded truncate max-w-[120px]">
+                <MapPin className="w-2.5 h-2.5 shrink-0" />{listing.delivery_area}
+            </span>
+        )
+    }
+    if (chips.length === 0) return null
+    return <div className="flex flex-wrap gap-1 mt-1.5">{chips}</div>
+}
+
 export function MarketplaceListingCard({ listing }: MarketplaceListingCardProps) {
     const postType = normalizePostType(listing.post_type)
     const imageUrl = absoluteMediaUrl(getImageUrl(listing))
-    const badge = TYPE_BADGE[postType] || TYPE_BADGE.sell
+    const cfg = TYPE_CONFIG[postType]
 
     const categoryName =
         typeof listing.category === 'string'
@@ -137,14 +261,13 @@ export function MarketplaceListingCard({ listing }: MarketplaceListingCardProps)
     const timeAgo = getTimeAgo(listing.created_at)
     const priceLabel = formatPrice(listing, postType)
 
-    // Security: the backend decides visibility. Default to hidden when not sent.
     const contactVisible = listing.contact_visible === true
     const sellerLabel = getSellerLabel(listing.user)
 
     return (
         <Link
             href={`/marketplace/listings/${listing.id}`}
-            className="group block bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md hover:scale-[1.01] transition-all duration-300 overflow-hidden"
+            className="group block bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-lg hover:scale-[1.015] transition-all duration-300 overflow-hidden"
         >
             {/* Image Area */}
             <div className="relative aspect-[4/3] w-full overflow-hidden">
@@ -158,73 +281,79 @@ export function MarketplaceListingCard({ listing }: MarketplaceListingCardProps)
                         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                     />
                 ) : (
-                    <div
-                        className={`w-full h-full ${FALLBACK_BG[postType]} flex items-center justify-center p-4`}
-                    >
+                    <div className={`w-full h-full ${cfg.fallbackBg} flex items-center justify-center p-4`}>
                         <span className="text-white font-bold text-sm text-center line-clamp-3">
                             {listing.title}
                         </span>
                     </div>
                 )}
 
-                {/* Top-left badges: condition + post type */}
+                {/* Top-left: type badge */}
                 <div className="absolute top-2 left-2 flex flex-col gap-1 items-start">
-                    {listing.condition && (
-                        <Badge className="bg-blue-600 text-white border-0 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full shadow-sm">
-                            {listing.condition.replace(/-/g, ' ')}
-                        </Badge>
-                    )}
-                    {postType !== 'sell' && (
-                        <Badge className={`${badge.bg} text-white border-0 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full shadow-sm`}>
-                            {badge.label}
+                    <Badge className={`${cfg.badgeBg} text-white border-0 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1`}>
+                        {cfg.icon}
+                        {cfg.label}
+                    </Badge>
+                    {listing.condition && postType === 'sell' && (
+                        <Badge className="bg-white/90 text-gray-800 border-0 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full shadow-sm backdrop-blur-sm">
+                            {listing.condition.replace(/_/g, ' ')}
                         </Badge>
                     )}
                 </div>
 
-                {/* Bottom-right: either "time left" OR "X left in stock" — not both. */}
-                {timeLeft && listing.remaining_interest == null && (
-                    <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/60 text-white px-2 py-0.5 rounded text-[10px] font-medium backdrop-blur-sm">
-                        <Clock className="w-3 h-3" />
-                        <span>{timeLeft}</span>
+                {/* Top-right: negotiable tag for sell */}
+                {postType === 'sell' && listing.is_negotiable && (
+                    <div className="absolute top-2 right-2">
+                        <Badge className="bg-amber-500 text-white border-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">
+                            Negotiable
+                        </Badge>
                     </div>
                 )}
-                {listing.remaining_interest != null && listing.remaining_interest > 0 && (
-                    <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-white/95 text-gray-800 px-2 py-0.5 rounded-full shadow-sm">
-                        <Package className="w-3 h-3 text-brand-primary" />
-                        <span className="text-[10px] font-bold">
-                            {listing.remaining_interest} left
+
+                {/* Bottom overlay — price + time left */}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent p-2 pt-6">
+                    <div className="flex items-end justify-between">
+                        <span className="font-extrabold text-white text-base drop-shadow-md">
+                            {priceLabel}
                         </span>
+                        {timeLeft && (
+                            <div className="flex items-center gap-1 bg-white/20 backdrop-blur-sm text-white px-1.5 py-0.5 rounded text-[9px] font-medium">
+                                <Clock className="w-2.5 h-2.5" />
+                                <span>{timeLeft}</span>
+                            </div>
+                        )}
                     </div>
-                )}
+                </div>
             </div>
 
             {/* Content */}
             <div className="p-3">
-                {/* Category · University row */}
+                {/* Category + University */}
                 <div className="flex items-center justify-between gap-2 mb-1">
-                    <span className="text-[10px] uppercase text-gray-400 tracking-wider font-medium truncate">
-                        {categoryName || ' '}
+                    <span className={`text-[10px] uppercase tracking-wider font-semibold truncate ${cfg.accentColor}`}>
+                        {categoryName || ' '}
                     </span>
                     {uniShort && (
-                        <div className="flex items-center gap-1 text-gray-400 shrink-0">
-                            <MapPin className="w-3 h-3" />
-                            <span className="text-[10px] font-semibold truncate max-w-[80px]">
-                                {uniShort}
-                            </span>
+                        <div className="flex items-center gap-0.5 text-gray-400 shrink-0">
+                            <MapPin className="w-2.5 h-2.5" />
+                            <span className="text-[9px] font-semibold truncate max-w-[70px]">{uniShort}</span>
                         </div>
                     )}
                 </div>
 
                 {/* Title */}
-                <h3 className="font-semibold text-sm text-gray-900 leading-snug line-clamp-2 min-h-[36px] mb-1.5 group-hover:text-[#4C3B8A] transition-colors">
+                <h3 className={`font-semibold text-sm text-gray-900 leading-snug line-clamp-2 min-h-[36px] mb-1 ${cfg.hoverAccent} transition-colors`}>
                     {listing.title}
                 </h3>
 
-                {/* Price */}
-                <p className="font-bold text-gray-900 text-base mb-3">{priceLabel}</p>
+                {/* Type-specific meta chips */}
+                {postType === 'sell' && <SellMeta listing={listing} />}
+                {postType === 'rent' && <RentMeta listing={listing} />}
+                {postType === 'service' && <ServiceMeta listing={listing} />}
+                {postType === 'food' && <FoodMeta listing={listing} />}
 
-                {/* Seller row + "time ago". Hide identity when contact_visible is false. */}
-                <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                {/* Seller row */}
+                <div className="flex items-center justify-between pt-2 mt-2 border-t border-gray-100">
                     <div className="flex items-center gap-1.5 min-w-0">
                         {contactVisible ? (
                             <>
@@ -232,33 +361,32 @@ export function MarketplaceListingCard({ listing }: MarketplaceListingCardProps)
                                     <Image
                                         src={absoluteMediaUrl(listing.user.avatar)}
                                         alt=""
-                                        width={24}
-                                        height={24}
+                                        width={22}
+                                        height={22}
                                         unoptimized
-                                        className="rounded-full object-cover w-6 h-6 border border-gray-200"
+                                        className="rounded-full object-cover w-[22px] h-[22px] border border-gray-200"
                                     />
                                 ) : (
-                                    <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center border border-gray-200">
-                                        <User className="w-3 h-3 text-gray-400" />
+                                    <div className="w-[22px] h-[22px] rounded-full bg-gray-100 flex items-center justify-center border border-gray-200">
+                                        <User className="w-2.5 h-2.5 text-gray-400" />
                                     </div>
                                 )}
-                                <span className="text-xs text-gray-600 font-medium truncate max-w-[100px]">
+                                <span className="text-[11px] text-gray-600 font-medium truncate max-w-[90px]">
                                     {sellerLabel}
                                 </span>
                             </>
                         ) : (
-                            // Unverified viewer — blur identity instead of leaking it.
                             <>
-                                <div className="w-6 h-6 rounded-full bg-gray-200 blur-[2px]" />
-                                <span className="text-xs font-semibold text-gray-400 blur-[3px] select-none">
-                                    Hidden User
+                                <div className="w-[22px] h-[22px] rounded-full bg-gray-200 blur-[2px]" />
+                                <span className="text-[11px] font-semibold text-gray-400 blur-[3px] select-none">
+                                    Hidden
                                 </span>
                             </>
                         )}
                     </div>
-                    <div className="flex items-center gap-1 text-gray-400 shrink-0">
-                        <Clock className="w-3 h-3" />
-                        <span className="text-[10px] font-medium">{timeAgo}</span>
+                    <div className="flex items-center gap-0.5 text-gray-400 shrink-0">
+                        <Clock className="w-2.5 h-2.5" />
+                        <span className="text-[9px] font-medium">{timeAgo}</span>
                     </div>
                 </div>
             </div>

@@ -85,6 +85,19 @@ class MarketplaceProductCreateSerializer(serializers.ModelSerializer):
             'price', 'price_unit', 'condition', 'is_negotiable',
             'campus_visibility', 'duration_days',
             'safe_meetup_location', 'images',
+            # Sell-specific
+            'brand', 'model_name', 'usage_duration', 'delivery_option',
+            # Rent-specific
+            'location', 'availability_date', 'rental_duration',
+            'deposit_amount', 'facilities', 'room_details',
+            'rules_conditions', 'contact_preference',
+            # Service-specific
+            'skills', 'experience', 'delivery_time',
+            'availability_hours', 'portfolio_url', 'previous_work_desc',
+            # Food-specific
+            'ingredients', 'portion_size', 'delivery_area',
+            'food_delivery_time', 'daily_availability',
+            'hygiene_certification', 'combo_packages',
         ]
 
     def validate_duration_days(self, value):
@@ -214,6 +227,14 @@ class MarketplaceProductListSerializer(serializers.ModelSerializer):
             'category_name', 'primary_image_url', 'images',
             'status', 'expires_at', 'view_count',
             'is_negotiable', 'created_at',
+            # Sell
+            'brand', 'model_name', 'delivery_option',
+            # Rent
+            'location', 'deposit_amount',
+            # Service
+            'skills', 'delivery_time',
+            # Food
+            'portion_size', 'delivery_area', 'food_delivery_time',
         ]
         read_only_fields = fields
 
@@ -267,6 +288,19 @@ class MarketplaceProductDetailSerializer(serializers.ModelSerializer):
             'category_name', 'images', 'user_info',
             'contact_visible', 'contact_phone', 'rejection_reason',
             'offers_count', 'reviews_count', 'average_rating',
+            # Sell-specific
+            'brand', 'model_name', 'usage_duration', 'delivery_option',
+            # Rent-specific
+            'location', 'availability_date', 'rental_duration',
+            'deposit_amount', 'facilities', 'room_details',
+            'rules_conditions', 'contact_preference',
+            # Service-specific
+            'skills', 'experience', 'delivery_time',
+            'availability_hours', 'portfolio_url', 'previous_work_desc',
+            # Food-specific
+            'ingredients', 'portion_size', 'delivery_area',
+            'food_delivery_time', 'daily_availability',
+            'hygiene_certification', 'combo_packages',
             'created_at', 'updated_at',
         ]
         read_only_fields = fields
@@ -333,6 +367,19 @@ class MarketplaceProductOwnerSerializer(serializers.ModelSerializer):
             'is_hidden_by_user', 'is_auto_expired',
             'repost_count', 'rejection_reason', 'reviewed_by',
             'category_name', 'images',
+            # Sell-specific
+            'brand', 'model_name', 'usage_duration', 'delivery_option',
+            # Rent-specific
+            'location', 'availability_date', 'rental_duration',
+            'deposit_amount', 'facilities', 'room_details',
+            'rules_conditions', 'contact_preference',
+            # Service-specific
+            'skills', 'experience', 'delivery_time',
+            'availability_hours', 'portfolio_url', 'previous_work_desc',
+            # Food-specific
+            'ingredients', 'portion_size', 'delivery_area',
+            'food_delivery_time', 'daily_availability',
+            'hygiene_certification', 'combo_packages',
             'created_at', 'updated_at',
         ]
         read_only_fields = fields
@@ -347,14 +394,21 @@ class MarketplaceProductOwnerUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = MarketplaceProduct
         fields = [
-            # WRITABLE — owner can change these:
-            'title',
-            'description',
-            'price',
-            'price_unit',
-            'condition',
-            'is_negotiable',
-            'safe_meetup_location',
+            'title', 'description', 'price', 'price_unit',
+            'condition', 'is_negotiable', 'safe_meetup_location',
+            # Sell-specific
+            'brand', 'model_name', 'usage_duration', 'delivery_option',
+            # Rent-specific
+            'location', 'availability_date', 'rental_duration',
+            'deposit_amount', 'facilities', 'room_details',
+            'rules_conditions', 'contact_preference',
+            # Service-specific
+            'skills', 'experience', 'delivery_time',
+            'availability_hours', 'portfolio_url', 'previous_work_desc',
+            # Food-specific
+            'ingredients', 'portion_size', 'delivery_area',
+            'food_delivery_time', 'daily_availability',
+            'hygiene_certification', 'combo_packages',
         ]
 
     def validate_price(self, value):

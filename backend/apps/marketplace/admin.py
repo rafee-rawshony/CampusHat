@@ -40,11 +40,60 @@ class MarketplaceProductAdmin(admin.ModelAdmin):
         'campus_visibility', 'expires_at', 'view_count', 'created_at',
     )
     list_filter = ('status', 'post_type', 'campus_visibility', 'condition')
-    search_fields = ('title', 'description', 'user__email')
+    search_fields = ('title', 'description', 'user__email', 'brand', 'model_name')
     raw_id_fields = ('user', 'university', 'category', 'reviewed_by')
     readonly_fields = ('id', 'view_count', 'repost_count', 'created_at', 'updated_at')
     inlines = [ProductImageInline]
     ordering = ('-created_at',)
+
+    fieldsets = (
+        ('Core', {
+            'fields': (
+                'id', 'user', 'university', 'category', 'title',
+                'description', 'post_type', 'status', 'rejection_reason',
+            ),
+        }),
+        ('Pricing & Visibility', {
+            'fields': (
+                'price', 'price_unit', 'condition', 'is_negotiable',
+                'campus_visibility', 'duration_days', 'expires_at',
+                'safe_meetup_location',
+            ),
+        }),
+        ('Sell Details', {
+            'classes': ('collapse',),
+            'fields': ('brand', 'model_name', 'usage_duration', 'delivery_option'),
+        }),
+        ('Rent Details', {
+            'classes': ('collapse',),
+            'fields': (
+                'location', 'availability_date', 'rental_duration',
+                'deposit_amount', 'facilities', 'room_details',
+                'rules_conditions', 'contact_preference',
+            ),
+        }),
+        ('Service Details', {
+            'classes': ('collapse',),
+            'fields': (
+                'skills', 'experience', 'delivery_time',
+                'availability_hours', 'portfolio_url', 'previous_work_desc',
+            ),
+        }),
+        ('Food Details', {
+            'classes': ('collapse',),
+            'fields': (
+                'ingredients', 'portion_size', 'delivery_area',
+                'food_delivery_time', 'daily_availability',
+                'hygiene_certification', 'combo_packages',
+            ),
+        }),
+        ('Stats & Audit', {
+            'fields': (
+                'view_count', 'repost_count', 'is_hidden_by_user',
+                'is_auto_expired', 'reviewed_by', 'created_at', 'updated_at',
+            ),
+        }),
+    )
 
 
 @admin.register(MarketplaceProductImage)

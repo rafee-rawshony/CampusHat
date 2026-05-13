@@ -32,6 +32,25 @@ from core.models import BaseModel, TimestampMixin, UUIDMixin
 # CHOICES
 # =============================================================================
 
+DELIVERY_OPTION_CHOICES = [
+    ('meetup', 'Campus Meetup'),
+    ('delivery', 'Delivery'),
+    ('both', 'Both'),
+]
+
+CONTACT_PREF_CHOICES = [
+    ('chat', 'In-App Chat'),
+    ('phone', 'Phone Call'),
+    ('both', 'Both'),
+]
+
+PORTION_SIZE_CHOICES = [
+    ('small', 'Small'),
+    ('regular', 'Regular'),
+    ('large', 'Large'),
+    ('family', 'Family Pack'),
+]
+
 AD_TYPE_CHOICES = [
     ('sell', 'Sell'),
     ('rent', 'Rent'),
@@ -238,6 +257,55 @@ class MarketplaceProduct(BaseModel):
     rejection_reason = models.TextField(blank=True, null=True)
     safe_meetup_location = models.CharField(max_length=200, blank=True, null=True)
     view_count = models.IntegerField(default=0)
+
+    # ------------------------------------------------------------------
+    # SELL-specific fields
+    # ------------------------------------------------------------------
+    brand = models.CharField(max_length=100, blank=True, null=True)
+    model_name = models.CharField(max_length=100, blank=True, null=True)
+    usage_duration = models.CharField(max_length=100, blank=True, null=True)
+    delivery_option = models.CharField(
+        max_length=10, choices=DELIVERY_OPTION_CHOICES, blank=True, null=True,
+    )
+
+    # ------------------------------------------------------------------
+    # RENT-specific fields
+    # ------------------------------------------------------------------
+    location = models.CharField(max_length=300, blank=True, null=True)
+    availability_date = models.DateField(blank=True, null=True)
+    rental_duration = models.CharField(max_length=100, blank=True, null=True)
+    deposit_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, blank=True, null=True,
+    )
+    facilities = models.TextField(blank=True, null=True)
+    room_details = models.TextField(blank=True, null=True)
+    rules_conditions = models.TextField(blank=True, null=True)
+    contact_preference = models.CharField(
+        max_length=10, choices=CONTACT_PREF_CHOICES, blank=True, null=True,
+    )
+
+    # ------------------------------------------------------------------
+    # SERVICE-specific fields
+    # ------------------------------------------------------------------
+    skills = models.TextField(blank=True, null=True)
+    experience = models.CharField(max_length=200, blank=True, null=True)
+    delivery_time = models.CharField(max_length=100, blank=True, null=True)
+    availability_hours = models.CharField(max_length=200, blank=True, null=True)
+    portfolio_url = models.URLField(max_length=500, blank=True, null=True)
+    previous_work_desc = models.TextField(blank=True, null=True)
+
+    # ------------------------------------------------------------------
+    # FOOD-specific fields
+    # ------------------------------------------------------------------
+    ingredients = models.TextField(blank=True, null=True)
+    portion_size = models.CharField(
+        max_length=10, choices=PORTION_SIZE_CHOICES, blank=True, null=True,
+    )
+    delivery_area = models.CharField(max_length=300, blank=True, null=True)
+    food_delivery_time = models.CharField(max_length=100, blank=True, null=True)
+    daily_availability = models.CharField(max_length=200, blank=True, null=True)
+    hygiene_certification = models.TextField(blank=True, null=True)
+    combo_packages = models.TextField(blank=True, null=True)
     reviewed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

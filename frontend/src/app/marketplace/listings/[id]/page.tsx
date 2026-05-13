@@ -3,12 +3,8 @@
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
-    MapPin,
-    Clock,
-    Flag,
-    ChevronDown,
-    ChevronUp,
-    Tag
+    MapPin, Clock, Flag, ChevronDown, ChevronUp, Tag,
+    ShoppingBag, Key, Briefcase, UtensilsCrossed
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -44,6 +40,35 @@ interface DetailListing {
     contact_visible: boolean
     contact_phone?: string
     is_negotiable: boolean
+    // Sell
+    brand?: string | null
+    model_name?: string | null
+    usage_duration?: string | null
+    delivery_option?: string | null
+    // Rent
+    location?: string | null
+    availability_date?: string | null
+    rental_duration?: string | null
+    deposit_amount?: string | number | null
+    facilities?: string | null
+    room_details?: string | null
+    rules_conditions?: string | null
+    contact_preference?: string | null
+    // Service
+    skills?: string | null
+    experience?: string | null
+    delivery_time?: string | null
+    availability_hours?: string | null
+    portfolio_url?: string | null
+    previous_work_desc?: string | null
+    // Food
+    ingredients?: string | null
+    portion_size?: string | null
+    delivery_area?: string | null
+    food_delivery_time?: string | null
+    daily_availability?: string | null
+    hygiene_certification?: string | null
+    combo_packages?: string | null
 }
 
 export default function MarketplaceAdDetailPage({ params }: { params: { id: string } }) {
@@ -140,6 +165,218 @@ export default function MarketplaceAdDetailPage({ params }: { params: { id: stri
                                 </button>
                             )}
                         </div>
+
+                        {/* Type-Specific Details Section */}
+                        {listing.post_type === 'buy' && (listing.brand || listing.model_name || listing.usage_duration || listing.delivery_option) && (
+                            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-100">
+                                <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                    <ShoppingBag className="w-5 h-5 text-blue-600" />
+                                    Product Specifications
+                                </h2>
+                                <div className="grid grid-cols-2 gap-4">
+                                    {listing.brand && (
+                                        <div>
+                                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Brand</p>
+                                            <p className="text-sm font-bold text-gray-900 mt-0.5">{listing.brand}</p>
+                                        </div>
+                                    )}
+                                    {listing.model_name && (
+                                        <div>
+                                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Model</p>
+                                            <p className="text-sm font-bold text-gray-900 mt-0.5">{listing.model_name}</p>
+                                        </div>
+                                    )}
+                                    {listing.usage_duration && (
+                                        <div>
+                                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Used For</p>
+                                            <p className="text-sm font-bold text-gray-900 mt-0.5">{listing.usage_duration}</p>
+                                        </div>
+                                    )}
+                                    {listing.delivery_option && (
+                                        <div>
+                                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Delivery</p>
+                                            <p className="text-sm font-bold text-gray-900 mt-0.5 capitalize">{listing.delivery_option.replace(/_/g, ' ')}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {listing.post_type === 'rental' && (listing.location || listing.room_details || listing.facilities || listing.rules_conditions) && (
+                            <div className="space-y-4">
+                                {(listing.location || listing.rental_duration || listing.deposit_amount) && (
+                                    <div className="bg-gradient-to-r from-violet-50 to-purple-50 p-6 rounded-2xl border border-violet-100">
+                                        <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                            <Key className="w-5 h-5 text-violet-600" />
+                                            Rental Information
+                                        </h2>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            {listing.location && (
+                                                <div className="col-span-2">
+                                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Location</p>
+                                                    <p className="text-sm font-bold text-gray-900 mt-0.5">{listing.location}</p>
+                                                </div>
+                                            )}
+                                            {listing.availability_date && (
+                                                <div>
+                                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Available From</p>
+                                                    <p className="text-sm font-bold text-gray-900 mt-0.5">{listing.availability_date}</p>
+                                                </div>
+                                            )}
+                                            {listing.rental_duration && (
+                                                <div>
+                                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Duration</p>
+                                                    <p className="text-sm font-bold text-gray-900 mt-0.5">{listing.rental_duration}</p>
+                                                </div>
+                                            )}
+                                            {listing.deposit_amount && Number(listing.deposit_amount) > 0 && (
+                                                <div>
+                                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Security Deposit</p>
+                                                    <p className="text-sm font-bold text-amber-700 mt-0.5">৳{Number(listing.deposit_amount).toLocaleString()}</p>
+                                                </div>
+                                            )}
+                                            {listing.contact_preference && (
+                                                <div>
+                                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Contact Via</p>
+                                                    <p className="text-sm font-bold text-gray-900 mt-0.5 capitalize">{listing.contact_preference}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                                {(listing.room_details || listing.facilities) && (
+                                    <div className="bg-gradient-to-r from-teal-50 to-cyan-50 p-6 rounded-2xl border border-teal-100">
+                                        <h2 className="text-lg font-bold text-gray-900 mb-3">Room & Facilities</h2>
+                                        {listing.room_details && (
+                                            <div className="mb-3">
+                                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Room Details</p>
+                                                <p className="text-sm text-gray-700 whitespace-pre-line">{listing.room_details}</p>
+                                            </div>
+                                        )}
+                                        {listing.facilities && (
+                                            <div className="mb-3">
+                                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Facilities</p>
+                                                <p className="text-sm text-gray-700 whitespace-pre-line">{listing.facilities}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                {listing.rules_conditions && (
+                                    <div className="bg-amber-50 p-6 rounded-2xl border border-amber-100">
+                                        <h2 className="text-lg font-bold text-gray-900 mb-2">Rules & Conditions</h2>
+                                        <p className="text-sm text-gray-700 whitespace-pre-line">{listing.rules_conditions}</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {listing.post_type === 'service' && (listing.skills || listing.experience || listing.previous_work_desc) && (
+                            <div className="space-y-4">
+                                <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-6 rounded-2xl border border-emerald-100">
+                                    <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                        <Briefcase className="w-5 h-5 text-emerald-600" />
+                                        Service Profile
+                                    </h2>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {listing.skills && (
+                                            <div className="col-span-2">
+                                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Skills</p>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {listing.skills.split(',').map((s, i) => (
+                                                        <span key={i} className="text-xs font-medium text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">{s.trim()}</span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {listing.experience && (
+                                            <div>
+                                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Experience</p>
+                                                <p className="text-sm font-bold text-gray-900 mt-0.5">{listing.experience}</p>
+                                            </div>
+                                        )}
+                                        {listing.delivery_time && (
+                                            <div>
+                                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Delivery Time</p>
+                                                <p className="text-sm font-bold text-gray-900 mt-0.5">{listing.delivery_time}</p>
+                                            </div>
+                                        )}
+                                        {listing.availability_hours && (
+                                            <div>
+                                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Available</p>
+                                                <p className="text-sm font-bold text-gray-900 mt-0.5">{listing.availability_hours}</p>
+                                            </div>
+                                        )}
+                                        {listing.portfolio_url && (
+                                            <div>
+                                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Portfolio</p>
+                                                <a href={listing.portfolio_url} target="_blank" rel="noreferrer" className="text-sm font-bold text-emerald-600 hover:underline mt-0.5 block truncate">{listing.portfolio_url}</a>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                {listing.previous_work_desc && (
+                                    <div className="bg-purple-50 p-6 rounded-2xl border border-purple-100">
+                                        <h2 className="text-lg font-bold text-gray-900 mb-2">Previous Work</h2>
+                                        <p className="text-sm text-gray-700 whitespace-pre-line">{listing.previous_work_desc}</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {listing.post_type === 'food' && (listing.ingredients || listing.portion_size || listing.delivery_area) && (
+                            <div className="space-y-4">
+                                <div className="bg-gradient-to-r from-red-50 to-orange-50 p-6 rounded-2xl border border-red-100">
+                                    <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                        <UtensilsCrossed className="w-5 h-5 text-red-500" />
+                                        Food Details
+                                    </h2>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {listing.portion_size && (
+                                            <div>
+                                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Portion Size</p>
+                                                <p className="text-sm font-bold text-gray-900 mt-0.5 capitalize">{listing.portion_size}</p>
+                                            </div>
+                                        )}
+                                        {listing.daily_availability && (
+                                            <div>
+                                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Available</p>
+                                                <p className="text-sm font-bold text-gray-900 mt-0.5">{listing.daily_availability}</p>
+                                            </div>
+                                        )}
+                                        {listing.delivery_area && (
+                                            <div>
+                                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Delivery Area</p>
+                                                <p className="text-sm font-bold text-gray-900 mt-0.5">{listing.delivery_area}</p>
+                                            </div>
+                                        )}
+                                        {listing.food_delivery_time && (
+                                            <div>
+                                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Delivery Time</p>
+                                                <p className="text-sm font-bold text-gray-900 mt-0.5">{listing.food_delivery_time}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {listing.ingredients && (
+                                        <div className="mt-4 pt-4 border-t border-red-100">
+                                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Ingredients</p>
+                                            <p className="text-sm text-gray-700 whitespace-pre-line">{listing.ingredients}</p>
+                                        </div>
+                                    )}
+                                </div>
+                                {listing.hygiene_certification && (
+                                    <div className="bg-cyan-50 p-6 rounded-2xl border border-cyan-100">
+                                        <h2 className="text-lg font-bold text-gray-900 mb-2">Hygiene & Safety</h2>
+                                        <p className="text-sm text-gray-700 whitespace-pre-line">{listing.hygiene_certification}</p>
+                                    </div>
+                                )}
+                                {listing.combo_packages && (
+                                    <div className="bg-green-50 p-6 rounded-2xl border border-green-100">
+                                        <h2 className="text-lg font-bold text-gray-900 mb-2">Combo / Package Options</h2>
+                                        <p className="text-sm text-gray-700 whitespace-pre-line">{listing.combo_packages}</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     {/* RIGHT COLUMN: Info & Contact Hub */}
