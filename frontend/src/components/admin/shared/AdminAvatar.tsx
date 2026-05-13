@@ -17,7 +17,7 @@ export function AdminAvatar({ user, size = 'md' }: AdminAvatarProps) {
         lg: 'w-10 h-10 text-sm'
     }
 
-    const { full_name, profile_picture } = user
+    const { full_name = 'Unknown', profile_picture } = user || {}
     const initials = getInitials(full_name)
     const bgColor = hashColor(full_name)
 

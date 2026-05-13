@@ -50,7 +50,7 @@ export function ActivityLogCard({ log, onClick }: ActivityLogCardProps) {
                 <div className="flex items-center gap-1.5 bg-gray-50 pr-2 rounded-full border border-gray-100 h-6">
                     <AdminAvatar user={log.admin_user} size="sm" />
                     <span className="text-[11px] text-gray-600 font-medium max-w-[100px] truncate">
-                        {log.admin_user.full_name}
+                        {log.admin_user?.full_name || 'Deleted Admin'}
                     </span>
                 </div>
                 <ResourceBadge resourceType={log.resource_type} />

@@ -54,17 +54,71 @@ class UserRoleSerializer(serializers.ModelSerializer):
 
 # ── Admin Action Log ─────────────────────────────────────────────
 
+class AdminUserMiniSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    full_name = serializers.CharField()
+    email = serializers.EmailField()
+    role = serializers.CharField()
+    profile_picture = serializers.SerializerMethodField()
+
+    def get_profile_picture(self, obj):
+        pic = getattr(obj, 'profile_picture', None)
+        if not pic:
+            return None
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(pic.url) if hasattr(pic, 'url') else str(pic)
+        return str(pic)
+
+
 class AdminActionLogSerializer(serializers.ModelSerializer):
-    admin_email = serializers.CharField(source='admin_user.email', read_only=True, default=None)
+    admin_user = serializers.SerializerMethodField()
+    action_type = serializers.SerializerMethodField()
+    resource_name = serializers.SerializerMethodField()
+    changes = serializers.SerializerMethodField()
 
     class Meta:
         model = AdminActionLog
         fields = [
-            'id', 'admin_user', 'admin_email', 'action', 'module',
-            'resource_type', 'resource_id', 'description',
-            'ip_address', 'created_at',
+            'id', 'admin_user', 'action', 'action_type',
+            'resource_type', 'resource_id', 'resource_name',
+            'changes', 'ip_address', 'created_at',
         ]
         read_only_fields = fields
+
+    def get_admin_user(self, obj):
+        user = obj.admin_user
+        if user is None:
+            return {'id': None, 'full_name': 'Deleted Admin', 'email': '', 'role': 'unknown', 'profile_picture': None}
+        return {
+            'id': str(user.id),
+            'full_name': user.full_name or user.email,
+            'email': user.email,
+            'role': user.role,
+            'profile_picture': str(user.profile_picture) if user.profile_picture else None,
+        }
+
+    def get_action_type(self, obj):
+        text = (obj.action or '').lower()
+        if 'approv' in text: return 'approve'
+        if 'reject' in text or 'declin' in text: return 'reject'
+        if 'suspend' in text or 'ban' in text: return 'suspend'
+        if 'activat' in text or 'restor' in text or 'unsuspend' in text: return 'activate'
+        if 'delet' in text or 'remov' in text: return 'delete'
+        if 'creat' in text or 'add' in text or 'seed' in text: return 'create'
+        if 'updat' in text or 'edit' in text or 'chang' in text: return 'update'
+        if 'login' in text: return 'login'
+        return 'other'
+
+    def get_resource_name(self, obj):
+        if obj.description:
+            return obj.description
+        if obj.resource_id:
+            return str(obj.resource_id)
+        return obj.module or ''
+
+    def get_changes(self, obj):
+        return None
 
 
 # ── Notification ─────────────────────────────────────────────────

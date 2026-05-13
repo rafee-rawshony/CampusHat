@@ -83,11 +83,11 @@ export function ActivityDetailDrawer({ log, isOpen, onClose }: ActivityDetailDra
                         <div className="flex items-center gap-3">
                             <AdminAvatar user={log.admin_user} size="lg" />
                             <div>
-                                <div className="font-semibold text-gray-900 text-sm">{log.admin_user.full_name}</div>
+                                <div className="font-semibold text-gray-900 text-sm">{log.admin_user?.full_name || 'Deleted Admin'}</div>
                                 <div className="flex items-center gap-2 mt-0.5">
-                                    <span className="text-xs text-gray-400">{log.admin_user.email}</span>
+                                    <span className="text-xs text-gray-400">{log.admin_user?.email || ''}</span>
                                     <span className="bg-gray-100 text-gray-600 text-[10px] uppercase font-bold px-1.5 py-0.5 rounded">
-                                        {log.admin_user.role.replace(/_/g, ' ')}
+                                        {log.admin_user?.role?.replace(/_/g, ' ') || '—'}
                                     </span>
                                 </div>
                             </div>

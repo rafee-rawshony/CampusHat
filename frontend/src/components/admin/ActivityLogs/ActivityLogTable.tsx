@@ -67,10 +67,10 @@ export function ActivityLogTable({ logs, onClick, isLoading }: ActivityLogTableP
                                     <AdminAvatar user={log.admin_user} />
                                     <div>
                                         <div className="text-sm font-medium text-gray-900 truncate max-w-[140px]">
-                                            {log.admin_user.full_name}
+                                            {log.admin_user?.full_name || 'Deleted Admin'}
                                         </div>
                                         <div className="text-[10px] text-gray-400 uppercase font-semibold">
-                                            {log.admin_user.role.replace(/_/g, ' ')}
+                                            {log.admin_user?.role?.replace(/_/g, ' ') || '—'}
                                         </div>
                                     </div>
                                 </div>
