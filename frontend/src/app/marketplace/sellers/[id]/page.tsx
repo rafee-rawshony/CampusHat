@@ -255,66 +255,38 @@ export default function MarketplaceSellerProfilePage() {
 
                 {/* ── PROFILE HEADER ── */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    {/* Gradient banner */}
-                    <div className="h-20 sm:h-28 bg-gradient-to-r from-[#4C3B8A] via-[#6B5AAE] to-[#8B6FD4]" />
+                    {/* Gradient banner — taller on desktop for proper avatar overlap */}
+                    <div className="h-24 sm:h-44 bg-gradient-to-br from-[#4C3B8A] via-[#5D4A9E] to-[#8B6FD4] relative">
+                        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvc3ZnPg==')] opacity-60" />
+                    </div>
 
-                    <div className="px-5 sm:px-8 pb-6 -mt-10 sm:-mt-12">
-                        <div className="flex flex-col sm:flex-row sm:items-end gap-4">
-                            {/* Avatar */}
-                            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden ring-4 ring-white shadow-lg shrink-0 bg-white">
+                    {/* Avatar row — avatar overlaps the gradient */}
+                    <div className="px-5 sm:px-8 -mt-12 sm:-mt-16">
+                        <div className="flex items-end gap-4 sm:gap-6">
+                            <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden ring-4 ring-white shadow-xl shrink-0 bg-white">
                                 {profile.profile_picture ? (
                                     <Image
                                         src={absoluteMediaUrl(profile.profile_picture)}
                                         alt={profile.full_name}
-                                        width={96}
-                                        height={96}
+                                        width={128}
+                                        height={128}
                                         unoptimized
                                         className="object-cover w-full h-full"
                                     />
                                 ) : (
-                                    <div className="w-full h-full bg-gradient-to-br from-[#4C3B8A] to-[#6B5AAE] text-white flex items-center justify-center font-bold text-2xl">
+                                    <div className="w-full h-full bg-gradient-to-br from-[#4C3B8A] to-[#6B5AAE] text-white flex items-center justify-center font-bold text-3xl sm:text-4xl">
                                         {initials}
                                     </div>
                                 )}
                             </div>
 
-                            {/* Name & info */}
-                            <div className="flex-1 min-w-0 sm:pb-1">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                    <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 truncate">
-                                        {profile.full_name}
-                                    </h1>
-                                    {profile.is_verified_student && (
-                                        <ShieldCheck className="w-5 h-5 text-[#4C3B8A] shrink-0" />
-                                    )}
-                                </div>
-
-                                <div className="flex items-center gap-3 mt-1 flex-wrap">
-                                    <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full border ${trustConfig.bg} ${trustConfig.color} ${trustConfig.border}`}>
-                                        <Award className="w-3 h-3" />
-                                        {trustConfig.label}
-                                    </span>
-
-                                    {profile.university_name && (
-                                        <span className="flex items-center gap-1 text-xs text-gray-500 font-medium">
-                                            <MapPin className="w-3 h-3" />
-                                            {profile.university_name}
-                                        </span>
-                                    )}
-                                </div>
-
-                                {profile.department && (
-                                    <p className="text-xs text-gray-400 mt-1 font-medium">{profile.department}</p>
-                                )}
-                            </div>
-
-                            {/* Action button — desktop */}
+                            {/* Desktop Message button — aligned with avatar bottom */}
                             {!isOwnProfile && (
-                                <div className="hidden sm:flex items-center shrink-0 sm:pb-1">
+                                <div className="hidden sm:flex items-center ml-auto pb-1">
                                     <button
                                         onClick={handleMessage}
                                         disabled={startingChat}
-                                        className="flex items-center gap-2 bg-[#4C3B8A] hover:bg-[#3D2F6E] text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md shadow-[#4C3B8A]/20 transition-all active:scale-95 disabled:opacity-50"
+                                        className="flex items-center gap-2 bg-[#4C3B8A] hover:bg-[#3D2F6E] text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-[#4C3B8A]/25 transition-all active:scale-95 disabled:opacity-50"
                                     >
                                         <MessageCircle className="w-4 h-4" />
                                         {startingChat ? 'Starting...' : 'Message'}
@@ -322,20 +294,56 @@ export default function MarketplaceSellerProfilePage() {
                                 </div>
                             )}
                         </div>
+                    </div>
+
+                    {/* Name & info — separated below avatar for clean spacing */}
+                    <div className="px-5 sm:px-8 pt-4 pb-6">
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                            <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900">
+                                {profile.full_name}
+                            </h1>
+                            {profile.is_verified_student && (
+                                <ShieldCheck className="w-5 h-5 text-[#4C3B8A] shrink-0" />
+                            )}
+                        </div>
+
+                        <div className="flex items-center gap-3 mt-2 flex-wrap">
+                            <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border ${trustConfig.bg} ${trustConfig.color} ${trustConfig.border}`}>
+                                <Award className="w-3 h-3" />
+                                {trustConfig.label}
+                            </span>
+
+                            {profile.university_name && (
+                                <span className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
+                                    <MapPin className="w-3.5 h-3.5" />
+                                    {profile.university_name}
+                                </span>
+                            )}
+
+                            {profile.department && (
+                                <span className="text-xs text-gray-400 font-medium hidden sm:inline">
+                                    {profile.department}
+                                </span>
+                            )}
+                        </div>
+
+                        {profile.department && (
+                            <p className="text-xs text-gray-400 mt-1.5 font-medium sm:hidden">{profile.department}</p>
+                        )}
 
                         {/* Meta row */}
-                        <div className="flex items-center gap-4 mt-4 flex-wrap text-xs text-gray-400 font-medium">
-                            <span className="flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
+                        <div className="flex items-center gap-4 sm:gap-5 mt-4 flex-wrap text-xs text-gray-400 font-medium">
+                            <span className="flex items-center gap-1.5">
+                                <Calendar className="w-3.5 h-3.5" />
                                 Member since {format(new Date(profile.member_since), 'MMM yyyy')}
                             </span>
-                            <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
+                            <span className="flex items-center gap-1.5">
+                                <Clock className="w-3.5 h-3.5" />
                                 Active {getLastActiveLabel(profile.last_active)}
                             </span>
                             {profile.avg_response_minutes !== null && (
-                                <span className="flex items-center gap-1">
-                                    <Zap className="w-3 h-3" />
+                                <span className="flex items-center gap-1.5">
+                                    <Zap className="w-3.5 h-3.5" />
                                     Replies {getResponseLabel(profile.avg_response_minutes).toLowerCase()}
                                 </span>
                             )}
