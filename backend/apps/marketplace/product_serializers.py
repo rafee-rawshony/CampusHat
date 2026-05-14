@@ -217,6 +217,7 @@ class MarketplaceProductListSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True, default=None)
     primary_image_url = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
+    seller_id = serializers.CharField(source='user.id', read_only=True)
     seller_name = serializers.CharField(source='user.full_name', read_only=True)
     seller_avatar = serializers.SerializerMethodField()
 
@@ -229,7 +230,7 @@ class MarketplaceProductListSerializer(serializers.ModelSerializer):
             'category_name', 'primary_image_url', 'images',
             'status', 'expires_at', 'view_count',
             'is_negotiable', 'created_at',
-            'seller_name', 'seller_avatar',
+            'seller_id', 'seller_name', 'seller_avatar',
             # Sell
             'brand', 'model_name', 'delivery_option',
             # Rent
@@ -389,6 +390,42 @@ class MarketplaceProductOwnerSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 from decimal import Decimal
+
+
+# =============================================================================
+# MARKETPLACE SELLER PROFILE (public, privacy-safe)
+# =============================================================================
+
+class MarketplaceSellerProfileSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    full_name = serializers.CharField()
+    profile_picture = serializers.CharField(allow_null=True)
+    university_name = serializers.CharField(allow_null=True)
+    department = serializers.CharField(allow_null=True)
+    is_verified_student = serializers.BooleanField()
+    member_since = serializers.DateTimeField()
+    last_active = serializers.DateTimeField(allow_null=True)
+
+    # Trust indicators
+    reputation_score = serializers.FloatField()
+    trust_level = serializers.CharField()
+    response_rate = serializers.FloatField()
+    avg_response_minutes = serializers.IntegerField(allow_null=True)
+
+    # Marketplace stats
+    active_listings = serializers.IntegerField()
+    completed_sales = serializers.IntegerField()
+    total_listings = serializers.IntegerField()
+
+    # Badges
+    badges = serializers.ListField(child=serializers.DictField())
+
+    # Campus context
+    same_university = serializers.BooleanField()
+
+    # Listings
+    listings = MarketplaceProductListSerializer(many=True)
+
 
 class MarketplaceProductOwnerUpdateSerializer(serializers.ModelSerializer):
     """

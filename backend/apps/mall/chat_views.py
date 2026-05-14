@@ -34,6 +34,7 @@ class StoreMessageSerializer(serializers.ModelSerializer):
 
 class StoreChatSerializer(serializers.ModelSerializer):
     store_name = serializers.CharField(source='store.name', read_only=True)
+    store_slug = serializers.CharField(source='store.slug', read_only=True)
     store_logo = serializers.SerializerMethodField()
     buyer_name = serializers.CharField(source='buyer.full_name', read_only=True)
     buyer_avatar = serializers.SerializerMethodField()
@@ -44,7 +45,7 @@ class StoreChatSerializer(serializers.ModelSerializer):
         model = StoreChat
         fields = [
             'id', 'buyer', 'buyer_name', 'buyer_avatar',
-            'store', 'store_name', 'store_logo',
+            'store', 'store_name', 'store_slug', 'store_logo',
             'is_blocked', 'last_message_at',
             'last_message', 'unread_count'
         ]

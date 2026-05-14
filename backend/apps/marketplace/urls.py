@@ -10,6 +10,7 @@ from rest_framework.routers import DefaultRouter
 from .product_views import (
     CategoryListView,
     MarketplaceListingViewSet,
+    MarketplaceSellerProfileView,
     MyListingsView,
 )
 from .offer_views import CreateOfferView, ListOffersView, OfferActionView
@@ -70,6 +71,10 @@ urlpatterns = [
     # Report
     path('listings/<uuid:product_id>/report/',
          CreateReportView.as_view(), name='report'),
+
+    # Seller profile
+    path('sellers/<uuid:user_id>/profile/',
+         MarketplaceSellerProfileView.as_view(), name='seller-profile'),
 ]
 
 # Add router URLs

@@ -1,7 +1,8 @@
 import React from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { MapPin, Phone, ShieldCheck, User } from 'lucide-react'
+import { MapPin, Phone, ShieldCheck, User, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/auth.store'
 import { ChatButton } from './ChatButton'
@@ -80,7 +81,10 @@ export function ListingContactSection({ listing, isAuthenticated, onOpenOfferMod
 
             <div className={`p-6 md:p-8 ${!isContactVisible && 'blur-sm select-none pointer-events-none opacity-50'}`}>
                 <h3 className="text-lg font-bold text-gray-900 mb-4">Seller Information</h3>
-                <div className="flex items-center gap-4 mb-6">
+                <Link
+                    href={`/marketplace/sellers/${listing.user_info.id}`}
+                    className="flex items-center gap-4 mb-6 group hover:bg-gray-50 -mx-2 px-2 py-2 rounded-xl transition-colors"
+                >
                     {listing.user_info.profile_picture ? (
                         <Image src={listing.user_info.profile_picture} alt="Seller" width={56} height={56} unoptimized className="rounded-full object-cover w-14 h-14 border-2 border-gray-100 shadow-sm" />
                     ) : (
@@ -88,8 +92,8 @@ export function ListingContactSection({ listing, isAuthenticated, onOpenOfferMod
                             <User className="w-6 h-6 text-brand-primary" />
                         </div>
                     )}
-                    <div>
-                        <h4 className="font-bold text-gray-900 text-lg leading-tight">
+                    <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-gray-900 text-lg leading-tight group-hover:text-[#4C3B8A] transition-colors">
                             {listing.user_info.full_name}
                         </h4>
                         <div className="flex items-center gap-1 mt-0.5">
@@ -99,7 +103,8 @@ export function ListingContactSection({ listing, isAuthenticated, onOpenOfferMod
                             <span className="text-xs font-medium text-gray-500">Verified Member</span>
                         </div>
                     </div>
-                </div>
+                    <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-[#4C3B8A] shrink-0 transition-colors" />
+                </Link>
 
                 {listing.meetup_location && (
                     <div className="flex flex-col gap-1 mb-6 p-3 bg-gray-50 rounded-xl border border-gray-100">

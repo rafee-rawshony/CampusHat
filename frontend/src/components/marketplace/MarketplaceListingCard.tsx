@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
     Clock, MapPin, Package, User, ShoppingBag, Key, Briefcase,
     UtensilsCrossed, Tag, Truck, Banknote, Timer, Sparkles, Lock
@@ -27,6 +28,7 @@ export interface MarketplaceListing {
     category?: { name: string } | string | null
     university_name?: string | null
     university_short?: string | null
+    seller_id?: string | null
     seller_name?: string | null
     seller_avatar?: string | null
     user?: {
@@ -257,6 +259,7 @@ function FoodMeta({ listing }: { listing: MarketplaceListing }) {
 }
 
 export function MarketplaceListingCard({ listing }: MarketplaceListingCardProps) {
+    const router = useRouter()
     const { isAuthenticated, isVerifiedStudent } = useAuthStore()
     const canSeeSeller = isAuthenticated && isVerifiedStudent()
 
@@ -363,7 +366,14 @@ export function MarketplaceListingCard({ listing }: MarketplaceListingCardProps)
                 {postType === 'food' && <FoodMeta listing={listing} />}
 
                 <div className="flex items-center justify-between pt-2.5 mt-2.5 border-t border-gray-100">
-                    <div className="flex items-center gap-2 min-w-0">
+                    <div
+                        className={`flex items-center gap-2 min-w-0 ${canSeeSeller && listing.seller_id ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+                        onClick={canSeeSeller && listing.seller_id ? (e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            router.push(`/marketplace/sellers/${listing.seller_id}`)
+                        } : undefined}
+                    >
                         {canSeeSeller ? (
                             <>
                                 {sellerAvatar ? (

@@ -34,7 +34,8 @@ from .product_serializers import (
     MarketplaceProductDetailSerializer,
     MarketplaceProductListSerializer,
     MarketplaceProductOwnerSerializer,
-    MarketplaceProductOwnerUpdateSerializer,  # NEW
+    MarketplaceProductOwnerUpdateSerializer,
+    MarketplaceSellerProfileSerializer,
 )
 
 
@@ -376,4 +377,178 @@ class MyListingsView(APIView):
             'success': True,
             'message': 'Data retrieved successfully.',
             'data': serializer.data,
+        })
+
+
+# =============================================================================
+# MARKETPLACE SELLER PROFILE (public, privacy-safe)
+# =============================================================================
+
+class MarketplaceSellerProfileView(APIView):
+    """
+    GET /api/v1/marketplace/sellers/<user_id>/profile/
+
+    Returns a privacy-safe public profile for a marketplace seller.
+    Computes trust level, stats, and badges from existing data.
+    """
+
+    permission_classes = [AllowAny]
+
+    TRUST_LEVELS = [
+        (50, 'elite'),
+        (30, 'campus_verified'),
+        (15, 'highly_trusted'),
+        (5, 'trusted'),
+        (0, 'new'),
+    ]
+
+    def _compute_trust_level(self, completed_sales, reputation_score, is_verified):
+        if not is_verified:
+            return 'new'
+        for threshold, level in self.TRUST_LEVELS:
+            if completed_sales >= threshold:
+                return level
+        return 'new'
+
+    def get(self, request, user_id):
+        from django.contrib.auth import get_user_model
+        from django.db.models import Avg, Count, Q
+
+        User = get_user_model()
+
+        try:
+            seller = User.objects.select_related('university').get(
+                pk=user_id, is_active=True, deleted_at__isnull=True,
+            )
+        except User.DoesNotExist:
+            return Response(
+                {'success': False, 'message': 'User not found.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        now = timezone.now()
+
+        active_listings = MarketplaceProduct.objects.filter(
+            user=seller, status='active', expires_at__gt=now,
+            is_hidden_by_user=False, deleted_at__isnull=True,
+        )
+        active_count = active_listings.count()
+        completed_sales = MarketplaceProduct.objects.filter(
+            user=seller, status='sold', deleted_at__isnull=True,
+        ).count()
+        total_listings = MarketplaceProduct.objects.filter(
+            user=seller, deleted_at__isnull=True,
+        ).count()
+
+        is_verified = seller.is_verified_student
+        reputation = float(seller.reputation_score)
+
+        # Response rate & speed from marketplace chats
+        from .models import MarketplaceChat, MarketplaceMessage
+        seller_chats = MarketplaceChat.objects.filter(
+            Q(buyer=seller) | Q(seller=seller),
+            deleted_at__isnull=True,
+        )
+        total_chats = seller_chats.count()
+
+        responded_chats = 0
+        response_times = []
+        for chat in seller_chats.filter(seller=seller):
+            first_buyer_msg = MarketplaceMessage.objects.filter(
+                chat=chat, deleted_at__isnull=True,
+            ).exclude(sender=seller).order_by('created_at').first()
+
+            if first_buyer_msg:
+                first_reply = MarketplaceMessage.objects.filter(
+                    chat=chat, sender=seller, deleted_at__isnull=True,
+                    created_at__gt=first_buyer_msg.created_at,
+                ).order_by('created_at').first()
+                if first_reply:
+                    responded_chats += 1
+                    delta = (first_reply.created_at - first_buyer_msg.created_at).total_seconds() / 60
+                    response_times.append(delta)
+
+        response_rate = (responded_chats / total_chats * 100) if total_chats > 0 else 0
+        avg_response_min = int(sum(response_times) / len(response_times)) if response_times else None
+
+        trust_level = self._compute_trust_level(completed_sales, reputation, is_verified)
+
+        # Badges
+        badges = []
+        if is_verified:
+            badges.append({'type': 'verified_student', 'label': 'Verified Student'})
+        if trust_level in ('campus_verified', 'elite'):
+            badges.append({'type': 'campus_trusted', 'label': 'Campus Trusted'})
+        if avg_response_min is not None and avg_response_min <= 30:
+            badges.append({'type': 'fast_responder', 'label': 'Fast Responder'})
+        if completed_sales >= 10:
+            badges.append({'type': 'active_seller', 'label': 'Active Seller'})
+        if completed_sales >= 50:
+            badges.append({'type': 'top_seller', 'label': 'Top Seller'})
+
+        # Also check mall seller badges if they have a store
+        try:
+            from apps.sellers.models import SellerBadge
+            store_badges = SellerBadge.objects.filter(
+                store__seller__user=seller, is_active=True,
+            )
+            for b in store_badges:
+                badges.append({'type': b.badge_type, 'label': b.display_label or b.get_badge_type_display()})
+        except Exception:
+            pass
+
+        # Same university check
+        same_university = False
+        if request.user.is_authenticated and request.user.university_id and seller.university_id:
+            same_university = str(request.user.university_id) == str(seller.university_id)
+
+        # Department — only show if user has a verification with student_id type
+        department = None
+        try:
+            from apps.authentication.models import UserVerification
+            verif = UserVerification.objects.filter(
+                user=seller, verification_type='student_id', status='approved',
+            ).first()
+            if verif:
+                department = getattr(seller, 'department', None)
+        except Exception:
+            pass
+
+        # Active listings serialized
+        listings_qs = (
+            active_listings
+            .select_related('university', 'category', 'user')
+            .prefetch_related('images')
+            .order_by('-created_at')[:20]
+        )
+        listings_data = MarketplaceProductListSerializer(listings_qs, many=True).data
+
+        profile_data = {
+            'id': str(seller.id),
+            'full_name': seller.full_name,
+            'profile_picture': seller.profile_picture,
+            'university_name': seller.university.name if seller.university else None,
+            'department': department,
+            'is_verified_student': is_verified,
+            'member_since': seller.created_at,
+            'last_active': seller.last_login,
+
+            'reputation_score': reputation,
+            'trust_level': trust_level,
+            'response_rate': round(response_rate, 1),
+            'avg_response_minutes': avg_response_min,
+
+            'active_listings': active_count,
+            'completed_sales': completed_sales,
+            'total_listings': total_listings,
+
+            'badges': badges,
+            'same_university': same_university,
+            'listings': listings_data,
+        }
+
+        return Response({
+            'success': True,
+            'message': 'Seller profile retrieved.',
+            'data': profile_data,
         })

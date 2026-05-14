@@ -262,7 +262,10 @@ export function ChatWindow({ chatId, chatData, onBack }: ChatWindowProps) {
                     <ArrowLeft className="w-5 h-5" />
                 </button>
 
-                <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 ring-2 ring-gray-100">
+                <Link
+                    href={`/marketplace/sellers/${otherUser?.id || ''}`}
+                    className="w-10 h-10 rounded-full overflow-hidden shrink-0 ring-2 ring-gray-100 hover:ring-[#4C3B8A]/30 transition-all"
+                >
                     {otherUser?.profile_picture ? (
                         <Image src={absoluteMediaUrl(otherUser.profile_picture)} alt={otherUser.name || 'User'} width={40} height={40} unoptimized className="object-cover w-full h-full" />
                     ) : (
@@ -270,13 +273,13 @@ export function ChatWindow({ chatId, chatData, onBack }: ChatWindowProps) {
                             {initials}
                         </div>
                     )}
-                </div>
+                </Link>
 
                 <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-sm text-gray-900 truncate">
+                        <Link href={`/marketplace/sellers/${otherUser?.id || ''}`} className="font-bold text-sm text-gray-900 truncate hover:text-[#4C3B8A] transition-colors">
                             {otherUser?.name || 'Chat'}
-                        </h3>
+                        </Link>
                         <div className={`w-2 h-2 rounded-full shrink-0 transition-colors ${isConnected ? 'bg-emerald-500' : 'bg-gray-300'}`} />
                     </div>
                     {listing && (

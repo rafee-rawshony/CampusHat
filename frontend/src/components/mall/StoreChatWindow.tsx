@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { ArrowLeft, Send, Paperclip, X, Loader2 } from 'lucide-react'
 import { format, isToday, isYesterday, isSameDay } from 'date-fns'
 import { useAuthStore } from '@/stores/auth.store'
@@ -220,7 +221,10 @@ export function StoreChatWindow({ chatId, chatData, onBack }: StoreChatWindowPro
                     <ArrowLeft className="w-5 h-5" />
                 </button>
 
-                <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 ring-2 ring-gray-100">
+                <Link
+                    href={chatData?.store_slug ? `/sellers/${chatData.store_slug}` : '#'}
+                    className="w-10 h-10 rounded-full overflow-hidden shrink-0 ring-2 ring-gray-100 hover:ring-[#4C3B8A]/30 transition-all"
+                >
                     {otherUser.profile_picture ? (
                         <Image src={absoluteMediaUrl(otherUser.profile_picture)} alt={otherUser.name} width={40} height={40} unoptimized className="object-cover w-full h-full" />
                     ) : (
@@ -228,13 +232,16 @@ export function StoreChatWindow({ chatId, chatData, onBack }: StoreChatWindowPro
                             {initials}
                         </div>
                     )}
-                </div>
+                </Link>
 
                 <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-sm text-gray-900 truncate">
+                        <Link
+                            href={chatData?.store_slug ? `/sellers/${chatData.store_slug}` : '#'}
+                            className="font-bold text-sm text-gray-900 truncate hover:text-[#4C3B8A] transition-colors"
+                        >
                             {otherUser.name}
-                        </h3>
+                        </Link>
                     </div>
                     <p className="text-[11px] text-gray-400 truncate leading-none mt-0.5">Mall Store</p>
                 </div>
