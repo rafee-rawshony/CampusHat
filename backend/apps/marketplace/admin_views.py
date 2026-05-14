@@ -58,6 +58,7 @@ class AdminMarketplaceListSerializer(drf_serializers.ModelSerializer):
             'ingredients', 'portion_size', 'delivery_area',
             'food_delivery_time', 'daily_availability',
             'hygiene_certification', 'combo_packages',
+            'is_hidden_by_admin',
             'created_at', 'updated_at',
         ]
         read_only_fields = fields
@@ -318,9 +319,8 @@ class AdminReportActionView(APIView):
         # If actioned, hide the product
         if report.status == 'actioned':
             product = report.product
-            product.status = 'hidden'
-            product.is_hidden_by_user = True
-            product.save(update_fields=['status', 'is_hidden_by_user'])
+            product.is_hidden_by_admin = True
+            product.save(update_fields=['is_hidden_by_admin'])
 
         return Response({
             'success': True,
@@ -412,7 +412,45 @@ class AdminReportResolveView(APIView):
 
         if report.status == 'actioned':
             product = report.product
-            product.status = 'hidden'
-            product.save(update_fields=['status'])
+            product.is_hidden_by_admin = True
+            product.save(update_fields=['is_hidden_by_admin'])
 
         return Response({'success': True, 'message': f'Report {report.status}.'})
+
+
+class AdminHideProductView(APIView):
+    """POST /api/v1/admin/marketplace/{id}/hide/"""
+
+    permission_classes = [IsAuthenticated, IsAdminOrModerator]
+
+    def post(self, request, pk):
+        try:
+            product = MarketplaceProduct.objects.get(pk=pk, deleted_at__isnull=True)
+        except MarketplaceProduct.DoesNotExist:
+            return Response({
+                'success': False, 'message': 'Product not found.', 'code': 'NOT_FOUND',
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        product.is_hidden_by_admin = True
+        product.save(update_fields=['is_hidden_by_admin'])
+
+        return Response({'success': True, 'message': 'Ad hidden from public marketplace.'})
+
+
+class AdminUnhideProductView(APIView):
+    """POST /api/v1/admin/marketplace/{id}/unhide/"""
+
+    permission_classes = [IsAuthenticated, IsAdminOrModerator]
+
+    def post(self, request, pk):
+        try:
+            product = MarketplaceProduct.objects.get(pk=pk, deleted_at__isnull=True)
+        except MarketplaceProduct.DoesNotExist:
+            return Response({
+                'success': False, 'message': 'Product not found.', 'code': 'NOT_FOUND',
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        product.is_hidden_by_admin = False
+        product.save(update_fields=['is_hidden_by_admin'])
+
+        return Response({'success': True, 'message': 'Ad is now visible on the marketplace.'})

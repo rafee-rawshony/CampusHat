@@ -167,6 +167,7 @@ class MarketplaceListingViewSet(ModelViewSet):
                 status='active',
                 expires_at__gt=timezone.now(),
                 is_hidden_by_user=False,
+                is_hidden_by_admin=False,
                 deleted_at__isnull=True,
             )
             .select_related('university', 'category', 'user')
@@ -430,7 +431,8 @@ class MarketplaceSellerProfileView(APIView):
 
         active_listings = MarketplaceProduct.objects.filter(
             user=seller, status='active', expires_at__gt=now,
-            is_hidden_by_user=False, deleted_at__isnull=True,
+            is_hidden_by_user=False, is_hidden_by_admin=False,
+            deleted_at__isnull=True,
         )
         active_count = active_listings.count()
         completed_sales = MarketplaceProduct.objects.filter(

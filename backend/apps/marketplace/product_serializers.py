@@ -370,7 +370,7 @@ class MarketplaceProductOwnerSerializer(serializers.ModelSerializer):
             'price_unit', 'condition', 'is_negotiable',
             'campus_visibility', 'status', 'duration_days',
             'expires_at', 'view_count', 'safe_meetup_location',
-            'is_hidden_by_user', 'is_auto_expired',
+            'is_hidden_by_user', 'is_hidden_by_admin', 'is_auto_expired',
             'repost_count', 'rejection_reason', 'reviewed_by',
             'category_name', 'images',
             # Sell-specific

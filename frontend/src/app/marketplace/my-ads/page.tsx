@@ -127,30 +127,36 @@ export default function MyAdsPage() {
     const renderActionButtons = (ad: any) => {
         return (
             <>
-                {ad.status === 'active' && (
+                {ad.status === 'active' && !ad.is_hidden_by_admin && (
                     <>
-                        <Button 
+                        <Button
                             onClick={() => router.push(`/marketplace/post?edit=${ad.id}`)}
-                            variant="outline" size="sm" 
+                            variant="outline" size="sm"
                             className="h-8 px-3 text-gray-600 border-gray-200 hover:bg-gray-50 flex items-center gap-1.5 rounded-lg text-xs"
                         >
                             <Edit2 className="w-3.5 h-3.5" /> Edit
                         </Button>
-                        <Button 
+                        <Button
                             onClick={() => handleOptimisticAction(ad.id, 'hide')}
-                            variant="outline" size="sm" 
+                            variant="outline" size="sm"
                             className="h-8 px-3 text-gray-600 border-gray-200 hover:bg-gray-50 flex items-center gap-1.5 rounded-lg text-xs"
                         >
                             <EyeOff className="w-3.5 h-3.5" /> Hide
                         </Button>
-                        <Button 
+                        <Button
                             onClick={() => handleOptimisticAction(ad.id, 'sold')}
-                            size="sm" 
+                            size="sm"
                             className="h-8 px-3 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 flex items-center gap-1.5 rounded-lg text-xs shadow-none"
                         >
                             <CheckCircle className="w-3.5 h-3.5" /> Mark as Sold
                         </Button>
                     </>
+                )}
+
+                {ad.is_hidden_by_admin && (
+                    <span className="text-[11px] text-red-500 font-semibold bg-red-50 border border-red-100 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5">
+                        <EyeOff className="w-3.5 h-3.5" /> Hidden by admin
+                    </span>
                 )}
 
                 {ad.status === 'pending' && (
@@ -217,18 +223,18 @@ export default function MyAdsPage() {
                     </>
                 )}
 
-                {ad.status === 'hidden' && (
+                {ad.status === 'hidden' && !ad.is_hidden_by_admin && (
                     <>
-                        <Button 
+                        <Button
                             onClick={() => handleOptimisticAction(ad.id, 'unhide')}
-                            variant="outline" size="sm" 
+                            variant="outline" size="sm"
                             className="h-8 px-3 border-[#4C3B8A] text-[#4C3B8A] hover:bg-[#4C3B8A]/10 flex items-center gap-1.5 rounded-lg text-xs"
                         >
                             <Eye className="w-3.5 h-3.5" /> Unhide
                         </Button>
-                        <Button 
+                        <Button
                             onClick={() => { setDeleteAdId(ad.id); setDeleteAdTitle(ad.title) }}
-                            variant="outline" size="sm" 
+                            variant="outline" size="sm"
                             className="h-8 px-3 text-red-500 border-red-200 hover:bg-red-50 flex items-center gap-1.5 rounded-lg text-xs"
                         >
                             <Trash2 className="w-3.5 h-3.5" /> Delete
@@ -376,6 +382,11 @@ export default function MyAdsPage() {
                                         <div className="flex items-center gap-2 mt-1">
                                             <span className="text-[10px] font-extrabold uppercase text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{ad.post_type}</span>
                                             <AdStatusBadge status={ad.status} rejectionReason={ad.rejection_reason} />
+                                            {ad.is_hidden_by_admin && (
+                                                <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                                    <EyeOff className="w-3 h-3" /> Admin Hidden
+                                                </span>
+                                            )}
                                         </div>
                                         <p className="text-xs text-gray-400 mt-1">
                                             Posted {format(new Date(ad.created_at || new Date().toISOString()), 'MMM d, yyyy')} ·

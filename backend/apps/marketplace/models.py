@@ -133,6 +133,7 @@ class ActiveProductManager(models.Manager):
                 status='active',
                 expires_at__gt=timezone.now(),
                 is_hidden_by_user=False,
+                is_hidden_by_admin=False,
                 deleted_at__isnull=True,
             )
         )
@@ -252,6 +253,7 @@ class MarketplaceProduct(BaseModel):
     duration_days = models.IntegerField()
     expires_at = models.DateTimeField(db_index=True, null=True, blank=True)
     is_hidden_by_user = models.BooleanField(default=False)
+    is_hidden_by_admin = models.BooleanField(default=False)
     is_auto_expired = models.BooleanField(default=False)
     repost_count = models.IntegerField(default=0)
     rejection_reason = models.TextField(blank=True, null=True)

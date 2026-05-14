@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { toast } from 'react-hot-toast'
-import { Search, Eye, CheckCircle, XCircle, Flag, ShoppingBag, AlertCircle } from 'lucide-react'
+import { Search, Eye, CheckCircle, XCircle, Flag, ShoppingBag, AlertCircle, EyeOff } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
@@ -95,6 +95,16 @@ export default function AdminMarketplacePage() {
             queryClient.invalidateQueries({ queryKey: ['admin-marketplace-ads'] })
         },
         onError: () => toast.error('Failed to reject ad.')
+    })
+
+    const { mutate: toggleHide, isPending: toggling } = useMutation({
+        mutationFn: ({ id, hide }: { id: string; hide: boolean }) =>
+            api.post(`/admin/marketplace/${id}/${hide ? 'hide' : 'unhide'}/`),
+        onSuccess: (_data, vars) => {
+            toast.success(vars.hide ? 'Ad hidden from marketplace.' : 'Ad is now visible.')
+            queryClient.invalidateQueries({ queryKey: ['admin-marketplace-ads'] })
+        },
+        onError: () => toast.error('Failed to update visibility.')
     })
 
     const handleRejectOpen = (ad: any) => {
@@ -230,6 +240,12 @@ export default function AdminMarketplacePage() {
                                             <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full uppercase tracking-wider ${pill}`}>
                                                 {statusKey}
                                             </span>
+                                            {ad.is_hidden_by_admin && (
+                                                <div className="flex items-center gap-1 mt-1">
+                                                    <EyeOff className="w-3 h-3 text-red-500" />
+                                                    <span className="text-[10px] text-red-500 font-semibold">Admin Hidden</span>
+                                                </div>
+                                            )}
                                             {ad.is_reported && (
                                                 <div className="flex items-center gap-1 mt-1">
                                                     <Flag className="w-3 h-3 text-orange-500" />
@@ -250,6 +266,27 @@ export default function AdminMarketplacePage() {
                                                 >
                                                     <Eye className="w-3.5 h-3.5 mr-1" /> View
                                                 </Button>
+                                                {statusKey === 'active' && !ad.is_hidden_by_admin && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="h-8 px-3 rounded-lg border-gray-200 text-gray-600 hover:bg-gray-50 text-xs font-bold"
+                                                        onClick={() => toggleHide({ id: ad.id, hide: true })}
+                                                        disabled={toggling}
+                                                    >
+                                                        <EyeOff className="w-3.5 h-3.5 mr-1" /> Hide
+                                                    </Button>
+                                                )}
+                                                {ad.is_hidden_by_admin && (
+                                                    <Button
+                                                        size="sm"
+                                                        className="h-8 px-3 rounded-lg bg-[#4C3B8A] hover:bg-[#34285e] text-white text-xs font-bold"
+                                                        onClick={() => toggleHide({ id: ad.id, hide: false })}
+                                                        disabled={toggling}
+                                                    >
+                                                        <Eye className="w-3.5 h-3.5 mr-1" /> Unhide
+                                                    </Button>
+                                                )}
                                                 {statusKey === 'pending' && (
                                                     <>
                                                         <Button
@@ -338,6 +375,23 @@ export default function AdminMarketplacePage() {
                     )}
                     <DialogFooter className="gap-2">
                         <Button variant="outline" onClick={() => setSelectedAd(null)}>Close</Button>
+                        {selectedAd && selectedAd.status === 'active' && !selectedAd.is_hidden_by_admin && (
+                            <Button
+                                variant="outline"
+                                className="border-gray-200 text-gray-600"
+                                onClick={() => { toggleHide({ id: selectedAd.id, hide: true }); setSelectedAd(null) }}
+                            >
+                                <EyeOff className="w-4 h-4 mr-1" /> Hide
+                            </Button>
+                        )}
+                        {selectedAd && selectedAd.is_hidden_by_admin && (
+                            <Button
+                                className="bg-[#4C3B8A] hover:bg-[#34285e] text-white"
+                                onClick={() => { toggleHide({ id: selectedAd.id, hide: false }); setSelectedAd(null) }}
+                            >
+                                <Eye className="w-4 h-4 mr-1" /> Unhide
+                            </Button>
+                        )}
                         {selectedAd && selectedAd.status === 'pending' && (
                             <>
                                 <Button

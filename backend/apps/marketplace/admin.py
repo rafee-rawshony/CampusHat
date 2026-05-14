@@ -37,9 +37,9 @@ class MarketplaceCategoryAdmin(admin.ModelAdmin):
 class MarketplaceProductAdmin(admin.ModelAdmin):
     list_display = (
         'title', 'user', 'post_type', 'status', 'price',
-        'campus_visibility', 'expires_at', 'view_count', 'created_at',
+        'campus_visibility', 'is_hidden_by_admin', 'expires_at', 'view_count', 'created_at',
     )
-    list_filter = ('status', 'post_type', 'campus_visibility', 'condition')
+    list_filter = ('status', 'post_type', 'campus_visibility', 'condition', 'is_hidden_by_admin')
     search_fields = ('title', 'description', 'user__email', 'brand', 'model_name')
     raw_id_fields = ('user', 'university', 'category', 'reviewed_by')
     readonly_fields = ('id', 'view_count', 'repost_count', 'created_at', 'updated_at')
@@ -89,7 +89,7 @@ class MarketplaceProductAdmin(admin.ModelAdmin):
         }),
         ('Stats & Audit', {
             'fields': (
-                'view_count', 'repost_count', 'is_hidden_by_user',
+                'view_count', 'repost_count', 'is_hidden_by_user', 'is_hidden_by_admin',
                 'is_auto_expired', 'reviewed_by', 'created_at', 'updated_at',
             ),
         }),

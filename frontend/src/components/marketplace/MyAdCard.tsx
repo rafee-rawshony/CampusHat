@@ -1,5 +1,6 @@
 import React from 'react'
 import Image from 'next/image'
+import { EyeOff } from 'lucide-react'
 import { format } from 'date-fns'
 import { AdStatusBadge, AdStatus } from './AdStatusBadge'
 import { absoluteMediaUrl } from '@/services/upload.service'
@@ -15,6 +16,7 @@ interface MyAdCardProps {
         expires_at: string
         created_at?: string
         rejection_reason?: string
+        is_hidden_by_admin?: boolean
     }
     actions: React.ReactNode
 }
@@ -51,8 +53,13 @@ export function MyAdCard({ ad, actions }: MyAdCardProps) {
             </div>
 
             {/* Absolute Status Badge */}
-            <div className="absolute top-4 right-4">
+            <div className="absolute top-4 right-4 flex flex-col items-end gap-1">
                 <AdStatusBadge status={ad.status} rejectionReason={ad.rejection_reason} />
+                {ad.is_hidden_by_admin && (
+                    <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded flex items-center gap-1">
+                        <EyeOff className="w-3 h-3" /> Admin Hidden
+                    </span>
+                )}
             </div>
 
             {/* Middle Row */}

@@ -9,6 +9,7 @@ from django.urls import path
 from .admin_views import (
     AdminAllProductsListView,
     AdminApproveView,
+    AdminHideProductView,
     AdminPendingListView,
     AdminProductDetailView,
     AdminRejectView,
@@ -17,6 +18,7 @@ from .admin_views import (
     AdminReviewView,
     AdminReportedListView,
     AdminReportResolveView,
+    AdminUnhideProductView,
 )
 from .category_views import (
     AdminCategoryListView,
@@ -42,6 +44,8 @@ urlpatterns = [
     path('<uuid:pk>/review/', AdminReviewView.as_view(), name='review'),
     path('<uuid:pk>/approve/', AdminApproveView.as_view(), name='approve'),
     path('<uuid:pk>/reject/', AdminRejectView.as_view(), name='reject'),
+    path('<uuid:pk>/hide/', AdminHideProductView.as_view(), name='hide'),
+    path('<uuid:pk>/unhide/', AdminUnhideProductView.as_view(), name='unhide'),
     path('reports/', AdminReportsListView.as_view(), name='reports'),
     path('reports/<uuid:pk>/action/', AdminReportActionView.as_view(), name='report-action'),
     path('reports/<uuid:pk>/resolve/', AdminReportResolveView.as_view(), name='report-resolve'),
