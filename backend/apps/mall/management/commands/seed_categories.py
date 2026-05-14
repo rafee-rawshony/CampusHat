@@ -7,38 +7,50 @@ from apps.mall.models import MallCategory
 
 CATEGORY_TREE = [
     ('Electronics', 'Monitor', [
-        'Mobile Phones', 'Laptops', 'Desktop PC', 'Monitors', 'Tablets',
-        'Smart Watches', 'Headphones / Earbuds', 'Cameras', 'Accessories',
+        'Smartphones', 'Laptops & Computers', 'Tablets', 'Smart Watches',
+        'Headphones & Earbuds', 'Cameras', 'Gaming Consoles', 'Monitors',
+        'Printers', 'Routers', 'Keyboards & Mouse', 'Power Banks',
+        'Pendrives & Hard Disks', 'Speakers', 'Scientific Calculators',
+        'Electronic Accessories',
     ]),
-    ('Computers & Accessories', 'Laptop', [
-        'Laptop', 'Desktop PC', 'Monitor', 'Keyboard', 'Mouse', 'Printer',
-        'Storage (SSD, HDD, Pen Drive)', 'Networking (Router, LAN cable)',
-    ]),
-    ('Fashion & Clothing', 'Shirt', [
+    ('Fashion & Lifestyle', 'Shirt', [
         "Men's Clothing", "Women's Clothing", 'Shoes', 'Bags', 'Watches',
-        'Accessories',
-    ]),
-    ('Books & Study Materials', 'BookOpen', [
-        'Academic Books', 'Story / Novel', 'Admission Books', 'Notes',
-        'Stationery',
+        'Jewelry', 'Sunglasses', 'Cosmetics & Skincare', 'Perfume',
     ]),
     ('Home & Living', 'Home', [
-        'Room Decor', 'Lighting', 'Furniture', 'Kitchen Items', 'Bedding',
+        'Furniture', 'Home Decor', 'Kitchen Appliances', 'Lighting',
+        'Bedding', 'Bathroom Accessories', 'Storage Items', 'Rice Cooker',
+        'Electric Kettle', 'Induction Cooker', 'Blender', 'Mini Fridge',
+        'Iron', 'Water Filter', 'Kitchen Utensils',
     ]),
-    ('Beauty & Personal Care', 'Sparkles', [
-        'Skincare', 'Haircare', 'Grooming', 'Perfume',
+    ('Books & Study Materials', 'BookOpen', [
+        'Academic Books', 'Semester Books', 'Admission Books', 'Story Books',
+        'Notes & PDFs', 'Stationery', 'Lab Equipment', 'Lab Manuals',
+        'Drawing Tools',
     ]),
-    ('Sports & Fitness', 'Dumbbell', [
-        'Gym Equipment', 'Sports Gear', 'Outdoor Items',
+    ('Sports & Outdoor', 'Dumbbell', [
+        'Gym Equipment', 'Sports Gear', 'Bicycles', 'Outdoor Accessories',
+        'Gaming Accessories',
     ]),
-    ('Food & Snacks', 'Utensils', [
-        'Packaged Food', 'Homemade Food', 'Beverages',
+    ('Vehicles & Accessories', 'Car', [
+        'Bikes', 'Cars', 'Vehicle Parts', 'Helmets & Safety Gear',
+        'Bike Accessories',
     ]),
-    ('Services', 'Wrench', [
-        'Printing', 'Repair', 'Freelance',
+    ('Musical Instruments', 'Music', [
+        'Guitar', 'Keyboard', 'Drums', 'Audio Equipment',
+    ]),
+    ('Pets & Accessories', 'PawPrint', [
+        'Pet Food', 'Pet Accessories', 'Pet Care Products',
+    ]),
+    ('Snacks & Dry Food', 'Utensils', [
+        'Chips & Snacks', 'Chocolates', 'Biscuits & Cookies',
+        'Instant Noodles', 'Dry Cakes', 'Soft Drinks', 'Juice',
+        'Energy Drinks',
     ]),
     ('Others', 'Package', [
-        'Miscellaneous',
+        'Gift Items', 'Collectibles', 'Handmade Products',
+        'Decoration Items', 'Travel Bags', 'Backpacks',
+        'Cameras & Tripods', 'Projectors',
     ]),
 ]
 

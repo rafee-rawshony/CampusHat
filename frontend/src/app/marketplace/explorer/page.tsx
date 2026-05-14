@@ -3,6 +3,7 @@
 import { useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
+import { ChevronRight, Home } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { useCampusStore } from '@/stores/campus.store'
@@ -59,10 +60,16 @@ function ExplorerContent() {
         <div className="bg-white min-h-screen pb-20">
             <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* Breadcrumb */}
-                <nav className="flex items-center text-sm text-gray-500 mb-8">
-                    <Link href="/marketplace" className="hover:text-gray-800 hover:underline">Marketplace Home</Link>
-                    <span className="mx-2">/</span>
-                    <span className="text-gray-700 font-medium">Explorer</span>
+                <nav className="flex items-center gap-1.5 text-sm mb-8">
+                    <Link href="/" className="text-gray-400 hover:text-[#4C3B8A] transition-colors shrink-0">
+                        <Home className="w-3.5 h-3.5" />
+                    </Link>
+                    <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                    <Link href="/marketplace" className="text-gray-500 hover:text-[#4C3B8A] transition-colors font-medium whitespace-nowrap">
+                        Marketplace
+                    </Link>
+                    <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                    <span className="text-gray-900 font-semibold">Explorer</span>
                 </nav>
 
                 {/* Page Header */}

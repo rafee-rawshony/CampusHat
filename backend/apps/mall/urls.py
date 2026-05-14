@@ -23,6 +23,7 @@ from .views import (
     MallCategoryViewSet,
     MyReviewDetailView,
     MyReviewsListView,
+    ProductReviewCanReviewView,
     ProductReviewCreateView,
     ProductReviewListView,
     ProductVariantDetailView,
@@ -76,6 +77,8 @@ urlpatterns += [
 urlpatterns += [
     path('products/<slug:product_slug>/reviews/',
          ProductReviewListView.as_view(), name='product-reviews-list'),
+    path('products/<slug:product_slug>/reviews/can-review/',
+         ProductReviewCanReviewView.as_view(), name='product-review-can-review'),
     path('products/<slug:product_slug>/reviews/create/',
          ProductReviewCreateView.as_view(), name='product-review-create'),
     path('products/<slug:product_slug>/reviews/<uuid:review_id>/seller-response/',

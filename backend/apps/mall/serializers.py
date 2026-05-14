@@ -434,15 +434,29 @@ class ProductReviewSerializer(serializers.ModelSerializer):
     reviewer_name = serializers.CharField(
         source='reviewer.full_name', read_only=True,
     )
+    reviewer_profile_picture = serializers.URLField(
+        source='reviewer.profile_picture', read_only=True,
+    )
+    is_verified_purchase = serializers.SerializerMethodField()
 
     class Meta:
         model = ProductReview
         fields = [
-            'id', 'reviewer', 'reviewer_name', 'rating', 'comment',
-            'evidence_urls', 'seller_response', 'seller_responded_at',
-            'is_visible', 'created_at',
+            'id', 'reviewer', 'reviewer_name', 'reviewer_profile_picture',
+            'rating', 'comment', 'evidence_urls',
+            'seller_response', 'seller_responded_at',
+            'is_visible', 'is_verified_purchase', 'created_at',
         ]
         read_only_fields = fields
+
+    def get_is_verified_purchase(self, obj):
+        from apps.orders.models import Order
+        return Order.objects.filter(
+            buyer=obj.reviewer,
+            order_status='delivered',
+            deleted_at__isnull=True,
+            items__product=obj.product,
+        ).exists()
 
 
 class ProductReviewCreateSerializer(serializers.Serializer):

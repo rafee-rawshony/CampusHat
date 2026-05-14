@@ -805,12 +805,61 @@ class ProductReviewListView(APIView):
         })
 
 
+class ProductReviewCanReviewView(APIView):
+    """GET /api/v1/mall/products/{slug}/reviews/can-review/
+
+    Check whether the authenticated user can review this product.
+    Returns can_review=True only if user has a delivered order containing
+    the product and has not already reviewed it.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, product_slug):
+        from apps.orders.models import Order
+
+        try:
+            product = StoreProduct.objects.get(
+                slug=product_slug, deleted_at__isnull=True,
+            )
+        except StoreProduct.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'Product not found.',
+                'code': 'NOT_FOUND',
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        already_reviewed = ProductReview.objects.filter(
+            product=product, reviewer=request.user, deleted_at__isnull=True,
+        ).exists()
+
+        has_purchased = Order.objects.filter(
+            buyer=request.user,
+            order_status='delivered',
+            deleted_at__isnull=True,
+            items__product=product,
+        ).exists()
+
+        can_review = has_purchased and not already_reviewed
+
+        return Response({
+            'success': True,
+            'data': {
+                'can_review': can_review,
+                'has_purchased': has_purchased,
+                'already_reviewed': already_reviewed,
+            },
+        })
+
+
 class ProductReviewCreateView(APIView):
     """POST /api/v1/mall/products/{slug}/reviews/"""
 
     permission_classes = [IsAuthenticated]
 
     def post(self, request, product_slug):
+        from apps.orders.models import Order
+
         try:
             product = StoreProduct.objects.get(
                 slug=product_slug, deleted_at__isnull=True,
@@ -831,6 +880,20 @@ class ProductReviewCreateView(APIView):
                 'message': 'You have already reviewed this product.',
                 'code': 'DUPLICATE',
             }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Verify purchase: user must have a delivered order containing this product
+        has_purchased = Order.objects.filter(
+            buyer=request.user,
+            order_status='delivered',
+            deleted_at__isnull=True,
+            items__product=product,
+        ).exists()
+        if not has_purchased:
+            return Response({
+                'success': False,
+                'message': 'You can only review products you have purchased and received.',
+                'code': 'NOT_PURCHASED',
+            }, status=status.HTTP_403_FORBIDDEN)
 
         serializer = ProductReviewCreateSerializer(
             data=request.data,
@@ -913,7 +976,7 @@ class MyReviewsListView(APIView):
                 'product_slug': product.slug,
                 'product_name': getattr(product, 'name', '') or product.slug,
                 'product_image_url': image_url,
-                'store_name': getattr(product.store, 'store_name', ''),
+                'store_name': getattr(product.store, 'name', ''),
                 'rating': r.rating,
                 'comment': r.comment,
                 'seller_response': r.seller_response,

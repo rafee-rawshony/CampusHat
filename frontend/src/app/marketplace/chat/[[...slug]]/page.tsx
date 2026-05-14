@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
-import { MessageCircle, ShieldCheck } from 'lucide-react'
+import { ChevronRight, Home, MessageCircle, ShieldCheck } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth.store'
 import { api } from '@/lib/api'
@@ -148,9 +148,15 @@ export default function UnifiedChatPage() {
             {/* Desktop breadcrumb */}
             <div className="hidden md:block shrink-0 bg-white border-b border-gray-100">
                 <div className="max-w-7xl mx-auto px-6 py-2.5">
-                    <nav className="flex items-center text-sm text-gray-500 font-medium">
-                        <Link href="/marketplace" className="hover:text-[#4C3B8A] transition-colors">Marketplace</Link>
-                        <span className="mx-2 text-gray-300">/</span>
+                    <nav className="flex items-center gap-1.5 text-sm">
+                        <Link href="/" className="text-gray-400 hover:text-[#4C3B8A] transition-colors shrink-0">
+                            <Home className="w-3.5 h-3.5" />
+                        </Link>
+                        <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                        <Link href="/marketplace" className="text-gray-500 hover:text-[#4C3B8A] transition-colors font-medium">
+                            Marketplace
+                        </Link>
+                        <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
                         <span className="text-gray-900 font-semibold">Messages</span>
                     </nav>
                 </div>

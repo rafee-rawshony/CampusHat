@@ -6,7 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, Edit2, EyeOff, Eye, Trash2, CheckCircle, RotateCcw, Search, Package, AlertCircle } from 'lucide-react'
+import { Plus, Edit2, EyeOff, Eye, Trash2, CheckCircle, RotateCcw, Search, Package, AlertCircle, ChevronRight, Home } from 'lucide-react'
 import { format } from 'date-fns'
 
 import { Button } from '@/components/ui/button'
@@ -264,10 +264,16 @@ export default function MyAdsPage() {
                 
                 {/* Breadcrumb & Header */}
                 <div className="mb-8">
-                    <nav className="flex items-center text-sm text-gray-500 mb-4 font-medium">
-                        <Link href="/marketplace" className="hover:text-gray-900 transition-colors">Marketplace</Link>
-                        <span className="mx-2">/</span>
-                        <span className="text-gray-900">My Advertisements</span>
+                    <nav className="flex items-center gap-1.5 text-sm mb-4">
+                        <Link href="/" className="text-gray-400 hover:text-[#4C3B8A] transition-colors shrink-0">
+                            <Home className="w-3.5 h-3.5" />
+                        </Link>
+                        <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                        <Link href="/marketplace" className="text-gray-500 hover:text-[#4C3B8A] transition-colors font-medium whitespace-nowrap">
+                            Marketplace
+                        </Link>
+                        <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                        <span className="text-gray-900 font-semibold">My Advertisements</span>
                     </nav>
 
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

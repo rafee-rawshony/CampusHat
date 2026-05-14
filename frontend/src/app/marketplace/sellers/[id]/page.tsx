@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
-    ArrowLeft, MessageCircle,
+    ArrowLeft, MessageCircle, ChevronRight, Home,
     ShieldCheck, Zap, Star, Award, TrendingUp,
     Clock, Calendar, Package, CheckCircle2, MapPin,
     BadgeCheck, Users
@@ -236,9 +236,15 @@ export default function MarketplaceSellerProfilePage() {
                         >
                             <ArrowLeft className="w-5 h-5" />
                         </button>
-                        <nav className="flex items-center text-sm text-gray-500 font-medium">
-                            <Link href="/marketplace" className="hover:text-[#4C3B8A] transition-colors">Marketplace</Link>
-                            <span className="mx-2 text-gray-300">/</span>
+                        <nav className="flex items-center gap-1.5 text-sm">
+                            <Link href="/" className="text-gray-400 hover:text-[#4C3B8A] transition-colors shrink-0">
+                                <Home className="w-3.5 h-3.5" />
+                            </Link>
+                            <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                            <Link href="/marketplace" className="text-gray-500 hover:text-[#4C3B8A] transition-colors font-medium">
+                                Marketplace
+                            </Link>
+                            <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
                             <span className="text-gray-900 font-semibold truncate max-w-[200px]">{profile.full_name}</span>
                         </nav>
                     </div>

@@ -42,8 +42,17 @@ export function ProductReviewsTab({ productId, productSlug, productName }: Produ
         }).then(r => r.data),
     })
 
-    // Extract stats (we derive from list if endpoint doesn't serve aggregates natively)
-    const reviewsList = reviewsData?.results || (Array.isArray(reviewsData) ? reviewsData : [])
+    const { data: canReviewData } = useQuery({
+        queryKey: ['can-review', productSlug],
+        queryFn: () => api.get(`/mall/products/${productSlug}/reviews/can-review/`).then(r => r.data?.data),
+        enabled: isAuthenticated,
+    })
+
+    const canReview = canReviewData?.can_review === true
+    const hasPurchased = canReviewData?.has_purchased === true
+    const alreadyReviewed = canReviewData?.already_reviewed === true
+
+    const reviewsList = reviewsData?.data || reviewsData?.results || (Array.isArray(reviewsData) ? reviewsData : [])
     const totalCount = reviewsData?.count || reviewsList.length
     
     // Simulate aggregates from active list if not provided globally by API (usually provided via product model)
@@ -59,6 +68,12 @@ export function ProductReviewsTab({ productId, productSlug, productName }: Produ
     const handleWriteReviewClick = () => {
         if (!isAuthenticated) {
             router.push(`/auth/login?redirect=/products/${productSlug}`)
+            return
+        }
+        if (!hasPurchased) {
+            return
+        }
+        if (alreadyReviewed) {
             return
         }
         setIsModalOpen(true)
@@ -106,14 +121,27 @@ export function ProductReviewsTab({ productId, productSlug, productName }: Produ
 
                 {/* Right: CTA */}
                 <div className="shrink-0 w-full md:w-auto flex flex-col items-center md:items-end justify-center h-full">
-                    <Button 
-                        onClick={handleWriteReviewClick}
-                        className="bg-[#4C3B8A] hover:bg-[#34285e] text-white font-semibold px-6 lg:px-8 py-6 rounded-xl w-full sm:w-auto shadow-sm"
-                    >
-                        Write a Review
-                    </Button>
+                    {alreadyReviewed ? (
+                        <div className="flex items-center gap-2 text-sm text-emerald-600 font-bold bg-emerald-50 px-4 py-2.5 rounded-xl border border-emerald-100">
+                            <CheckCircle2 className="w-4 h-4" />
+                            You reviewed this product
+                        </div>
+                    ) : (
+                        <Button
+                            onClick={handleWriteReviewClick}
+                            disabled={isAuthenticated && !canReview}
+                            className="bg-[#4C3B8A] hover:bg-[#34285e] text-white font-semibold px-6 lg:px-8 py-6 rounded-xl w-full sm:w-auto shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Write a Review
+                        </Button>
+                    )}
                     <p className="text-xs text-gray-400 mt-3 font-medium flex items-center justify-center gap-1.5 opacity-80">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Only verified buyers can review
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        {!isAuthenticated
+                            ? 'Sign in to write a review'
+                            : !hasPurchased
+                                ? 'Purchase this product to write a review'
+                                : 'Only verified buyers can review'}
                     </p>
                 </div>
             </div>
@@ -135,9 +163,8 @@ export function ProductReviewsTab({ productId, productSlug, productName }: Produ
                     ))
                 ) : reviewsList.length > 0 ? (
                     reviewsList.map((review: any) => {
-                        const user = review.user || {}
-                        const profilePic = user.profile_picture
-                        const fullName = user.full_name || 'Anonymous User'
+                        const profilePic = review.reviewer_profile_picture
+                        const fullName = review.reviewer_name || 'Anonymous User'
 
                         return (
                             <div key={review.id} className="border-b border-gray-100 pb-8 pt-2 last:border-0 last:pb-0">
@@ -180,10 +207,10 @@ export function ProductReviewsTab({ productId, productSlug, productName }: Produ
                                 {review.evidence_urls && review.evidence_urls.length > 0 && (
                                     <div className="flex flex-wrap gap-2 mt-4">
                                         {review.evidence_urls.map((imgUrl: string, idx: number) => (
-                                            <a 
-                                                key={idx} 
-                                                href={imgUrl} 
-                                                target="_blank" 
+                                            <a
+                                                key={idx}
+                                                href={imgUrl}
+                                                target="_blank"
                                                 rel="noreferrer"
                                                 className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border border-gray-200 hover:border-brand-primary transition-colors block"
                                             >
@@ -191,6 +218,14 @@ export function ProductReviewsTab({ productId, productSlug, productName }: Produ
                                                 <img src={absoluteMediaUrl(imgUrl)} alt={`Review ${idx}`} className="w-full h-full object-cover" />
                                             </a>
                                         ))}
+                                    </div>
+                                )}
+
+                                {/* Seller Response */}
+                                {review.seller_response && (
+                                    <div className="mt-4 ml-4 pl-4 border-l-2 border-[#4C3B8A]/20 bg-gray-50 rounded-r-lg p-3">
+                                        <p className="text-xs font-bold text-[#4C3B8A] mb-1">Seller Response</p>
+                                        <p className="text-sm text-gray-600 leading-relaxed">{review.seller_response}</p>
                                     </div>
                                 )}
                             </div>
@@ -201,15 +236,19 @@ export function ProductReviewsTab({ productId, productSlug, productName }: Produ
                         <MessageSquare className="h-12 w-12 text-gray-300 mb-4 bg-white p-3 rounded-full shadow-sm" />
                         <h3 className="text-lg font-bold text-gray-900 mb-1">No reviews yet</h3>
                         <p className="text-sm font-medium mb-5 max-w-sm text-gray-500">
-                            Be the first to review this product and help other students make informed decisions!
+                            {hasPurchased
+                                ? 'Be the first to review this product and help other students!'
+                                : 'Purchase this product to be the first to write a review.'}
                         </p>
-                        <Button 
-                            onClick={handleWriteReviewClick}
-                            variant="outline"
-                            className="bg-white border-2 border-gray-200 text-gray-700 font-semibold"
-                        >
-                            Write the first review
-                        </Button>
+                        {canReview && (
+                            <Button
+                                onClick={handleWriteReviewClick}
+                                variant="outline"
+                                className="bg-white border-2 border-gray-200 text-gray-700 font-semibold"
+                            >
+                                Write the first review
+                            </Button>
+                        )}
                     </div>
                 )}
             </div>

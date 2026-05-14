@@ -145,6 +145,7 @@ export function AddReviewModal({ isOpen, onOpenChange, productId, productName, p
             toast.success('Review submitted!')
             queryClient.invalidateQueries({ queryKey: ['product', productSlug] })
             queryClient.invalidateQueries({ queryKey: ['product-reviews', productSlug] })
+            queryClient.invalidateQueries({ queryKey: ['can-review', productSlug] })
             handleClose()
         } catch (error: any) {
             const msg = error.response?.data?.detail || error.response?.data?.message

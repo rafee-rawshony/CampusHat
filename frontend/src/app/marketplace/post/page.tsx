@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 import React, { Suspense, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { GraduationCap } from 'lucide-react'
+import { ChevronRight, GraduationCap, Home } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth.store'
 import { PostAdForm } from '@/components/marketplace/PostAdForm'
 
@@ -65,13 +65,17 @@ function PostAdWrapper() {
         <div className="bg-white min-h-screen pb-20 pt-8">
             <div className="container mx-auto px-4 max-w-2xl">
                 {/* Breadcrumb */}
-                <nav className="flex items-center text-sm text-gray-500 mb-6 font-medium">
-                    <Link href="/marketplace" className="hover:text-gray-900 transition-colors">
+                <nav className="flex items-center gap-1.5 text-sm mb-6">
+                    <Link href="/" className="text-gray-400 hover:text-[#4C3B8A] transition-colors shrink-0">
+                        <Home className="w-3.5 h-3.5" />
+                    </Link>
+                    <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                    <Link href="/marketplace" className="text-gray-500 hover:text-[#4C3B8A] transition-colors font-medium whitespace-nowrap">
                         Marketplace
                     </Link>
-                    <span className="mx-2">/</span>
-                    <span className="text-gray-900">
-                        {editId ? 'Edit Advertisement' : 'Post New Advertisement'}
+                    <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                    <span className="text-gray-900 font-semibold">
+                        {editId ? 'Edit Advertisement' : 'Post New Ad'}
                     </span>
                 </nav>
 

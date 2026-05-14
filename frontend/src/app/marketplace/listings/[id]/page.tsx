@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
     MapPin, Clock, Flag, ChevronDown, ChevronUp, Tag,
-    ShoppingBag, Key, Briefcase, UtensilsCrossed
+    ShoppingBag, Key, Briefcase, UtensilsCrossed, ChevronRight, Home
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -126,17 +126,34 @@ export default function MarketplaceAdDetailPage({ params }: { params: { id: stri
     )
 
     const categoryName = typeof listing.category === 'string' ? listing.category : listing.category?.name || 'Various'
+    const typeRouteMap: Record<string, { href: string; label: string }> = {
+        sell: { href: '/marketplace/buy', label: 'Buy' },
+        buy: { href: '/marketplace/buy', label: 'Buy' },
+        rent: { href: '/marketplace/rental', label: 'Rental' },
+        rental: { href: '/marketplace/rental', label: 'Rental' },
+        service: { href: '/marketplace/services', label: 'Services' },
+        food: { href: '/marketplace/food', label: 'Food' },
+    }
+    const typeInfo = typeRouteMap[listing.post_type] || { href: '/marketplace', label: listing.post_type }
     return (
         <div className="bg-white min-h-screen pb-20 pt-6">
             <div className="container mx-auto px-4 max-w-6xl">
-                {/* Breadcrumb / Top Bar */}
-                <div className="flex items-center gap-2 text-sm text-gray-500 mb-6 font-medium">
-                    <Link href="/marketplace" className="hover:text-brand-primary">Marketplace</Link>
-                    <span>/</span>
-                    <Link href={`/marketplace/${listing.post_type}`} className="hover:text-brand-primary capitalize">{listing.post_type}</Link>
-                    <span>/</span>
-                    <span className="text-gray-900 truncate max-w-[200px]">{listing.title}</span>
-                </div>
+                {/* Breadcrumb */}
+                <nav className="flex items-center gap-1.5 text-sm mb-6 overflow-x-auto no-scrollbar">
+                    <Link href="/" className="text-gray-400 hover:text-[#4C3B8A] transition-colors shrink-0">
+                        <Home className="w-3.5 h-3.5" />
+                    </Link>
+                    <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                    <Link href="/marketplace" className="text-gray-500 hover:text-[#4C3B8A] transition-colors font-medium whitespace-nowrap shrink-0">
+                        Marketplace
+                    </Link>
+                    <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                    <Link href={typeInfo.href} className="text-gray-500 hover:text-[#4C3B8A] transition-colors font-medium whitespace-nowrap shrink-0">
+                        {typeInfo.label}
+                    </Link>
+                    <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                    <span className="text-gray-900 font-semibold truncate max-w-[250px]">{listing.title}</span>
+                </nav>
 
                 <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-8 items-start">
                     {/* LEFT COLUMN: Gallery & Description */}
