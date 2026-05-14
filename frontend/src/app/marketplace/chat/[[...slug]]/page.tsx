@@ -14,11 +14,42 @@ import { ChatWindow } from '@/components/marketplace/ChatWindow'
 import type { ChatThread } from '@/components/marketplace/ChatConversationList'
 import { useMarketplaceChatInbox } from '@/hooks/useMarketplaceChatInbox'
 
+function useLayoutOffsets() {
+    const [top, setTop] = useState(0)
+    const [bottom, setBottom] = useState(0)
+
+    useEffect(() => {
+        const measure = () => {
+            const header = document.querySelector('header')
+            setTop(header?.offsetHeight ?? 0)
+            const isMobile = window.innerWidth < 640
+            setBottom(isMobile ? 64 : 0)
+        }
+        measure()
+        window.addEventListener('resize', measure)
+
+        let ro: ResizeObserver | undefined
+        const header = document.querySelector('header')
+        if (header && typeof ResizeObserver !== 'undefined') {
+            ro = new ResizeObserver(measure)
+            ro.observe(header)
+        }
+
+        return () => {
+            window.removeEventListener('resize', measure)
+            ro?.disconnect()
+        }
+    }, [])
+
+    return { top, bottom }
+}
+
 export default function UnifiedChatPage() {
     const router = useRouter()
     const params = useParams()
     const queryClient = useQueryClient()
     const { isAuthenticated, canAccessMarketplace } = useAuthStore()
+    const { top: headerHeight, bottom: bottomNavHeight } = useLayoutOffsets()
 
     const slugParts = params?.slug as string[] | undefined
     const initialChatId = slugParts?.[0] || null
@@ -95,7 +126,10 @@ export default function UnifiedChatPage() {
 
     if (!canAccessMarketplace()) {
         return (
-            <div className="fixed inset-0 top-16 bg-gradient-to-b from-gray-50 to-white flex items-center justify-center px-4">
+            <div
+                className="fixed inset-x-0 bottom-0 bg-gradient-to-b from-gray-50 to-white flex items-center justify-center px-4"
+                style={{ top: headerHeight }}
+            >
                 <UpgradePrompt
                     isOpen={true}
                     onClose={() => router.push('/marketplace')}
@@ -107,7 +141,10 @@ export default function UnifiedChatPage() {
     }
 
     return (
-        <div className="fixed inset-0 top-16 flex flex-col bg-gray-50">
+        <div
+            className="fixed inset-x-0 flex flex-col bg-gray-50"
+            style={{ top: headerHeight, bottom: bottomNavHeight }}
+        >
             {/* Desktop breadcrumb */}
             <div className="hidden md:block shrink-0 bg-white border-b border-gray-100">
                 <div className="max-w-7xl mx-auto px-6 py-2.5">
