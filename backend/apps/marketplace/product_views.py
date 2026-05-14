@@ -455,12 +455,12 @@ class MarketplaceSellerProfileView(APIView):
         response_times = []
         for chat in seller_chats.filter(seller=seller):
             first_buyer_msg = MarketplaceMessage.objects.filter(
-                chat=chat, deleted_at__isnull=True,
+                chat=chat,
             ).exclude(sender=seller).order_by('created_at').first()
 
             if first_buyer_msg:
                 first_reply = MarketplaceMessage.objects.filter(
-                    chat=chat, sender=seller, deleted_at__isnull=True,
+                    chat=chat, sender=seller,
                     created_at__gt=first_buyer_msg.created_at,
                 ).order_by('created_at').first()
                 if first_reply:
