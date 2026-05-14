@@ -288,9 +288,9 @@ function AuthPageContent() {
                                 <div className="mt-6">
                                     <div className="flex items-center gap-3 my-5"><div className="flex-1 h-px bg-gray-200" /><span className="text-xs text-gray-400 font-medium uppercase tracking-wider">or</span><div className="flex-1 h-px bg-gray-200" /></div>
                                     <GoogleSignInButton mode="signin" />
-                                </div>
-                                <div className="mt-5 flex items-center justify-center gap-1.5 text-[11px] text-gray-400">
-                                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-500/70" /><span>Secure login for verified campus users</span>
+                                    <div className="mt-4 flex items-center justify-center gap-1.5 text-[11px] text-gray-400">
+                                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-500/70" /><span>Secure login for verified campus users</span>
+                                    </div>
                                 </div>
                             </>
                         )}
