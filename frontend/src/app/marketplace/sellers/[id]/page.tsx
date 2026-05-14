@@ -261,7 +261,7 @@ export default function MarketplaceSellerProfilePage() {
                     </div>
 
                     {/* Avatar row — avatar overlaps the gradient */}
-                    <div className="px-5 sm:px-8 -mt-12 sm:-mt-16">
+                    <div className="px-5 sm:px-8 -mt-12 sm:-mt-16 relative z-10">
                         <div className="flex items-end gap-4 sm:gap-6">
                             <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden ring-4 ring-white shadow-xl shrink-0 bg-white">
                                 {profile.profile_picture ? (
