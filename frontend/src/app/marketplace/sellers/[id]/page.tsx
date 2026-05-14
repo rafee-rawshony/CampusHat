@@ -5,10 +5,10 @@ import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
-    ArrowLeft, MessageCircle, Bookmark, BookmarkCheck,
+    ArrowLeft, MessageCircle,
     ShieldCheck, Zap, Star, Award, TrendingUp,
     Clock, Calendar, Package, CheckCircle2, MapPin,
-    BadgeCheck, Users, Filter
+    BadgeCheck, Users
 } from 'lucide-react'
 import { formatDistanceToNow, format } from 'date-fns'
 import { api } from '@/lib/api'
@@ -115,7 +115,6 @@ export default function MarketplaceSellerProfilePage() {
     const [profile, setProfile] = useState<SellerProfile | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
-    const [saved, setSaved] = useState(false)
     const [startingChat, setStartingChat] = useState(false)
     const [typeFilter, setTypeFilter] = useState('all')
 
@@ -146,10 +145,16 @@ export default function MarketplaceSellerProfilePage() {
         }
         if (isOwnProfile) return
 
+        const firstListing = profile?.listings?.[0]
+        if (!firstListing) {
+            toast.error('This seller has no active listings to message about')
+            return
+        }
+
         setStartingChat(true)
         try {
             const res = await api.post('/marketplace/chats/start/', {
-                seller_id: sellerId,
+                product_id: firstListing.id,
             })
             const chatId = res.data?.data?.id || res.data?.id
             if (chatId) {
@@ -297,32 +302,19 @@ export default function MarketplaceSellerProfilePage() {
                                 )}
                             </div>
 
-                            {/* Action buttons — desktop */}
-                            <div className="hidden sm:flex items-center gap-2.5 shrink-0 pb-1">
-                                {!isOwnProfile && (
-                                    <>
-                                        <button
-                                            onClick={handleMessage}
-                                            disabled={startingChat}
-                                            className="flex items-center gap-2 bg-[#4C3B8A] hover:bg-[#3D2F6E] text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md shadow-[#4C3B8A]/20 transition-all active:scale-95 disabled:opacity-50"
-                                        >
-                                            <MessageCircle className="w-4 h-4" />
-                                            {startingChat ? 'Starting...' : 'Message'}
-                                        </button>
-                                        <button
-                                            onClick={() => setSaved(!saved)}
-                                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border transition-all active:scale-95 ${
-                                                saved
-                                                    ? 'bg-[#4C3B8A]/5 border-[#4C3B8A]/30 text-[#4C3B8A]'
-                                                    : 'bg-white border-gray-200 text-gray-700 hover:border-[#4C3B8A]/30'
-                                            }`}
-                                        >
-                                            {saved ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
-                                            {saved ? 'Saved' : 'Save'}
-                                        </button>
-                                    </>
-                                )}
-                            </div>
+                            {/* Action button — desktop */}
+                            {!isOwnProfile && (
+                                <div className="hidden sm:flex items-center shrink-0 sm:pb-1">
+                                    <button
+                                        onClick={handleMessage}
+                                        disabled={startingChat}
+                                        className="flex items-center gap-2 bg-[#4C3B8A] hover:bg-[#3D2F6E] text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md shadow-[#4C3B8A]/20 transition-all active:scale-95 disabled:opacity-50"
+                                    >
+                                        <MessageCircle className="w-4 h-4" />
+                                        {startingChat ? 'Starting...' : 'Message'}
+                                    </button>
+                                </div>
+                            )}
                         </div>
 
                         {/* Meta row */}
@@ -442,26 +434,14 @@ export default function MarketplaceSellerProfilePage() {
             {/* ── MOBILE STICKY BAR ── */}
             {!isOwnProfile && (
                 <div className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-white border-t border-gray-100 px-4 py-3 pb-[calc(12px+env(safe-area-inset-bottom))] shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
-                    <div className="flex gap-3">
-                        <button
-                            onClick={handleMessage}
-                            disabled={startingChat}
-                            className="flex-1 flex items-center justify-center gap-2 bg-[#4C3B8A] hover:bg-[#3D2F6E] text-white py-3 rounded-xl text-sm font-bold shadow-md shadow-[#4C3B8A]/20 transition-all active:scale-95 disabled:opacity-50"
-                        >
-                            <MessageCircle className="w-4 h-4" />
-                            {startingChat ? 'Starting...' : 'Message Seller'}
-                        </button>
-                        <button
-                            onClick={() => setSaved(!saved)}
-                            className={`w-12 h-12 flex items-center justify-center rounded-xl border transition-all active:scale-95 shrink-0 ${
-                                saved
-                                    ? 'bg-[#4C3B8A]/5 border-[#4C3B8A]/30 text-[#4C3B8A]'
-                                    : 'bg-white border-gray-200 text-gray-500'
-                            }`}
-                        >
-                            {saved ? <BookmarkCheck className="w-5 h-5" /> : <Bookmark className="w-5 h-5" />}
-                        </button>
-                    </div>
+                    <button
+                        onClick={handleMessage}
+                        disabled={startingChat}
+                        className="w-full flex items-center justify-center gap-2 bg-[#4C3B8A] hover:bg-[#3D2F6E] text-white py-3 rounded-xl text-sm font-bold shadow-md shadow-[#4C3B8A]/20 transition-all active:scale-95 disabled:opacity-50"
+                    >
+                        <MessageCircle className="w-4 h-4" />
+                        {startingChat ? 'Starting...' : 'Message Seller'}
+                    </button>
                 </div>
             )}
         </div>
