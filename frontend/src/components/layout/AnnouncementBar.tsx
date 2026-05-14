@@ -47,7 +47,8 @@ export function AnnouncementBar() {
     return (
         <div className="bg-[#4C3B8A] text-white transition-all duration-500 overflow-visible">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative flex items-center justify-center min-h-[44px] py-1.5">
-                {/* Status Indicator (Left) — DEV ONLY, remove before production */}
+                {/* Status Indicator (Left) — commented out, set to true to re-enable */}
+                {false && (
                 <div className="absolute left-4 hidden md:flex items-center gap-2">
                     <span className="text-[10px] font-bold uppercase opacity-80 tracking-widest">System Status:</span>
                     <div className="flex items-center gap-1.5 bg-black/20 px-2 py-0.5 rounded-full border border-white/10">
@@ -57,6 +58,7 @@ export function AnnouncementBar() {
                         </span>
                     </div>
                 </div>
+                )}
 
                 {/* Centered Message */}
                 <div className="text-[11px] md:text-[13px] font-bold tracking-tight text-center mx-auto drop-shadow-sm">
