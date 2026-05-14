@@ -68,6 +68,27 @@ export default function SellerStorePage() {
         followMutation.mutate()
     }
 
+    const [startingChat, setStartingChat] = useState(false)
+    const handleMessage = async () => {
+        if (!isAuthenticated) {
+            router.push(`/auth/login?redirect=/sellers/${slug}`)
+            return
+        }
+        if (!store?.id) return
+        setStartingChat(true)
+        try {
+            const res = await api.post('/mall/chats/start/', { store_id: store.id })
+            const chatId = res.data?.data?.id
+            if (chatId) {
+                router.push(`/account/messages/mall/${chatId}`)
+            }
+        } catch {
+            toast.error('Failed to start chat')
+        } finally {
+            setStartingChat(false)
+        }
+    }
+
     // Fetch products
     const { data: productsRaw, isLoading: productsLoading } = useQuery({
         queryKey: ['store-products', slug, sort],
@@ -186,9 +207,14 @@ export default function SellerStorePage() {
                                     <UserPlus className="w-4 h-4" />
                                     {isFollowing ? 'Following' : 'Follow Store'}
                                 </Button>
-                                <Button variant="outline" className="rounded-xl font-semibold gap-2 border-gray-200">
+                                <Button
+                                    variant="outline"
+                                    className="rounded-xl font-semibold gap-2 border-gray-200"
+                                    onClick={handleMessage}
+                                    disabled={startingChat}
+                                >
                                     <MessageSquare className="w-4 h-4 text-[#4C3B8A]" />
-                                    Message
+                                    {startingChat ? 'Opening...' : 'Message'}
                                 </Button>
                             </div>
                         </div>

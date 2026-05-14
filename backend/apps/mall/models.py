@@ -629,7 +629,7 @@ class StoreChat(BaseModel):
         unique_together = ('buyer', 'store')
 
     def __str__(self):
-        return f'Chat: {self.buyer} ↔ {self.store.store_name}'
+        return f'Chat: {self.buyer} ↔ {self.store.name}'
 
 
 class StoreMessage(UUIDMixin, TimestampMixin):

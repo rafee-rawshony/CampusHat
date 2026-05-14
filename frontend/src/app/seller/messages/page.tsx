@@ -70,8 +70,8 @@ export default function SellerMessagesPage() {
             ) : (
                 /* Chat conversation list */
                 <div className="space-y-2">
-                    {chats.map((chat) => {
-                        const buyer = chat.other_user
+                    {chats.map((chat: any) => {
+                        const buyerName = chat.other_user?.name || chat.buyer_name || 'Buyer'
                         const listing = chat.listing
                         const lastMsg = chat.last_message
                         const href = listing ? `/marketplace/chat/${chat.id}` : `/account/messages/mall/${chat.id}`
@@ -87,14 +87,14 @@ export default function SellerMessagesPage() {
                             >
                                 {/* Buyer avatar */}
                                 <div className="w-12 h-12 rounded-full bg-[#4C3B8A] flex items-center justify-center shrink-0 text-white font-bold text-sm">
-                                    {getInitials(buyer?.name || 'B')}
+                                    {getInitials(buyerName)}
                                 </div>
 
                                 {/* Message content preview */}
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between mb-0.5">
                                         <span className="font-semibold text-gray-900 text-sm truncate">
-                                            {buyer?.name || 'Buyer'}
+                                            {buyerName}
                                         </span>
                                         {timeAgo && (
                                             <span className="flex items-center gap-1 text-[10px] text-gray-400 shrink-0 ml-2">

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowLeft, Send, Paperclip, ExternalLink } from 'lucide-react'
+import { ArrowLeft, Send, Paperclip, ExternalLink, X, Loader2 } from 'lucide-react'
 import { format, isToday, isYesterday, isSameDay } from 'date-fns'
 import { useAuthStore } from '@/stores/auth.store'
 import toast from 'react-hot-toast'
@@ -12,7 +12,7 @@ import useWebSocket from '@/hooks/useWebSocket'
 import type { ChatMessage } from '@/hooks/useWebSocket'
 import { ChatMessageBubble } from '@/components/marketplace/ChatMessageBubble'
 import { OfferMessageCard } from '@/components/marketplace/OfferMessageCard'
-import { absoluteMediaUrl } from '@/services/upload.service'
+import { absoluteMediaUrl, uploadImage } from '@/services/upload.service'
 
 interface ChatWindowProps {
     chatId: string
@@ -51,9 +51,12 @@ export function ChatWindow({ chatId, chatData, onBack }: ChatWindowProps) {
     const { messages, setMessages, isConnected, isTyping, sendMessage, sendTyping, markRead } = useWebSocket(chatId)
     const [inputText, setInputText] = useState('')
     const [isLoadingHistory, setIsLoadingHistory] = useState(true)
+    const [attachmentPreview, setAttachmentPreview] = useState<{ file: File; url: string } | null>(null)
+    const [isUploading, setIsUploading] = useState(false)
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const messagesContainerRef = useRef<HTMLDivElement>(null)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
+    const fileInputRef = useRef<HTMLInputElement>(null)
     const isNearBottomRef = useRef(true)
 
     const otherUser = chatData?.other_user
@@ -109,7 +112,84 @@ export function ChatWindow({ chatId, chatData, onBack }: ChatWindowProps) {
         sendTyping()
     }
 
+    const handleFileSelect = (file: File) => {
+        if (!file.type.startsWith('image/')) {
+            toast.error('Only image files are supported')
+            return
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            toast.error('File must be under 10MB')
+            return
+        }
+        const url = URL.createObjectURL(file)
+        setAttachmentPreview({ file, url })
+    }
+
+    const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (file) handleFileSelect(file)
+        e.target.value = ''
+    }
+
+    const handlePaste = (e: React.ClipboardEvent) => {
+        const items = e.clipboardData?.items
+        if (!items) return
+        for (const item of Array.from(items)) {
+            if (item.type.startsWith('image/')) {
+                e.preventDefault()
+                const file = item.getAsFile()
+                if (file) handleFileSelect(file)
+                return
+            }
+        }
+    }
+
+    const clearAttachment = () => {
+        if (attachmentPreview) {
+            URL.revokeObjectURL(attachmentPreview.url)
+            setAttachmentPreview(null)
+        }
+    }
+
+    const handleSendAttachment = async () => {
+        if (!attachmentPreview || isUploading) return
+        setIsUploading(true)
+        try {
+            const uploaded = await uploadImage(attachmentPreview.file, 'generic')
+            const imageUrl = uploaded.url || uploaded.path
+
+            const optimisticMsg: ChatMessage = {
+                id: `temp-${Date.now()}`,
+                sender: {
+                    id: user?.id || '',
+                    full_name: user?.full_name || '',
+                    profile_picture: user?.profile_picture || null,
+                },
+                content: imageUrl,
+                message_type: 'image',
+                created_at: new Date().toISOString(),
+            }
+            setMessages(prev => [...prev, optimisticMsg])
+            clearAttachment()
+            isNearBottomRef.current = true
+
+            const sent = await sendMessage(imageUrl, 'image')
+            if (!sent) {
+                setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id))
+                toast.error('Failed to send image')
+            }
+        } catch {
+            toast.error('Failed to upload image')
+        } finally {
+            setIsUploading(false)
+        }
+    }
+
     const handleSend = async () => {
+        if (attachmentPreview) {
+            handleSendAttachment()
+            return
+        }
         const text = inputText.trim()
         if (!text) return
 
@@ -283,11 +363,38 @@ export function ChatWindow({ chatId, chatData, onBack }: ChatWindowProps) {
 
             {/* Input area */}
             <div className="shrink-0 bg-white border-t border-gray-100 px-3 sm:px-5 py-3 pb-[max(12px,env(safe-area-inset-bottom))]">
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleFileInputChange}
+                />
+
+                {attachmentPreview && (
+                    <div className="mb-2 relative inline-block">
+                        <div className="w-24 h-24 rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+                            <Image src={attachmentPreview.url} alt="Attachment" width={96} height={96} unoptimized className="object-cover w-full h-full" />
+                        </div>
+                        <button
+                            onClick={clearAttachment}
+                            className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-gray-800 text-white rounded-full flex items-center justify-center hover:bg-red-500 transition-colors"
+                        >
+                            <X className="w-3 h-3" />
+                        </button>
+                        {isUploading && (
+                            <div className="absolute inset-0 bg-black/40 rounded-xl flex items-center justify-center">
+                                <Loader2 className="w-5 h-5 text-white animate-spin" />
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 <div className="flex items-end gap-2.5">
                     <button
-                        className="w-10 h-10 flex items-center justify-center text-gray-300 rounded-xl shrink-0 cursor-not-allowed hover:bg-gray-50 transition-colors"
-                        disabled
-                        title="Attachments coming soon"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-10 h-10 flex items-center justify-center text-gray-400 rounded-xl shrink-0 hover:bg-gray-100 hover:text-[#4C3B8A] active:bg-gray-200 transition-colors"
+                        title="Attach image"
                     >
                         <Paperclip className="w-[18px] h-[18px]" />
                     </button>
@@ -298,7 +405,8 @@ export function ChatWindow({ chatId, chatData, onBack }: ChatWindowProps) {
                             value={inputText}
                             onChange={handleTextareaChange}
                             onKeyDown={handleKeyDown}
-                            placeholder="Type a message..."
+                            onPaste={handlePaste}
+                            placeholder={attachmentPreview ? 'Add a caption...' : 'Type a message...'}
                             rows={1}
                             className="w-full bg-gray-50 rounded-2xl px-4 py-2.5 text-sm resize-none outline-none border border-gray-200 focus:border-[#4C3B8A]/40 focus:ring-2 focus:ring-[#4C3B8A]/10 focus:bg-white max-h-[120px] placeholder:text-gray-400 transition-all"
                             style={{ minHeight: '42px' }}
@@ -307,15 +415,15 @@ export function ChatWindow({ chatId, chatData, onBack }: ChatWindowProps) {
 
                     <button
                         onClick={handleSend}
-                        disabled={!inputText.trim()}
+                        disabled={!inputText.trim() && !attachmentPreview}
                         className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shrink-0 ${
-                            inputText.trim()
+                            inputText.trim() || attachmentPreview
                                 ? 'bg-[#4C3B8A] text-white hover:bg-[#3D2F6E] shadow-md shadow-[#4C3B8A]/20 active:scale-95'
                                 : 'bg-gray-100 text-gray-300'
                         }`}
                         aria-label="Send message"
                     >
-                        <Send className="w-[18px] h-[18px]" />
+                        {isUploading ? <Loader2 className="w-[18px] h-[18px] animate-spin" /> : <Send className="w-[18px] h-[18px]" />}
                     </button>
                 </div>
             </div>

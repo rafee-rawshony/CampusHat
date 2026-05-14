@@ -1699,13 +1699,13 @@ class SellerAnswerQuestionView(APIView):
             id=question_id,
             product__slug=slug,
             deleted_at__isnull=True,
-        ).select_related('product__store__owner').first()
+        ).select_related('product__store__seller__user').first()
 
         if not question:
             return Response({'success': False, 'message': 'Question not found.'}, status=404)
 
         # Only store owner can answer
-        if question.product.store.owner != request.user:
+        if question.product.store.seller.user != request.user:
             return Response({'success': False, 'message': 'Only the store owner can answer.'}, status=403)
 
         serializer = SellerAnswerQuestionSerializer(

@@ -2,14 +2,14 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Send } from 'lucide-react'
+import { ArrowLeft, Send, Paperclip, X, Loader2 } from 'lucide-react'
 import { format, isToday, isYesterday, isSameDay } from 'date-fns'
 import { useAuthStore } from '@/stores/auth.store'
 import { api } from '@/lib/api'
+import toast from 'react-hot-toast'
 import { ChatMessageBubble } from '@/components/marketplace/ChatMessageBubble'
-import { absoluteMediaUrl } from '@/services/upload.service'
+import { absoluteMediaUrl, uploadImage } from '@/services/upload.service'
 
 interface StoreChatWindowProps {
     chatId: string
@@ -29,8 +29,11 @@ export function StoreChatWindow({ chatId, chatData }: StoreChatWindowProps) {
     const [messages, setMessages] = useState<any[]>([])
     const [inputText, setInputText] = useState('')
     const [isLoadingHistory, setIsLoadingHistory] = useState(true)
+    const [attachmentPreview, setAttachmentPreview] = useState<{ file: File; url: string } | null>(null)
+    const [isUploading, setIsUploading] = useState(false)
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
+    const fileInputRef = useRef<HTMLInputElement>(null)
 
     const otherUser = chatData?.store_name ? {
         name: chatData.store_name,
@@ -68,11 +71,83 @@ export function StoreChatWindow({ chatId, chatData }: StoreChatWindowProps) {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }, [messages])
 
+    const handleFileSelect = (file: File) => {
+        if (!file.type.startsWith('image/')) {
+            toast.error('Only image files are supported')
+            return
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            toast.error('File must be under 10MB')
+            return
+        }
+        const url = URL.createObjectURL(file)
+        setAttachmentPreview({ file, url })
+    }
+
+    const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (file) handleFileSelect(file)
+        e.target.value = ''
+    }
+
+    const handlePaste = (e: React.ClipboardEvent) => {
+        const items = e.clipboardData?.items
+        if (!items) return
+        for (const item of Array.from(items)) {
+            if (item.type.startsWith('image/')) {
+                e.preventDefault()
+                const file = item.getAsFile()
+                if (file) handleFileSelect(file)
+                return
+            }
+        }
+    }
+
+    const clearAttachment = () => {
+        if (attachmentPreview) {
+            URL.revokeObjectURL(attachmentPreview.url)
+            setAttachmentPreview(null)
+        }
+    }
+
+    const handleSendAttachment = async () => {
+        if (!attachmentPreview || isUploading) return
+        setIsUploading(true)
+        try {
+            const uploaded = await uploadImage(attachmentPreview.file, 'generic')
+            const imageUrl = uploaded.url || uploaded.path
+
+            const optimisticMsg = {
+                id: `temp-${Date.now()}`,
+                sender: {
+                    id: user?.id || '',
+                    full_name: user?.full_name || '',
+                    profile_picture: user?.profile_picture || null,
+                },
+                content: imageUrl,
+                message_type: 'image',
+                created_at: new Date().toISOString(),
+            }
+            setMessages(prev => [...prev, optimisticMsg])
+            clearAttachment()
+
+            await api.post(`/mall/chats/${chatId}/send/`, { content: imageUrl, message_type: 'image' })
+            fetchMessages()
+        } catch {
+            toast.error('Failed to send image')
+        } finally {
+            setIsUploading(false)
+        }
+    }
+
     const handleSend = async () => {
+        if (attachmentPreview) {
+            handleSendAttachment()
+            return
+        }
         const text = inputText.trim()
         if (!text) return
 
-        // Optimistic UI
         const optimisticMsg = {
             id: `temp-${Date.now()}`,
             sender: {
@@ -90,8 +165,8 @@ export function StoreChatWindow({ chatId, chatData }: StoreChatWindowProps) {
         try {
             await api.post(`/mall/chats/${chatId}/send/`, { content: text })
             fetchMessages()
-        } catch (e) {
-            console.error('Failed to send message', e)
+        } catch {
+            toast.error('Failed to send message')
         }
     }
 
@@ -167,24 +242,63 @@ export function StoreChatWindow({ chatId, chatData }: StoreChatWindowProps) {
 
             {/* ─── INPUT BAR ─── */}
             <div className="shrink-0 bg-white border-t border-gray-200 px-4 py-3">
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleFileInputChange}
+                />
+
+                {attachmentPreview && (
+                    <div className="mb-2 relative inline-block">
+                        <div className="w-24 h-24 rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+                            <Image src={attachmentPreview.url} alt="Attachment" width={96} height={96} unoptimized className="object-cover w-full h-full" />
+                        </div>
+                        <button
+                            onClick={clearAttachment}
+                            className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-gray-800 text-white rounded-full flex items-center justify-center hover:bg-red-500 transition-colors"
+                        >
+                            <X className="w-3 h-3" />
+                        </button>
+                        {isUploading && (
+                            <div className="absolute inset-0 bg-black/40 rounded-xl flex items-center justify-center">
+                                <Loader2 className="w-5 h-5 text-white animate-spin" />
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 <div className="flex items-end gap-2 max-w-4xl mx-auto">
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-10 h-10 flex items-center justify-center text-gray-400 rounded-xl shrink-0 hover:bg-gray-100 hover:text-[#4C3B8A] active:bg-gray-200 transition-colors"
+                        title="Attach image"
+                    >
+                        <Paperclip className="w-[18px] h-[18px]" />
+                    </button>
                     <textarea
                         ref={textareaRef}
                         value={inputText}
                         onChange={(e) => setInputText(e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                        placeholder="Type a message..."
+                        onPaste={handlePaste}
+                        placeholder={attachmentPreview ? 'Add a caption...' : 'Type a message...'}
                         rows={1}
-                        className="flex-1 bg-gray-100 rounded-2xl px-4 py-2.5 text-sm resize-none outline-none border-none max-h-[120px]"
+                        className="flex-1 bg-gray-50 rounded-2xl px-4 py-2.5 text-sm resize-none outline-none border border-gray-200 focus:border-[#4C3B8A]/40 focus:ring-2 focus:ring-[#4C3B8A]/10 focus:bg-white max-h-[120px] placeholder:text-gray-400 transition-all"
+                        style={{ minHeight: '42px' }}
                     />
                     <button
                         onClick={handleSend}
-                        disabled={!inputText.trim()}
-                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shrink-0 ${
-                            inputText.trim() ? 'bg-[#4C3B8A] text-white hover:bg-[#3D2F6E]' : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        disabled={!inputText.trim() && !attachmentPreview}
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shrink-0 ${
+                            inputText.trim() || attachmentPreview
+                                ? 'bg-[#4C3B8A] text-white hover:bg-[#3D2F6E] shadow-md shadow-[#4C3B8A]/20 active:scale-95'
+                                : 'bg-gray-100 text-gray-300'
                         }`}
+                        aria-label="Send message"
                     >
-                        <Send className="w-4 h-4" />
+                        {isUploading ? <Loader2 className="w-[18px] h-[18px] animate-spin" /> : <Send className="w-[18px] h-[18px]" />}
                     </button>
                 </div>
             </div>

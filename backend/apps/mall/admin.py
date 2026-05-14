@@ -10,6 +10,8 @@ from .models import (
     MallCategory,
     ProductReview,
     ProductVariant,
+    StoreChat,
+    StoreMessage,
     StoreProduct,
     StoreProductImage,
     Wishlist,
@@ -84,3 +86,26 @@ class BannerAdmin(admin.ModelAdmin):
     list_filter = ('is_active',)
     list_editable = ('is_active', 'ordering')
     search_fields = ('title', 'subtitle')
+
+
+class StoreMessageInline(admin.TabularInline):
+    model = StoreMessage
+    extra = 0
+    readonly_fields = ('sender', 'message_type', 'content', 'is_read', 'created_at')
+
+
+@admin.register(StoreChat)
+class StoreChatAdmin(admin.ModelAdmin):
+    list_display = ('id', 'buyer', 'store', 'is_blocked', 'last_message_at')
+    list_filter = ('is_blocked',)
+    search_fields = ('buyer__email', 'store__name')
+    raw_id_fields = ('buyer', 'store')
+    inlines = [StoreMessageInline]
+
+
+@admin.register(StoreMessage)
+class StoreMessageAdmin(admin.ModelAdmin):
+    list_display = ('id', 'chat', 'sender', 'message_type', 'is_read', 'created_at')
+    list_filter = ('message_type', 'is_read')
+    search_fields = ('content', 'sender__email')
+    raw_id_fields = ('chat', 'sender')

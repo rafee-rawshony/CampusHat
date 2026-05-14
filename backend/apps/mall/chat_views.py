@@ -17,20 +17,23 @@ from apps.sellers.models import Store
 # ── SERIALIZERS ──
 
 class StoreMessageSerializer(serializers.ModelSerializer):
-    sender_name = serializers.CharField(source='sender.full_name', read_only=True)
-    sender_avatar = serializers.SerializerMethodField()
+    sender = serializers.SerializerMethodField()
 
     class Meta:
         model = StoreMessage
-        fields = ['id', 'sender', 'sender_name', 'sender_avatar', 'message_type', 'content', 'is_read', 'created_at']
+        fields = ['id', 'sender', 'message_type', 'content', 'is_read', 'created_at']
         read_only_fields = ['id', 'created_at']
 
-    def get_sender_avatar(self, obj):
-        return obj.sender.profile_picture or None
+    def get_sender(self, obj):
+        return {
+            'id': str(obj.sender.id),
+            'full_name': obj.sender.full_name,
+            'profile_picture': obj.sender.profile_picture or None,
+        }
 
 
 class StoreChatSerializer(serializers.ModelSerializer):
-    store_name = serializers.CharField(source='store.store_name', read_only=True)
+    store_name = serializers.CharField(source='store.name', read_only=True)
     store_logo = serializers.SerializerMethodField()
     buyer_name = serializers.CharField(source='buyer.full_name', read_only=True)
     buyer_avatar = serializers.SerializerMethodField()
@@ -105,7 +108,7 @@ class StartStoreChatView(APIView):
         except Store.DoesNotExist:
             return Response({'success': False, 'message': 'Store not found'}, status=404)
 
-        if store.owner == request.user:
+        if store.seller.user == request.user:
             return Response({'success': False, 'message': 'Cannot chat with your own store'}, status=400)
 
         chat, created = StoreChat.objects.get_or_create(buyer=request.user, store=store)
@@ -125,7 +128,7 @@ class StoreChatMessagesView(APIView):
         except StoreChat.DoesNotExist:
             return Response({'success': False, 'message': 'Chat not found'}, status=404)
 
-        if request.user != chat.buyer and request.user != chat.store.owner:
+        if request.user != chat.buyer and request.user != chat.store.seller.user:
             return Response({'success': False, 'message': 'Forbidden'}, status=403)
 
         messages = chat.messages.all().order_by('created_at')
@@ -145,7 +148,7 @@ class SendStoreMessageView(APIView):
         except StoreChat.DoesNotExist:
             return Response({'success': False, 'message': 'Chat not found'}, status=404)
 
-        if request.user != chat.buyer and request.user != chat.store.owner:
+        if request.user != chat.buyer and request.user != chat.store.seller.user:
             return Response({'success': False, 'message': 'Forbidden'}, status=403)
 
         if chat.is_blocked:
@@ -155,11 +158,15 @@ class SendStoreMessageView(APIView):
         if not content:
             return Response({'success': False, 'message': 'content required'}, status=400)
 
+        message_type = request.data.get('message_type', 'text')
+        if message_type not in ('text', 'image', 'product_ref'):
+            message_type = 'text'
+
         msg = StoreMessage.objects.create(
             chat=chat,
             sender=request.user,
             content=content,
-            message_type='text'
+            message_type=message_type,
         )
 
         chat.last_message_at = timezone.now()
@@ -180,7 +187,7 @@ class MarkStoreMessagesReadView(APIView):
         except StoreChat.DoesNotExist:
             return Response({'success': False, 'message': 'Chat not found'}, status=404)
 
-        if request.user != chat.buyer and request.user != chat.store.owner:
+        if request.user != chat.buyer and request.user != chat.store.seller.user:
             return Response({'success': False, 'message': 'Forbidden'}, status=403)
 
         chat.messages.exclude(sender=request.user).filter(is_read=False).update(is_read=True)

@@ -64,7 +64,7 @@ class OrderStatusHistorySerializer(serializers.ModelSerializer):
 class OrderListSerializer(serializers.ModelSerializer):
     """Buyer's order list — summary view with up to 3 item previews."""
 
-    store_name = serializers.CharField(source='store.store_name', read_only=True)
+    store_name = serializers.CharField(source='store.name', read_only=True)
     item_count = serializers.SerializerMethodField()
     items_preview = serializers.SerializerMethodField()
 
@@ -107,7 +107,7 @@ class OrderListSerializer(serializers.ModelSerializer):
 class OrderDetailSerializer(serializers.ModelSerializer):
     """Full order detail with items, payments, and status history."""
 
-    store_name = serializers.CharField(source='store.store_name', read_only=True)
+    store_name = serializers.CharField(source='store.name', read_only=True)
     items = OrderItemSerializer(many=True, read_only=True)
     status_history = OrderStatusHistorySerializer(many=True, read_only=True)
     payments = PaymentSerializer(many=True, read_only=True)
@@ -216,7 +216,7 @@ class AdminOrderSerializer(serializers.ModelSerializer):
     buyer_name = serializers.CharField(source='buyer.full_name', read_only=True)
     buyer_email = serializers.CharField(source='buyer.email', read_only=True)
     buyer_phone = serializers.CharField(source='buyer.phone', read_only=True, default=None)
-    store_name = serializers.CharField(source='store.store_name', read_only=True)
+    store_name = serializers.CharField(source='store.name', read_only=True)
     status = serializers.CharField(source='order_status', read_only=True)
     items = OrderItemSerializer(many=True, read_only=True)
     status_history = OrderStatusHistorySerializer(many=True, read_only=True)

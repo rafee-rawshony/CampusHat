@@ -61,7 +61,7 @@ export default function UnifiedMessagesPage() {
                     content: c.last_message.message_type === 'image' ? '[Image]' : c.last_message.content,
                     created_at: c.last_message.created_at,
                     is_read: c.last_message.is_read,
-                    sender_id: c.last_message.sender
+                    sender_id: c.last_message.sender?.id || c.last_message.sender
                 } : null,
                 unreadCount: c.unread_count || 0,
                 updatedAt: c.last_message_at || c.created_at || new Date().toISOString()

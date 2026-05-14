@@ -10,7 +10,7 @@ from apps.mall.serializers import StoreProductListSerializer
 # ── Coupon ──
 
 class CouponSerializer(serializers.ModelSerializer):
-    store_name = serializers.CharField(source='store.store_name', read_only=True, default=None)
+    store_name = serializers.CharField(source='store.name', read_only=True, default=None)
 
     class Meta:
         model = Coupon
@@ -70,7 +70,7 @@ class FlashSaleProductSerializer(serializers.ModelSerializer):
 
 
 class FlashSaleListSerializer(serializers.ModelSerializer):
-    store_name = serializers.CharField(source='store.store_name', read_only=True)
+    store_name = serializers.CharField(source='store.name', read_only=True)
     is_currently_active = serializers.BooleanField(read_only=True)
 
     class Meta:
@@ -86,7 +86,7 @@ class FlashSaleListSerializer(serializers.ModelSerializer):
 
 class FlashSaleDetailSerializer(serializers.ModelSerializer):
     products = FlashSaleProductSerializer(many=True, read_only=True)
-    store_name = serializers.CharField(source='store.store_name', read_only=True)
+    store_name = serializers.CharField(source='store.name', read_only=True)
     is_currently_active = serializers.BooleanField(read_only=True)
 
     class Meta:
