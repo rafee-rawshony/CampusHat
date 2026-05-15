@@ -61,7 +61,7 @@ export default function NotificationsPage() {
 
     return (
         <div className="space-y-4 animate-fade-in">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-6 py-5 flex items-center justify-between">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
                 <div>
                     <h1 className="text-xl font-bold text-gray-900">Notifications</h1>
                     <p className="text-sm text-gray-500 mt-0.5">Stay updated on your orders and activity</p>
@@ -112,7 +112,7 @@ export default function NotificationsPage() {
                                         if (notif.action_url) router.push(notif.action_url)
                                     }}
                                     className={cn(
-                                        'w-full text-left px-6 py-4 flex items-start gap-4 hover:bg-gray-50 transition-colors border-b border-gray-50',
+                                        'w-full text-left px-4 sm:px-6 py-3 sm:py-4 flex items-start gap-3 sm:gap-4 hover:bg-gray-50 transition-colors border-b border-gray-50',
                                         !notif.is_read && 'bg-[#4C3B8A]/[0.03]'
                                     )}
                                 >

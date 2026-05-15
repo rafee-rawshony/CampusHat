@@ -50,7 +50,7 @@ export default function VouchersPage() {
     return (
         <div className="space-y-4 animate-fade-in">
             {/* Header */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-6 md:px-8 py-5 flex items-center justify-between">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 sm:px-6 md:px-8 py-4 sm:py-5 flex items-center justify-between">
                 <div>
                     <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                         <Ticket className="w-5 h-5 text-brand-primary" />
@@ -63,7 +63,7 @@ export default function VouchersPage() {
             </div>
 
             {/* Content */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 min-h-[400px]">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 md:p-8 min-h-[400px]">
                 {isLoading ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {[1, 2, 3].map(i => (

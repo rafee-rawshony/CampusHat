@@ -138,7 +138,7 @@ export default function ReturnsPage() {
     return (
         <div className="space-y-4 animate-fade-in">
             {/* Header */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-6 md:px-8 py-5 flex items-center justify-between">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 sm:px-6 md:px-8 py-5 flex items-center justify-between">
                 <div>
                     <h1 className="text-xl font-bold text-gray-900">My Returns</h1>
                     <p className="text-sm text-gray-500 mt-0.5">
@@ -154,7 +154,7 @@ export default function ReturnsPage() {
 
             {/* Return Request Form */}
             {showForm && (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 md:p-8">
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-lg font-bold text-gray-900">Request a Return</h2>
                         <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600">

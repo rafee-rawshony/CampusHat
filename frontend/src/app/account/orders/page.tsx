@@ -154,7 +154,7 @@ export default function MyOrdersPage() {
                                 key={tab.key}
                                 onClick={() => setActiveTab(tab.key)}
                                 className={cn(
-                                    'flex items-center gap-2 px-5 py-4 text-sm font-semibold whitespace-nowrap border-b-2 transition-all',
+                                    'flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-3 sm:py-4 text-xs sm:text-sm font-semibold whitespace-nowrap border-b-2 transition-all active:scale-95',
                                     isActive
                                         ? 'border-brand-primary text-brand-primary'
                                         : 'border-transparent text-gray-500 hover:text-gray-900',
@@ -227,7 +227,7 @@ export default function MyOrdersPage() {
                                 className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
                             >
                                 {/* Header — store + status */}
-                                <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2">
+                                <div className="px-3 sm:px-5 py-2.5 sm:py-3 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2">
                                     <div className="flex items-center gap-3 text-sm">
                                         <span className="font-semibold text-gray-700 truncate max-w-[180px] sm:max-w-none">
                                             {order.store_name || 'Store'}
@@ -246,7 +246,7 @@ export default function MyOrdersPage() {
                                 </div>
 
                                 {/* Items preview row */}
-                                <div className="p-5 space-y-3">
+                                <div className="p-3 sm:p-5 space-y-3">
                                     {(order.items_preview || []).slice(0, 3).map((item, idx) => (
                                         <div key={idx} className="flex items-center gap-4">
                                             <div className="w-16 h-16 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0 flex items-center justify-center">
@@ -279,7 +279,7 @@ export default function MyOrdersPage() {
                                 </div>
 
                                 {/* Footer — total + actions */}
-                                <div className="px-5 py-4 bg-gray-50/60 border-t border-gray-100 flex items-center justify-between flex-wrap gap-3">
+                                <div className="px-3 sm:px-5 py-3 sm:py-4 bg-gray-50/60 border-t border-gray-100 flex items-center justify-between flex-wrap gap-3">
                                     <div className="flex items-baseline gap-2">
                                         <span className="text-xs text-gray-500">Order Total:</span>
                                         <span className="text-lg font-bold text-gray-900">

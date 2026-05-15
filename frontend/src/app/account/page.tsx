@@ -212,7 +212,7 @@ export default function MyProfilePage() {
         <div className="space-y-6 animate-fade-in">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 {/* Header */}
-                <div className="px-6 md:px-8 py-5 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2">
+                <div className="px-4 sm:px-6 md:px-8 py-5 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2">
                     <div>
                         <h1 className="text-xl font-bold text-gray-900">My Profile</h1>
                         <p className="text-sm text-gray-500 mt-0.5">
@@ -232,7 +232,7 @@ export default function MyProfilePage() {
                     )}
                 </div>
 
-                <div className="p-6 md:p-8 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-10">
+                <div className="p-4 sm:p-6 md:p-8 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-10">
                     {/* Form column */}
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5 max-w-2xl">
                         {/* Name row */}

@@ -45,7 +45,7 @@ export default function VerifyAccountPage() {
 
     if (user.verification_status === 'approved') {
         return (
-            <div className="py-8 px-4 sm:px-0">
+            <div className="py-4 sm:py-8 px-0">
                 <VerificationApprovedCard />
             </div>
         )

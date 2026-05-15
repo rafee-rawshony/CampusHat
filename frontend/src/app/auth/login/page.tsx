@@ -205,14 +205,14 @@ function AuthPageContent() {
     return (
         <div className="min-h-screen flex bg-gradient-to-br from-gray-50 via-white to-purple-50/30">
             {/* Left — Form Panel (scrollable) */}
-            <div className="flex-1 flex flex-col pt-6 md:pt-10 pb-10 px-4 sm:px-8 lg:px-16 xl:px-24 overflow-y-auto">
+            <div className="flex-1 flex flex-col pt-4 sm:pt-6 md:pt-10 pb-20 sm:pb-10 px-3 sm:px-8 lg:px-16 xl:px-24 overflow-y-auto">
                 <div className="mx-auto w-full max-w-md">
                     {/* Header — no CampusHat brand */}
-                    <div className="mb-6 text-center">
-                        <h1 className="text-2xl font-bold text-gray-900 leading-tight">
+                    <div className="mb-4 sm:mb-6 text-center">
+                        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight">
                             {authTab === 'login' ? 'Welcome back' : 'Create your account'}
                         </h1>
-                        <p className="text-sm text-gray-500 mt-1.5">
+                        <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-1.5">
                             {authTab === 'login' ? 'Enter your credentials to access your account.' : (
                                 <>Already have an account?{' '}<button onClick={() => setAuthTab('login')} className="text-[#4C3B8A] font-bold hover:underline">Sign in</button></>
                             )}
@@ -220,13 +220,13 @@ function AuthPageContent() {
                     </div>
 
                     {/* Tab Switcher */}
-                    <div className="bg-gray-100 rounded-xl p-1 flex mb-6">
-                        <button onClick={() => setAuthTab('login')} className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${authTab === 'login' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Login</button>
-                        <button onClick={() => setAuthTab('register')} className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${authTab === 'register' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Register</button>
+                    <div className="bg-gray-100 rounded-xl p-1 flex mb-4 sm:mb-6">
+                        <button onClick={() => setAuthTab('login')} className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all active:scale-95 ${authTab === 'login' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Login</button>
+                        <button onClick={() => setAuthTab('register')} className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all active:scale-95 ${authTab === 'register' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Register</button>
                     </div>
 
                     {/* Form Card */}
-                    <div className="bg-white rounded-2xl border border-gray-100/80 shadow-xl shadow-gray-200/50 p-6 sm:p-8">
+                    <div className="bg-white rounded-2xl border border-gray-100/80 shadow-xl shadow-gray-200/50 p-4 sm:p-6 md:p-8">
                         {/* ═══ LOGIN ═══ */}
                         {authTab === 'login' && (
                             <>

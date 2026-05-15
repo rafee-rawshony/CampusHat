@@ -112,7 +112,7 @@ export default function MyReviewsPage() {
     return (
         <div className="space-y-4 animate-fade-in">
             {/* Header */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-6 md:px-8 py-5">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 sm:px-6 md:px-8 py-5">
                 <h1 className="text-xl font-bold text-gray-900">My Reviews</h1>
                 <p className="text-sm text-gray-500 mt-0.5">
                     All the reviews you&apos;ve written for products.

@@ -87,10 +87,10 @@ export default function AddressBookPage() {
     }
 
     return (
-        <div className="space-y-6 animate-fade-in">
+        <div className="space-y-4 sm:space-y-6 animate-fade-in">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 {/* Header */}
-                <div className="px-6 md:px-8 py-5 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3">
+                <div className="px-4 sm:px-6 md:px-8 py-3 sm:py-5 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3">
                     <div>
                         <h1 className="text-xl font-bold text-gray-900">Address Book</h1>
                         <p className="text-sm text-gray-500 mt-0.5">
@@ -106,7 +106,7 @@ export default function AddressBookPage() {
                     </Button>
                 </div>
 
-                <div className="p-6 md:p-8">
+                <div className="p-4 sm:p-6 md:p-8">
                     {/* Loading */}
                     {loading && (
                         <div className="flex justify-center py-16">
