@@ -51,7 +51,7 @@ export default function SellerApplyPage() {
 
     return (
         <div className="min-h-screen bg-white flex items-center justify-center p-4">
-            <div className="bg-white border border-gray-200 rounded-2xl p-8 max-w-lg w-full shadow-sm">
+            <div className="bg-white border border-gray-200 rounded-2xl p-5 sm:p-8 max-w-lg w-full shadow-sm">
                 {/* Header */}
                 <div className="text-center mb-8">
                     <div className="inline-flex items-center justify-center w-14 h-14 bg-[#4C3B8A]/10 rounded-2xl mb-4">

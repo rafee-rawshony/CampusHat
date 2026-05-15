@@ -72,7 +72,7 @@ function MetricCard({ label, value, suffix = '%', icon: Icon, iconBg, iconColor,
                     <Icon className="w-4 h-4" />
                 </div>
             </div>
-            <p className={`font-bold text-3xl ${valueClass}`}>
+            <p className={`font-bold text-2xl sm:text-3xl ${valueClass}`}>
                 {value.toFixed(1)}<span className="text-base font-medium">{suffix}</span>
             </p>
             {sub && <p className="text-[11px] text-gray-500 mt-1">{sub}</p>}
@@ -238,7 +238,7 @@ export default function SellerPerformancePage() {
                                     <Clock className="w-4 h-4" />
                                 </div>
                             </div>
-                            <p className="font-bold text-3xl text-gray-900">
+                            <p className="font-bold text-2xl sm:text-3xl text-gray-900">
                                 {data.avg_dispatch_hours}<span className="text-base font-medium">h</span>
                             </p>
                             <p className="text-[11px] text-gray-500 mt-1">Promised dispatch time</p>

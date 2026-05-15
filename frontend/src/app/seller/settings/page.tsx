@@ -275,7 +275,7 @@ export default function SellerSettingsPage() {
             {/* ═══════════════════════════════════════════════════════════════
                 SECTION 1 — Basic Seller Information
                ═══════════════════════════════════════════════════════════════ */}
-            <div className="bg-white border border-gray-100 rounded-2xl p-6 md:p-8 shadow-sm">
+            <div className="bg-white border border-gray-100 rounded-2xl p-4 sm:p-6 md:p-8 shadow-sm">
                 <SectionHeader
                     icon={UserIcon}
                     title="Basic Seller Information"
@@ -369,7 +369,7 @@ export default function SellerSettingsPage() {
             {/* ═══════════════════════════════════════════════════════════════
                 SECTION 2 — Store / Business Information
                ═══════════════════════════════════════════════════════════════ */}
-            <div className="bg-white border border-gray-100 rounded-2xl p-6 md:p-8 shadow-sm">
+            <div className="bg-white border border-gray-100 rounded-2xl p-4 sm:p-6 md:p-8 shadow-sm">
                 <SectionHeader
                     icon={StoreIcon}
                     title="Store / Business Information"
@@ -555,7 +555,7 @@ export default function SellerSettingsPage() {
             {/* ═══════════════════════════════════════════════════════════════
                 SECTION 3 — Payout Settings
                ═══════════════════════════════════════════════════════════════ */}
-            <div className="bg-white border border-gray-100 rounded-2xl p-6 md:p-8 shadow-sm">
+            <div className="bg-white border border-gray-100 rounded-2xl p-4 sm:p-6 md:p-8 shadow-sm">
                 <SectionHeader
                     icon={Wallet}
                     title="Payout Settings"

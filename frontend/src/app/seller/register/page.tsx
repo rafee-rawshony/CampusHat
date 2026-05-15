@@ -269,7 +269,7 @@ export default function SellerRegisterPage() {
 
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                         {/* SECTION 1 — Personal */}
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 space-y-6">
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 md:p-8 space-y-6">
                             <SectionHeader n={1} title="Basic Information" subtitle="Pre-filled from your account. Edits sync back to your profile." icon={UserIcon} />
 
                             <div className="flex flex-col md:flex-row gap-8">
@@ -349,7 +349,7 @@ export default function SellerRegisterPage() {
                         </div>
 
                         {/* SECTION 2 — Student Verification */}
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 space-y-6">
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 md:p-8 space-y-6">
                             <SectionHeader n={2} title="Student Verification" subtitle="Get extra banifit, if you're an active student." icon={GraduationCap} />
 
                             <Controller
@@ -393,7 +393,7 @@ export default function SellerRegisterPage() {
                         </div>
 
                         {/* SECTION 3 — Store / Business */}
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 space-y-6">
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 md:p-8 space-y-6">
                             <SectionHeader n={3} title="Store / Business Information" subtitle="This is what your customers will see on the Mall." icon={Building2} />
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -496,7 +496,7 @@ export default function SellerRegisterPage() {
                         </div>
 
                         {/* SECTION 4 — Identity */}
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 space-y-6">
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 md:p-8 space-y-6">
                             <SectionHeader n={4} title="Identity Verification" subtitle="Required by law. Used only for fraud prevention — never shown publicly." icon={ShieldCheck} />
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -562,7 +562,7 @@ export default function SellerRegisterPage() {
                         </div>
 
                         {/* SECTION 5 — Payment (optional) */}
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 space-y-6">
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 md:p-8 space-y-6">
                             <SectionHeader n={5} title="Payout Method (Optional)" subtitle="How you want to receive money. You can also set this later from Settings." icon={MapPin} />
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -607,7 +607,7 @@ export default function SellerRegisterPage() {
                         </div>
 
                         {/* SECTION 6 — T&C */}
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 space-y-4">
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 md:p-8 space-y-4">
                             <SectionHeader n={6} title="Authorization & Agreement" icon={CheckCircle2} />
 
                             <Controller

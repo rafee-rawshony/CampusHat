@@ -170,10 +170,10 @@ export default function MarketplaceSellerProfilePage() {
     if (loading) {
         return (
             <div className="bg-gray-50 min-h-screen">
-                <div className="container mx-auto px-4 max-w-4xl py-8">
+                <div className="container mx-auto px-3 sm:px-4 max-w-4xl py-4 sm:py-8">
                     <div className="animate-pulse space-y-6">
                         <div className="h-8 w-32 bg-gray-200 rounded-lg" />
-                        <div className="bg-white rounded-2xl p-8 border border-gray-100">
+                        <div className="bg-white rounded-2xl p-4 sm:p-8 border border-gray-100">
                             <div className="flex items-center gap-5">
                                 <div className="w-20 h-20 bg-gray-200 rounded-full" />
                                 <div className="flex-1 space-y-3">
