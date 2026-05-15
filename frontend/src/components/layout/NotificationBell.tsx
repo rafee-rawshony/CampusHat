@@ -215,7 +215,7 @@ export function NotificationBell() {
             {/* Bell Button */}
             <button
                 onClick={handleToggle}
-                className="relative inline-flex items-center justify-center h-10 w-10 rounded-full text-gray-600 hover:text-[#4C3B8A] hover:bg-[#4C3B8A]/5 transition-all"
+                className="relative inline-flex items-center justify-center h-9 w-9 sm:h-10 sm:w-10 rounded-full text-gray-600 hover:text-[#4C3B8A] hover:bg-[#4C3B8A]/5 transition-all"
                 aria-label="Notifications"
             >
                 <Bell className="w-5 h-5" />
@@ -228,7 +228,7 @@ export function NotificationBell() {
 
             {/* Dropdown */}
             {isOpen && (
-                <div className="absolute right-0 top-full mt-2 w-[360px] max-h-[480px] bg-white rounded-2xl shadow-xl border border-gray-100 z-50 animate-in fade-in slide-in-from-top-2 duration-200 flex flex-col">
+                <div className="fixed sm:absolute inset-x-3 top-[60px] sm:inset-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[360px] max-h-[80vh] sm:max-h-[480px] bg-white rounded-2xl shadow-xl border border-gray-100 z-50 animate-in fade-in slide-in-from-top-2 duration-200 flex flex-col">
                     {/* Header */}
                     <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
                         <h3 className="font-bold text-gray-900">Notifications</h3>

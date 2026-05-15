@@ -6,10 +6,10 @@ import { Phone, Mail, Facebook, Twitter, Linkedin, Instagram, GraduationCap, Hea
 
 export function Footer() {
     return (
-        <footer className="mt-auto">
+        <footer className="mt-auto pb-16 sm:pb-0">
             {/* Main Footer */}
             <div className="bg-gradient-to-b from-[#f8f7fc] to-[#f0eef8] border-t border-[#e8e5f0]">
-                <div className="max-w-7xl mx-auto px-4 lg:px-6 pt-12 pb-10">
+                <div className="max-w-7xl mx-auto px-4 lg:px-6 pt-8 sm:pt-12 pb-8 sm:pb-10">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10">
                         
                         {/* COLUMN 1: About & Support */}
