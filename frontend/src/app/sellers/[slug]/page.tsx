@@ -183,7 +183,7 @@ export default function SellerStorePage() {
                     <div className="flex-1 w-full pt-2 sm:pt-0">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                             <div>
-                                <h1 className="font-bold text-2xl text-gray-900">{storeName}</h1>
+                                <h1 className="font-bold text-xl sm:text-2xl text-gray-900">{storeName}</h1>
                                 {store.badge_label && (
                                     <span className="text-xs bg-[#4C3B8A]/10 text-[#4C3B8A] font-semibold px-2.5 py-0.5 rounded-full mt-1 inline-block">
                                         {store.badge_label}

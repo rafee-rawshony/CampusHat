@@ -224,19 +224,19 @@ export default function CheckoutPage() {
 
     return (
         <ProfileGate featureName="Mall Checkout" requireAddress>
-        <div className="min-h-screen bg-surface-base pb-20 pt-6">
-            <div className="container mx-auto px-4 max-w-6xl">
+        <div className="min-h-screen bg-surface-base pb-20 pt-3 sm:pt-6">
+            <div className="container mx-auto px-3 sm:px-4 max-w-6xl">
 
-                <h1 className="text-3xl font-black text-gray-900 mb-8">Checkout</h1>
+                <h1 className="text-2xl sm:text-3xl font-black text-gray-900 mb-4 sm:mb-8">Checkout</h1>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-8">
 
                     {/* LEFT COLUMN: Forms */}
-                    <div className="lg:col-span-7 space-y-8">
+                    <div className="lg:col-span-7 space-y-4 sm:space-y-8">
 
                         <form id="checkout-form" onSubmit={handleSubmit(onSubmit)}>
                             {/* STEP 1: Address */}
-                            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8">
+                            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-4 sm:p-6 md:p-8">
                                 <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
                                     <span className="flex items-center justify-center w-8 h-8 rounded-full bg-brand-light text-brand-primary text-sm">1</span>
                                     Delivery Details
@@ -337,7 +337,7 @@ export default function CheckoutPage() {
                             </div>
 
                             {/* STEP 2: Payment */}
-                            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8 mt-8">
+                            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-4 sm:p-6 md:p-8 mt-4 sm:mt-8">
                                 <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
                                     <span className="flex items-center justify-center w-8 h-8 rounded-full bg-brand-light text-brand-primary text-sm">2</span>
                                     Payment Method
@@ -393,7 +393,7 @@ export default function CheckoutPage() {
 
                     {/* RIGHT COLUMN: Order Summary */}
                     <div className="lg:col-span-5 relative">
-                        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8 sticky top-24">
+                        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-4 sm:p-6 md:p-8 lg:sticky lg:top-24">
                             <h2 className="text-xl font-bold text-gray-900 mb-6">Order Summary</h2>
 
                             {/* Items List */}

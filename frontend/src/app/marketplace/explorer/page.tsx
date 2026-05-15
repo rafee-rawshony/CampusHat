@@ -58,9 +58,9 @@ function ExplorerContent() {
 
     return (
         <div className="bg-white min-h-screen pb-20">
-            <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <main className="container mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
                 {/* Breadcrumb */}
-                <nav className="flex items-center gap-1.5 text-sm mb-8">
+                <nav className="flex items-center gap-1.5 text-sm mb-4 sm:mb-8">
                     <Link href="/" className="text-gray-400 hover:text-[#4C3B8A] transition-colors shrink-0">
                         <Home className="w-3.5 h-3.5" />
                     </Link>

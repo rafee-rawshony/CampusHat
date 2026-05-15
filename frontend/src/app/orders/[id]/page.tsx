@@ -118,7 +118,7 @@ export default function BuyerOrderDetailPage() {
 
                 {/* Tracking Timeline */}
                 {!isCancelled && (
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 mb-4">
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 md:p-8 mb-4">
                         <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-8">Order Tracking</h2>
 
                         {/* Horizontal Timeline (Desktop) */}
@@ -231,7 +231,7 @@ export default function BuyerOrderDetailPage() {
                 )}
 
                 {/* Items */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-4">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 mb-4">
                     <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Items ({order.items?.length || 0})</h2>
                     <div className="space-y-4">
                         {(order.items || order.items_preview || []).map((item: any, idx: number) => (
@@ -258,7 +258,7 @@ export default function BuyerOrderDetailPage() {
                 </div>
 
                 {/* Order Summary */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-4">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 mb-4">
                     <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Payment Summary</h2>
                     <div className="space-y-3 text-sm">
                         <div className="flex justify-between">
@@ -284,7 +284,7 @@ export default function BuyerOrderDetailPage() {
 
                 {/* Delivery Address */}
                 {order.delivery_address_snapshot && Object.keys(order.delivery_address_snapshot).length > 0 && (
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-4">
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 mb-4">
                         <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">Delivery Address</h2>
                         <p className="text-sm text-gray-700 font-medium">{order.delivery_address_snapshot.full_name}</p>
                         <p className="text-sm text-gray-500 mt-1">{order.delivery_address_snapshot.phone}</p>

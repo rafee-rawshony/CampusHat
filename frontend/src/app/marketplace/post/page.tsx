@@ -80,11 +80,11 @@ function PostAdWrapper() {
                 </nav>
 
                 {/* Page Header */}
-                <div className="text-center mb-8">
-                    <h1 className="font-bold text-3xl text-gray-900 mb-1">
+                <div className="text-center mb-4 sm:mb-8">
+                    <h1 className="font-bold text-2xl sm:text-3xl text-gray-900 mb-1">
                         {editId ? 'Edit Your Ad' : 'What are you offering?'}
                     </h1>
-                    <p className="text-gray-500 text-sm mt-1">
+                    <p className="text-gray-500 text-xs sm:text-sm mt-1 px-2">
                         {editId ? 'Update your listing details below.' : 'Reach fellow students across your campus community in minutes.'}
                     </p>
                 </div>

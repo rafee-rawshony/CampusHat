@@ -34,20 +34,20 @@ export default function WalletPage() {
     const locked = Number(balance?.locked_balance || 0)
 
     return (
-        <div className="min-h-screen bg-white">
-            <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+        <div className="min-h-screen bg-white pb-20 sm:pb-0">
+            <div className="max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-8 space-y-4 sm:space-y-6">
 
                 {/* Page header */}
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">My Wallet</h1>
-                    <p className="text-sm text-gray-500 mt-1">Your CampusHat balance and transaction history</p>
+                    <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Wallet</h1>
+                    <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1">Your CampusHat balance and transaction history</p>
                 </div>
 
                 {/* Balance card */}
                 {isLoading ? (
                     <div className="h-[160px] bg-gray-200 rounded-2xl animate-pulse" />
                 ) : (
-                    <div className="bg-gradient-to-br from-[#4C3B8A] to-[#2D1B69] rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+                    <div className="bg-gradient-to-br from-[#4C3B8A] to-[#2D1B69] rounded-2xl p-4 sm:p-6 text-white shadow-lg relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4" />
                         <div className="absolute bottom-0 left-1/3 w-32 h-32 bg-white/5 rounded-full translate-y-1/2 blur-sm" />
 

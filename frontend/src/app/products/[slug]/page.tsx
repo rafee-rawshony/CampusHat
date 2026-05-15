@@ -292,7 +292,7 @@ export default function ProductDetailPage() {
 
     return (
         <>
-            <main className="bg-white min-h-screen pb-20">
+            <main className="bg-white min-h-screen pb-[140px] sm:pb-20">
 
                 {/* BREADCRUMB */}
                 <div className="bg-white border-b border-gray-100 py-3 hidden sm:block">
@@ -318,8 +318,8 @@ export default function ProductDetailPage() {
                 </div>
 
                 {/* MAIN PRODUCT SECTION */}
-                <div className="max-w-7xl mx-auto px-4 lg:px-6 py-6 sm:py-8">
-                    <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
+                <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-3 sm:py-6 md:py-8">
+                    <div className="flex flex-col lg:flex-row gap-4 sm:gap-8 lg:gap-12">
                         
                         {/* LEFT COLUMN - GALLERY */}
                         <div className="w-full lg:w-[55%] shrink-0">
@@ -378,7 +378,7 @@ export default function ProductDetailPage() {
                             </div>
 
                             {/* Pricing Box */}
-                            <div className="mt-6 p-5 sm:p-6 bg-gradient-to-br from-white to-gray-50 rounded-2xl border border-gray-100 shadow-sm">
+                            <div className="mt-4 sm:mt-6 p-4 sm:p-5 md:p-6 bg-gradient-to-br from-white to-gray-50 rounded-2xl border border-gray-100 shadow-sm">
                                 <div className="flex flex-wrap items-end gap-3 mb-1">
                                     <CurrencyDisplay amount={displayPrice} className="text-3xl sm:text-4xl font-black text-[#4C3B8A] leading-none tracking-tight" />
                                     
