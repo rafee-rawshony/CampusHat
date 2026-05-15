@@ -27,12 +27,12 @@ export function ProductsGridSection() {
     const products: Product[] = productsRaw || []
 
     return (
-        <div className="max-w-7xl mx-auto px-4 lg:px-6 mb-12 mt-16 pt-6">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 mb-8 sm:mb-12 mt-6 sm:mt-16 pt-2 sm:pt-6">
 
             {/* Centered Header */}
-            <div className="text-center mb-8">
-                <h2 className="font-bold text-2xl sm:text-3xl text-gray-900 leading-tight">Our Products</h2>
-                <p className="text-sm text-gray-500 mt-2">Discover a wide range of products available in our store.</p>
+            <div className="text-center mb-4 sm:mb-8">
+                <h2 className="font-bold text-xl sm:text-2xl md:text-3xl text-gray-900 leading-tight">Our Products</h2>
+                <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2 px-4">Discover a wide range of products available in our store.</p>
             </div>
 
             {/* Error */}
@@ -68,10 +68,10 @@ export function ProductsGridSection() {
 
             {/* CTA */}
             {!isError && products.length > 0 && (
-                <div className="mt-8 flex justify-center">
+                <div className="mt-6 sm:mt-8 flex justify-center">
                     <Link
                         href="/shop"
-                        className="border-2 border-[#4C3B8A] text-[#4C3B8A] font-semibold px-10 py-3 rounded-xl hover:bg-[#4C3B8A] hover:text-white transition text-sm"
+                        className="border-2 border-[#4C3B8A] text-[#4C3B8A] font-semibold px-8 sm:px-10 py-2.5 sm:py-3 rounded-xl hover:bg-[#4C3B8A] hover:text-white active:scale-95 transition text-sm"
                     >
                         View All Products
                     </Link>

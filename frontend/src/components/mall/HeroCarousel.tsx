@@ -71,8 +71,8 @@ export function HeroCarousel() {
 
     if (isLoading) {
         return (
-            <div className="max-w-7xl mx-auto px-4 lg:px-6 mb-8">
-                <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-6 shadow-sm">
+            <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 mb-4 sm:mb-8">
+                <div className="bg-white rounded-2xl border border-gray-100 p-3 sm:p-6 shadow-sm">
                     <div className="aspect-[16/9] md:aspect-[21/9] rounded-2xl bg-gradient-to-r from-gray-200 to-gray-100 animate-pulse" />
                 </div>
             </div>
@@ -80,24 +80,80 @@ export function HeroCarousel() {
     }
 
     return (
-        <div className="max-w-7xl mx-auto px-4 lg:px-6 mb-8">
-            <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-6 shadow-sm relative">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 mb-4 sm:mb-8">
+            <div className="bg-white rounded-2xl border border-gray-100 p-3 sm:p-6 shadow-sm relative">
                 <div className="overflow-hidden rounded-xl" ref={emblaRef}>
                     <div className="flex touch-pan-y">
                         {banners.map((banner) => (
                             <div key={banner.id} className="flex-[0_0_100%] min-w-0">
-                                <div className="grid md:grid-cols-2 gap-5 md:gap-6 items-stretch min-h-[260px] md:min-h-[340px]">
+                                {/* === MOBILE: Single tinted card with image overlay === */}
+                                <div
+                                    className="md:hidden relative rounded-xl overflow-hidden p-5 min-h-[200px] flex flex-col justify-between"
+                                    style={{
+                                        background: banner.image_url
+                                            ? `linear-gradient(135deg, ${banner.bg_color || '#4C3B8A'}EE 0%, ${banner.bg_color || '#4C3B8A'}AA 100%)`
+                                            : `linear-gradient(135deg, ${banner.bg_color || '#4C3B8A'} 0%, #2D1B69 100%)`,
+                                    }}
+                                >
+                                    {/* Image as background if available */}
+                                    {banner.image_url && (
+                                        <div className="absolute inset-0 opacity-30">
+                                            <Image
+                                                src={banner.image_url}
+                                                alt=""
+                                                fill
+                                                unoptimized
+                                                className="object-cover"
+                                                priority
+                                            />
+                                        </div>
+                                    )}
+                                    {/* Decorative orbs */}
+                                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" aria-hidden />
+                                    <div className="absolute -bottom-12 -left-6 w-28 h-28 bg-white/5 rounded-full blur-xl" aria-hidden />
+
+                                    <div className="relative z-10">
+                                        {banner.badge_text && (
+                                            <span className="bg-white/20 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full inline-block w-max mb-3 uppercase tracking-wider">
+                                                {banner.badge_text}
+                                            </span>
+                                        )}
+                                        <h1 className="text-xl font-black text-white leading-tight tracking-tight mb-1.5 drop-shadow">
+                                            {banner.title}
+                                        </h1>
+                                        <p className="text-[13px] text-white/85 leading-relaxed mb-4 max-w-[260px]">
+                                            {banner.subtitle}
+                                        </p>
+                                    </div>
+                                    <div className="relative z-10 flex items-center gap-3 flex-wrap">
+                                        <Link
+                                            href={banner.cta_href || '/shop'}
+                                            className="bg-white text-[#4C3B8A] font-bold px-4 py-2.5 rounded-xl inline-flex items-center gap-1.5 text-xs shadow-lg active:scale-95 transition-transform"
+                                        >
+                                            {banner.cta_text || 'Shop Now'}
+                                            <ArrowRight className="w-3.5 h-3.5" />
+                                        </Link>
+                                        {banner.price_text && (
+                                            <span className="font-bold text-lg text-white drop-shadow tracking-tight">
+                                                {banner.price_text}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* === DESKTOP: Two-column layout === */}
+                                <div className="hidden md:grid md:grid-cols-2 gap-6 items-stretch min-h-[340px]">
                                     {/* Left: text on light bg */}
-                                    <div className="flex flex-col justify-center px-2 sm:px-4 py-6 md:py-10">
+                                    <div className="flex flex-col justify-center px-4 py-10">
                                         {banner.badge_text && (
                                             <span className="bg-[#4C3B8A]/10 text-[#4C3B8A] text-xs font-semibold px-3 py-1 rounded-full inline-block w-max mb-4">
                                                 {banner.badge_text}
                                             </span>
                                         )}
-                                        <h1 className="text-2xl sm:text-3xl xl:text-4xl font-black text-gray-900 leading-tight tracking-tight mb-3 max-w-md">
+                                        <h1 className="text-3xl xl:text-4xl font-black text-gray-900 leading-tight tracking-tight mb-3 max-w-md">
                                             {banner.title}
                                         </h1>
-                                        <p className="text-sm sm:text-base text-gray-500 mb-5 max-w-md leading-relaxed">
+                                        <p className="text-base text-gray-500 mb-5 max-w-md leading-relaxed">
                                             {banner.subtitle}
                                         </p>
                                         <div className="flex items-center gap-4 flex-wrap">
@@ -109,7 +165,7 @@ export function HeroCarousel() {
                                                 <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                                             </Link>
                                             {banner.price_text && (
-                                                <span className="font-bold text-xl sm:text-2xl text-red-500 tracking-tight">
+                                                <span className="font-bold text-2xl text-red-500 tracking-tight">
                                                     {banner.price_text}
                                                 </span>
                                             )}
@@ -121,7 +177,7 @@ export function HeroCarousel() {
 
                                     {/* Right: solid colored panel */}
                                     <div
-                                        className="rounded-xl flex items-center justify-center p-6 md:p-8 relative overflow-hidden min-h-[180px] md:min-h-full"
+                                        className="rounded-xl flex items-center justify-center p-8 relative overflow-hidden min-h-full"
                                         style={{ backgroundColor: banner.bg_color || '#4C3B8A' }}
                                     >
                                         {banner.image_url ? (
@@ -135,7 +191,7 @@ export function HeroCarousel() {
                                             />
                                         ) : (
                                             <h2
-                                                className="text-3xl sm:text-4xl xl:text-5xl font-bold text-center tracking-tight px-2 leading-tight drop-shadow"
+                                                className="text-4xl xl:text-5xl font-bold text-center tracking-tight px-2 leading-tight drop-shadow"
                                                 style={{ color: banner.text_color || '#FFFFFF' }}
                                             >
                                                 {banner.title}

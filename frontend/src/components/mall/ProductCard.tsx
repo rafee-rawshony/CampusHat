@@ -160,9 +160,9 @@ export function ProductCard({ product }: ProductCardProps) {
                         </div>
                     )}
 
-                    {/* Add to cart — slides up on hover */}
+                    {/* Add to cart — slides up on hover (desktop) */}
                     {!isOutOfStock && (
-                        <div className="absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-200">
+                        <div className="absolute inset-x-0 bottom-0 hidden sm:block translate-y-full group-hover:translate-y-0 transition-transform duration-200">
                             <button
                                 onClick={handleAddToCart}
                                 className="w-full bg-[#4C3B8A] hover:bg-[#3d2e6e] text-white py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
@@ -172,20 +172,31 @@ export function ProductCard({ product }: ProductCardProps) {
                             </button>
                         </div>
                     )}
+
+                    {/* Floating Add Button — always visible on mobile (no hover) */}
+                    {!isOutOfStock && (
+                        <button
+                            onClick={handleAddToCart}
+                            aria-label="Add to cart"
+                            className="absolute sm:hidden bottom-2 right-2 z-10 w-9 h-9 rounded-full bg-[#4C3B8A] text-white shadow-lg shadow-brand-primary/30 flex items-center justify-center active:scale-90 transition-transform"
+                        >
+                            <ShoppingBag className="w-4 h-4" />
+                        </button>
+                    )}
                 </div>
 
                 {/* ── CONTENT ── */}
-                <div className="p-3 flex flex-col flex-1 gap-1">
+                <div className="p-2.5 sm:p-3 flex flex-col flex-1 gap-1">
 
                     {/* Category label */}
                     {product.category_name && (
-                        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide truncate">
+                        <span className="text-[9px] sm:text-[10px] font-semibold text-gray-400 uppercase tracking-wide truncate">
                             {product.category_name}
                         </span>
                     )}
 
                     {/* Name — 2 lines, fixed min-height so all cards align */}
-                    <h3 className="text-[13px] font-medium text-gray-800 line-clamp-2 leading-[1.45] min-h-[2.9em] group-hover:text-[#4C3B8A] transition-colors">
+                    <h3 className="text-[12px] sm:text-[13px] font-medium text-gray-800 line-clamp-2 leading-[1.4] sm:leading-[1.45] min-h-[2.8em] sm:min-h-[2.9em] group-hover:text-[#4C3B8A] transition-colors">
                         {product.name}
                     </h3>
 

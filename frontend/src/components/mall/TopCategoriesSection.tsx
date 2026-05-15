@@ -48,25 +48,25 @@ export function TopCategoriesSection() {
         .slice(0, 10)
 
     return (
-        <div className="max-w-7xl mx-auto px-4 lg:px-6 mb-8">
-            <div className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 mb-4 sm:mb-8">
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5 md:p-6 shadow-sm">
                 {/* Header */}
-                <div className="flex items-end justify-between mb-5">
+                <div className="flex items-end justify-between mb-4 sm:mb-5">
                     <div>
-                        <h2 className="font-bold text-xl text-gray-900 leading-tight">Top Categories</h2>
-                        <p className="text-xs text-gray-400 mt-1">New products with updated stocks.</p>
+                        <h2 className="font-bold text-lg sm:text-xl text-gray-900 leading-tight">Top Categories</h2>
+                        <p className="text-[11px] sm:text-xs text-gray-400 mt-0.5 sm:mt-1">New products with updated stocks.</p>
                     </div>
-                    <Link href="/categories" className="text-[#4C3B8A] text-sm font-semibold hover:underline shrink-0 border border-gray-200 rounded-full px-4 py-1.5">
+                    <Link href="/categories" className="text-[#4C3B8A] text-xs sm:text-sm font-semibold hover:underline shrink-0 border border-gray-200 rounded-full px-3 sm:px-4 py-1 sm:py-1.5 active:scale-95 transition-transform">
                         View All →
                     </Link>
                 </div>
 
                 {/* Grid — equally distributed cells in a single row on desktop */}
-                <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-10 gap-2 sm:gap-3">
+                <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-10 gap-2 sm:gap-3">
                     {isLoading
                         ? Array(10).fill(null).map((_, i) => (
-                            <div key={i} className="flex flex-col items-center justify-center gap-2 p-3 rounded-xl border border-gray-100">
-                                <div className="w-10 h-10 rounded-lg bg-gray-100 animate-pulse" />
+                            <div key={i} className="flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-2 sm:p-3 rounded-xl border border-gray-100">
+                                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-gray-100 animate-pulse" />
                                 <div className="h-3 w-14 bg-gray-100 rounded animate-pulse" />
                             </div>
                         ))
@@ -78,18 +78,18 @@ export function TopCategoriesSection() {
                                 <Link
                                     key={cat.id}
                                     href={`/categories/${cat.slug}`}
-                                    className="flex flex-col items-center justify-center gap-2 p-3 rounded-xl border border-gray-100 hover:border-[#4C3B8A] hover:shadow-md transition-all duration-200 group"
+                                    className="flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-2 sm:p-3 rounded-xl border border-gray-100 hover:border-[#4C3B8A] hover:shadow-md active:scale-95 transition-all duration-200 group"
                                 >
-                                    <div className="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center group-hover:bg-[#4C3B8A]/10 transition-colors">
+                                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-gray-50 flex items-center justify-center group-hover:bg-[#4C3B8A]/10 transition-colors">
                                         {hasImage ? (
                                             // eslint-disable-next-line @next/next/no-img-element
                                             <img
                                                 src={cat.icon_url!}
                                                 alt={cat.name}
-                                                className="w-6 h-6 object-contain"
+                                                className="w-5 h-5 sm:w-6 sm:h-6 object-contain"
                                             />
                                         ) : (
-                                            <Icon className="w-5 h-5 text-[#4C3B8A]" strokeWidth={1.8} />
+                                            <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-[#4C3B8A]" strokeWidth={1.8} />
                                         )}
                                     </div>
                                     <span className="text-[10px] sm:text-[11px] font-semibold text-gray-700 text-center line-clamp-2 leading-tight group-hover:text-[#4C3B8A] transition-colors">

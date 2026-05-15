@@ -15,11 +15,11 @@ export default function MarketplaceHomepage() {
     const [showVerificationCard, setShowVerificationCard] = useState(false)
 
     return (
-        <div className="bg-white min-h-screen pb-20">
+        <div className="bg-white min-h-screen pb-24">
             {/* Hero */}
             <MarketplaceHero />
 
-            <div className="max-w-7xl mx-auto px-4 md:px-6 space-y-12">
+            <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 space-y-8 sm:space-y-12">
                 {/* Category Cards */}
                 <CategoryCards />
 

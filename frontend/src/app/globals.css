@@ -8,9 +8,11 @@ html, body {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Prevent iOS auto-zoom on input focus */
-input, select, textarea {
-  font-size: 16px !important;
+/* Prevent iOS auto-zoom on input focus (mobile only) */
+@media (max-width: 640px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
 }
 
 /* iPhone notch / home bar safe areas */
@@ -35,9 +37,53 @@ input, select, textarea {
 }
 .scroll-x::-webkit-scrollbar { display: none; }
 
+/* Hide scrollbar utility */
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
 /* App-like button tap feedback */
 .tap-scale { transition: transform 0.1s ease; }
 .tap-scale:active { transform: scale(0.96); }
+
+/* === Mobile-only enhancements === */
+@media (max-width: 640px) {
+  /* Slightly larger touch targets for buttons on mobile */
+  button, [role="button"], a {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Cards: tighter rounding feels more "app-like" */
+  .mobile-card {
+    border-radius: 16px;
+  }
+
+  /* Active state for any clickable list row */
+  .mobile-row:active {
+    background-color: rgb(0 0 0 / 0.04);
+  }
+
+  /* Safe area aware bottom padding helper */
+  .pb-safe {
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+  .mb-bottom-nav {
+    margin-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  /* Sticky section headers on mobile */
+  .mobile-sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: saturate(180%) blur(8px);
+    -webkit-backdrop-filter: saturate(180%) blur(8px);
+  }
+}
 
 /* Bottom sheet slide-up animation */
 @keyframes sheetUp {
@@ -45,6 +91,13 @@ input, select, textarea {
   to   { transform: translateY(0); }
 }
 .sheet-enter { animation: sheetUp 0.3s cubic-bezier(0.32, 0.72, 0, 1); }
+
+/* Smooth fade-in for mobile lists */
+@keyframes mobileFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.mobile-fade-in { animation: mobileFadeIn 0.25s ease-out both; }
 
 @tailwind base;
 @tailwind components;

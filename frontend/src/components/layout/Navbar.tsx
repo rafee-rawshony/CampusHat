@@ -89,11 +89,85 @@ export function Navbar() {
 
             {/* Main Navbar — matches demo Header.tsx */}
             <div className="border-b border-gray-200 bg-white">
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex md:flex-nowrap justify-between items-center gap-x-2">
+                {/* === MOBILE TOP ROW (under sm) === */}
+                <div className="sm:hidden px-3 pt-2.5 pb-2 flex items-center gap-2">
+                    <MobileDrawer />
+                    <Link href="/" className="text-xl font-bold text-gray-800 mr-1 truncate">
+                        <span className="text-gray-800">Campus</span><span className="text-[#4C3B8A]">Hat</span>
+                    </Link>
+                    <div className="ml-auto flex items-center gap-1">
+                        <button
+                            onClick={() => setIsSearchOpen(true)}
+                            aria-label="Search"
+                            className="w-9 h-9 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors"
+                        >
+                            <Search className="w-5 h-5" />
+                        </button>
+                        {isAuthenticated && <NotificationBell />}
+                        {isMarketplace ? (
+                            <button
+                                onClick={isAuthenticated ? handlePostAdClick : () => router.push('/auth/login')}
+                                aria-label="Post ad"
+                                className="ml-1 h-9 px-3 inline-flex items-center gap-1 bg-[#4C3B8A] text-white font-bold rounded-full text-xs active:scale-95 transition-transform"
+                            >
+                                <Plus className="w-3.5 h-3.5" /> Post
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => setIsOpen(true)}
+                                aria-label="Cart"
+                                className="relative w-9 h-9 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors"
+                            >
+                                <ShoppingCart className="w-5 h-5" />
+                                {getItemCount() > 0 && (
+                                    <span className="absolute -top-0.5 -right-0.5 bg-[#4C3B8A] text-white text-[9px] font-bold rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center ring-2 ring-white">
+                                        {getItemCount()}
+                                    </span>
+                                )}
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {/* === MOBILE SECOND ROW — Mode toggle + campus switcher === */}
+                <div className="sm:hidden px-3 pb-2.5 flex items-center gap-2">
+                    <div className="relative flex flex-1 items-center rounded-full bg-gray-100 p-1">
+                        <div
+                            className="absolute top-0 left-0 h-full w-1/2 p-0.5 transition-transform duration-300 ease-in-out"
+                            style={{ transform: isMarketplace ? 'translateX(100%)' : 'translateX(0%)' }}
+                        >
+                            <div className="h-full w-full rounded-full bg-white shadow-sm"></div>
+                        </div>
+                        <Link
+                            href="/"
+                            className={cn(
+                                'relative z-10 w-1/2 py-1.5 text-center font-semibold rounded-full text-xs transition-colors',
+                                !isMarketplace ? 'text-[#4C3B8A]' : 'text-gray-500'
+                            )}
+                        >
+                            Mall
+                        </Link>
+                        <Link
+                            href="/marketplace"
+                            className={cn(
+                                'relative z-10 w-1/2 py-1.5 text-center font-semibold rounded-full text-xs transition-colors',
+                                isMarketplace ? 'text-[#4C3B8A]' : 'text-gray-500'
+                            )}
+                        >
+                            Marketplace
+                        </Link>
+                    </div>
+                    {isMarketplace && (
+                        <div className="shrink-0">
+                            <CampusSwitcher variant="dark" />
+                        </div>
+                    )}
+                </div>
+
+                {/* === DESKTOP ROW (sm and up) === */}
+                <div className="hidden sm:flex container mx-auto px-4 sm:px-6 lg:px-8 py-4 md:flex-nowrap justify-between items-center gap-x-2">
                     {/* Left: Logo + Toggle */}
                     <div className="flex items-center">
-                        <MobileDrawer />
-
                         <Link href="/" className="text-2xl md:text-3xl font-bold text-gray-800 mr-4">
                             <span className="text-gray-800">Campus</span><span className="text-[#4C3B8A]">Hat</span>
                         </Link>
@@ -124,20 +198,6 @@ export function Navbar() {
                             >
                                 Marketplace
                             </Link>
-                        </div>
-
-                        {/* Mobile Marketplace Actions — only shown on small screens */}
-                        <div className="md:hidden ml-auto flex flex-col items-end gap-1.5 -mr-1">
-                            {isAuthenticated && (
-                                <div className="translate-x-1">
-                                    <NotificationBell />
-                                </div>
-                            )}
-                            {isMarketplace && (
-                                <div className="scale-[0.85] origin-right">
-                                    <CampusSwitcher variant="dark" />
-                                </div>
-                            )}
                         </div>
                     </div>
 
@@ -222,7 +282,7 @@ export function Navbar() {
                                         </Link>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem asChild>
-                                        <Link href="/marketplace/chat" className="gap-2">
+                                        <Link href="/account/messages" className="gap-2">
                                             <MessageSquare className="h-4 w-4" /> Messages
                                         </Link>
                                     </DropdownMenuItem>

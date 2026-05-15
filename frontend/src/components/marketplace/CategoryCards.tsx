@@ -59,18 +59,18 @@ const categories = [
 export function CategoryCards() {
     return (
         <section>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 my-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6 my-4 sm:my-8">
                 {categories.map((cat) => (
                     <Link
                         key={cat.href}
                         href={cat.href}
-                        className={`p-5 md:p-8 ${cat.bg} ${cat.text} rounded-2xl md:rounded-3xl text-center border ${cat.border} ${cat.hoverBorder} ${cat.hoverShadow} hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 group`}
+                        className={`p-4 sm:p-5 md:p-8 ${cat.bg} ${cat.text} rounded-2xl md:rounded-3xl text-center border ${cat.border} ${cat.hoverBorder} ${cat.hoverShadow} hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300 group`}
                     >
-                        <div className={`w-12 h-12 md:w-14 md:h-14 ${cat.iconBg} rounded-2xl flex items-center justify-center mx-auto group-hover:scale-110 transition-transform duration-300`}>
-                            <cat.icon className={`w-6 h-6 md:w-7 md:h-7 ${cat.iconColor}`} />
+                        <div className={`w-11 h-11 sm:w-12 sm:h-12 md:w-14 md:h-14 ${cat.iconBg} rounded-2xl flex items-center justify-center mx-auto group-hover:scale-110 transition-transform duration-300`}>
+                            <cat.icon className={`w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 ${cat.iconColor}`} />
                         </div>
-                        <h3 className="text-lg md:text-2xl font-bold mt-4">{cat.title}</h3>
-                        <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest mt-2 opacity-50">
+                        <h3 className="text-base sm:text-lg md:text-2xl font-bold mt-2.5 sm:mt-4">{cat.title}</h3>
+                        <p className="text-[9px] sm:text-[10px] md:text-xs font-bold uppercase tracking-wider sm:tracking-widest mt-1 sm:mt-2 opacity-50">
                             {cat.subtitle}
                         </p>
                     </Link>

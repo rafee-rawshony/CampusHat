@@ -28,9 +28,9 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
     if (!_hasHydrated || !user) return null
 
     return (
-        <div className="min-h-screen bg-surface-base pb-12">
-            {/* Breadcrumb */}
-            <div className="bg-white border-b border-gray-100 py-3 mb-6">
+        <div className="min-h-screen bg-surface-base pb-20 sm:pb-12">
+            {/* Breadcrumb — desktop only */}
+            <div className="hidden md:block bg-white border-b border-gray-100 py-3 mb-6">
                 <div className="container mx-auto px-4">
                     <div className="text-sm text-gray-500">
                         <Link href="/" className="hover:text-brand-primary">Home</Link>
@@ -40,9 +40,12 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
                 </div>
             </div>
 
-            <div className="container mx-auto px-4">
+            <div className="container mx-auto px-3 sm:px-4 md:pt-0 pt-3">
                 <div className="flex flex-col md:flex-row gap-6">
-                    <DashboardSidebar />
+                    {/* Sidebar: desktop only. Mobile users access account pages via hamburger drawer + bottom nav. */}
+                    <div className="hidden md:block">
+                        <DashboardSidebar />
+                    </div>
                     <main className="flex-1 min-w-0">{children}</main>
                 </div>
             </div>
