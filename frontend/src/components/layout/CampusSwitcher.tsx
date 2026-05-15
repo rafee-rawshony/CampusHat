@@ -131,7 +131,7 @@ export function CampusSwitcher({ variant = 'white' }: { variant?: 'white' | 'dar
             </button>
 
             {open && (
-                <div className="absolute right-0 mt-2 w-72 md:w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-[60] animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="fixed sm:absolute inset-x-3 top-[120px] sm:inset-auto sm:right-0 sm:mt-2 sm:w-72 md:w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-[60] animate-in fade-in slide-in-from-top-2 duration-200">
 
                     {/* ── Request Form ── */}
                     {showRequestForm ? (

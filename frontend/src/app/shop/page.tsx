@@ -250,8 +250,8 @@ function ShopPageContent() {
     )
 
     return (
-        <div className="bg-white min-h-screen py-6 md:py-8">
-            <div className="max-w-7xl mx-auto px-4">
+        <div className="bg-white min-h-screen py-3 sm:py-6 md:py-8">
+            <div className="max-w-7xl mx-auto px-3 sm:px-4">
                 {/* Breadcrumb */}
                 <div className="flex items-center text-xs font-semibold text-gray-400 gap-2 mb-5">
                     <Link href="/" className="hover:text-[#4C3B8A] transition-colors">Home</Link>
