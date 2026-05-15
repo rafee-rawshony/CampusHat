@@ -80,7 +80,7 @@ export default function SellerStorePage() {
             const res = await api.post('/mall/chats/start/', { store_id: store.id })
             const chatId = res.data?.data?.id
             if (chatId) {
-                router.push(`/account/messages/mall/${chatId}`)
+                router.push(`/marketplace/chat/${chatId}`)
             }
         } catch {
             toast.error('Failed to start chat')

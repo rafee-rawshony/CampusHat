@@ -32,7 +32,7 @@ const MARKETPLACE_LINKS: NavLink[] = [
 
 const ACCOUNT_LINKS: NavLink[] = [
     { href: '/account', label: 'My Profile', icon: UserIcon },
-    { href: '/account/messages', label: 'Messages', icon: MessageSquare },
+    { href: '/marketplace/chat', label: 'Messages', icon: MessageSquare },
     { href: '/account/orders', label: 'My Orders', icon: Package },
     { href: '/account/listings', label: 'My Listings', icon: List },
     { href: '/account/addresses', label: 'Address Book', icon: MapPin },

@@ -212,7 +212,7 @@ export default function ProductDetailPage() {
             const res = await api.post('/mall/chats/start/', { store_id: product.store.id })
             const chatId = res.data?.data?.id
             if (chatId) {
-                router.push(`/account/messages/mall/${chatId}`)
+                router.push(`/marketplace/chat/${chatId}`)
             }
         } catch (e) {
             toast.error("Failed to start chat")

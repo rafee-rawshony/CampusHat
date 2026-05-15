@@ -282,7 +282,7 @@ export function Navbar() {
                                         </Link>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem asChild>
-                                        <Link href="/account/messages" className="gap-2">
+                                        <Link href="/marketplace/chat" className="gap-2">
                                             <MessageSquare className="h-4 w-4" /> Messages
                                         </Link>
                                     </DropdownMenuItem>

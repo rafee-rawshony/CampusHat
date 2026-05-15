@@ -1,7 +1,7 @@
 'use client'
 export const dynamic = 'force-dynamic'
 
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronRight, Home, MessageCircle, ShieldCheck } from 'lucide-react'
@@ -11,6 +11,7 @@ import { api } from '@/lib/api'
 import { UpgradePrompt } from '@/components/marketplace/UpgradePrompt'
 import { ChatConversationList } from '@/components/marketplace/ChatConversationList'
 import { ChatWindow } from '@/components/marketplace/ChatWindow'
+import { StoreChatWindow } from '@/components/mall/StoreChatWindow'
 import type { ChatThread } from '@/components/marketplace/ChatConversationList'
 import { useMarketplaceChatInbox } from '@/hooks/useMarketplaceChatInbox'
 
@@ -55,6 +56,7 @@ export default function UnifiedChatPage() {
     const initialChatId = slugParts?.[0] || null
 
     const [selectedChatId, setSelectedChatId] = useState<string | null>(initialChatId)
+    const [selectedChatType, setSelectedChatType] = useState<'mall' | 'marketplace'>('marketplace')
     const [searchQuery, setSearchQuery] = useState('')
     const hasChatAccess = isAuthenticated && canAccessMarketplace()
 
@@ -75,24 +77,77 @@ export default function UnifiedChatPage() {
         }
     }, [isAuthenticated, router])
 
-    const { data: threads = [], isLoading: threadsLoading } = useQuery<ChatThread[]>({
+    // Fetch Marketplace Chats
+    const { data: mkpThreads = [], isLoading: mkpLoading } = useQuery<ChatThread[]>({
         queryKey: ['chat-threads'],
         queryFn: async () => {
             const res = await api.get('/marketplace/chats/')
-            return res.data?.data || res.data?.results || res.data || []
+            const data = res.data?.data || res.data?.results || res.data || []
+            return data.map((c: any) => ({ ...c, type: 'marketplace' as const }))
         },
         enabled: hasChatAccess,
         refetchInterval: 15000,
         staleTime: 10000,
     })
 
+    // Fetch Mall Chats
+    const { data: mallThreads = [], isLoading: mallLoading } = useQuery<ChatThread[]>({
+        queryKey: ['mall-buyer-chats'],
+        queryFn: async () => {
+            const res = await api.get('/mall/chats/buyer/')
+            const chats = res.data?.data || []
+            return chats.map((c: any) => ({
+                id: c.id,
+                type: 'mall' as const,
+                listing: { id: c.store || '', title: c.store_name || 'Mall Store', images: c.store_logo ? [c.store_logo] : [] },
+                other_user: { id: c.store || '', name: c.store_name || 'Store', profile_picture: c.store_logo || null },
+                last_message: c.last_message ? {
+                    content: c.last_message.message_type === 'image' ? '📷 Image' : (c.last_message.content || ''),
+                    created_at: c.last_message.created_at,
+                    message_type: c.last_message.message_type || 'text',
+                } : null,
+                unread_count: c.unread_count || 0,
+                created_at: c.last_message_at || c.created_at || new Date().toISOString(),
+            }))
+        },
+        enabled: hasChatAccess,
+        refetchInterval: 15000,
+        staleTime: 10000,
+    })
+
+    const threadsLoading = mkpLoading || mallLoading
+
+    // Merge and sort by latest activity
+    const threads = useMemo(() => {
+        const merged = [...mkpThreads, ...mallThreads]
+        merged.sort((a, b) => {
+            const aTime = a.last_message?.created_at || a.created_at
+            const bTime = b.last_message?.created_at || b.created_at
+            return new Date(bTime).getTime() - new Date(aTime).getTime()
+        })
+        return merged
+    }, [mkpThreads, mallThreads])
+
+    // Mall chat detail (for StoreChatWindow)
+    const selectedMallChat = useMemo(() => {
+        if (selectedChatType !== 'mall' || !selectedChatId) return null
+        return mallThreads.find(t => t.id === selectedChatId) || null
+    }, [selectedChatType, selectedChatId, mallThreads])
+
+    const mallChatData = selectedMallChat ? {
+        store_name: selectedMallChat.other_user.name,
+        store_logo: selectedMallChat.other_user.profile_picture,
+        store_slug: '',
+    } : null
+
+    // Marketplace chat detail
     const { data: chatDetail, isLoading: chatDetailLoading } = useQuery({
         queryKey: ['chat-detail', selectedChatId],
         queryFn: async () => {
             const res = await api.get(`/marketplace/chats/${selectedChatId}/`)
             return res.data?.data || res.data
         },
-        enabled: !!selectedChatId && hasChatAccess,
+        enabled: !!selectedChatId && selectedChatType === 'marketplace' && hasChatAccess,
         staleTime: 30000,
     })
 
@@ -112,10 +167,15 @@ export default function UnifiedChatPage() {
     } : null
 
     const handleSelectChat = useCallback((chatId: string) => {
+        const thread = threads.find(t => t.id === chatId)
+        const chatType = thread?.type || 'marketplace'
         setSelectedChatId(chatId)
+        setSelectedChatType(chatType)
         window.history.replaceState(null, '', `/marketplace/chat/${chatId}`)
-        queryClient.invalidateQueries({ queryKey: ['chat-detail', chatId] })
-    }, [queryClient])
+        if (chatType === 'marketplace') {
+            queryClient.invalidateQueries({ queryKey: ['chat-detail', chatId] })
+        }
+    }, [queryClient, threads])
 
     const handleBack = useCallback(() => {
         setSelectedChatId(null)
@@ -153,16 +213,12 @@ export default function UnifiedChatPage() {
                             <Home className="w-3.5 h-3.5" />
                         </Link>
                         <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
-                        <Link href="/marketplace" className="text-gray-500 hover:text-[#4C3B8A] transition-colors font-medium">
-                            Marketplace
-                        </Link>
-                        <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
                         <span className="text-gray-900 font-semibold">Messages</span>
                     </nav>
                 </div>
             </div>
 
-            {/* Main chat container — fills remaining viewport */}
+            {/* Main chat container */}
             <div className="flex-1 min-h-0 w-full max-w-7xl mx-auto md:p-4">
                 <div className="h-full bg-white md:rounded-2xl md:border border-gray-200 md:shadow-lg overflow-hidden flex">
 
@@ -180,25 +236,34 @@ export default function UnifiedChatPage() {
                         />
                     </div>
 
-                    {/* Right: Chat window or empty state */}
+                    {/* Right: Chat window (marketplace or mall) or empty state */}
                     <div className={`flex-1 flex flex-col min-w-0 ${
                         selectedChatId ? 'flex' : 'hidden md:flex'
                     }`}>
                         {selectedChatId ? (
-                            chatDetailLoading && !chatWindowData ? (
-                                <div className="flex-1 flex items-center justify-center bg-gray-50/50">
-                                    <div className="text-center">
-                                        <div className="w-8 h-8 border-[3px] border-[#4C3B8A] border-t-transparent rounded-full animate-spin mx-auto" />
-                                        <p className="text-gray-400 text-sm mt-4 font-medium">Loading conversation...</p>
-                                    </div>
-                                </div>
-                            ) : (
-                                <ChatWindow
-                                    key={selectedChatId}
+                            selectedChatType === 'mall' ? (
+                                <StoreChatWindow
+                                    key={`mall-${selectedChatId}`}
                                     chatId={selectedChatId}
-                                    chatData={chatWindowData}
+                                    chatData={mallChatData}
                                     onBack={handleBack}
                                 />
+                            ) : (
+                                chatDetailLoading && !chatWindowData ? (
+                                    <div className="flex-1 flex items-center justify-center bg-gray-50/50">
+                                        <div className="text-center">
+                                            <div className="w-8 h-8 border-[3px] border-[#4C3B8A] border-t-transparent rounded-full animate-spin mx-auto" />
+                                            <p className="text-gray-400 text-sm mt-4 font-medium">Loading conversation...</p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <ChatWindow
+                                        key={`mkp-${selectedChatId}`}
+                                        chatId={selectedChatId}
+                                        chatData={chatWindowData}
+                                        onBack={handleBack}
+                                    />
+                                )
                             )
                         ) : (
                             <div className="flex-1 flex items-center justify-center bg-gradient-to-b from-gray-50/50 to-white">

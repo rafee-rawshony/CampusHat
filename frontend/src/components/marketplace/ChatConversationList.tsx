@@ -2,12 +2,13 @@
 
 import React from 'react'
 import Image from 'next/image'
-import { Search, MessageCircle } from 'lucide-react'
+import { Search, MessageCircle, Store, ShoppingBag } from 'lucide-react'
 import { absoluteMediaUrl } from '@/services/upload.service'
 import { differenceInMinutes, differenceInHours, differenceInDays, format, isYesterday } from 'date-fns'
 
 export interface ChatThread {
     id: string
+    type?: 'mall' | 'marketplace'
     listing: {
         id: string | number
         title: string
@@ -52,7 +53,7 @@ function formatRelativeTime(dateStr: string): string {
 }
 
 function getListingThumbnail(listing: ChatThread['listing']): string | null {
-    if (!listing.images || listing.images.length === 0) return null
+    if (!listing?.images || listing.images.length === 0) return null
     const first = listing.images[0]
     return typeof first === 'string' ? first : first.image_url || first.image || null
 }
@@ -138,7 +139,7 @@ export function ChatConversationList({
                         <p className="text-gray-400 text-xs text-center leading-relaxed">
                             {searchQuery
                                 ? 'Try a different search term'
-                                : 'Start chatting by messaging a seller on any listing.'
+                                : 'Start chatting by messaging a seller on any listing or a mall store.'
                             }
                         </p>
                     </div>
@@ -146,7 +147,8 @@ export function ChatConversationList({
                     <div className="px-2">
                         {filteredThreads.map(thread => {
                             const isActive = activeChatId === thread.id
-                            const thumbnail = getListingThumbnail(thread.listing)
+                            const isMall = thread.type === 'mall'
+                            const thumbnail = !isMall ? getListingThumbnail(thread.listing) : null
                             const timeStr = thread.last_message?.created_at || thread.created_at
                             const hasUnread = thread.unread_count > 0
 
@@ -163,7 +165,7 @@ export function ChatConversationList({
 
                             return (
                                 <button
-                                    key={thread.id}
+                                    key={`${thread.type || 'mkp'}-${thread.id}`}
                                     onClick={() => onSelectChat(thread.id)}
                                     className={`w-full text-left flex items-center gap-3.5 px-3 py-3.5 rounded-xl mb-0.5 transition-all duration-200 ${
                                         isActive
@@ -189,6 +191,15 @@ export function ChatConversationList({
                                                 </div>
                                             )}
                                         </div>
+                                        {isMall ? (
+                                            <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-white flex items-center justify-center ring-1 ring-gray-200">
+                                                <Store className="w-3 h-3 text-[#4C3B8A]" />
+                                            </div>
+                                        ) : thread.type === 'marketplace' ? (
+                                            <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-white flex items-center justify-center ring-1 ring-gray-200">
+                                                <ShoppingBag className="w-3 h-3 text-emerald-500" />
+                                            </div>
+                                        ) : null}
                                         {hasUnread && (
                                             <div className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-[#4C3B8A] text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white shadow-sm">
                                                 {thread.unread_count > 9 ? '9+' : thread.unread_count}
@@ -217,25 +228,38 @@ export function ChatConversationList({
                                             )}
                                         </p>
 
-                                        {/* Listing context */}
+                                        {/* Context line: listing for marketplace, "Mall Store" for mall */}
                                         <div className="flex items-center gap-1.5 mt-1.5">
-                                            <div className="w-4 h-4 rounded-[4px] bg-gray-100 overflow-hidden shrink-0">
-                                                {thumbnail ? (
-                                                    <Image
-                                                        src={absoluteMediaUrl(thumbnail)}
-                                                        alt=""
-                                                        width={16}
-                                                        height={16}
-                                                        unoptimized
-                                                        className="object-cover w-full h-full"
-                                                    />
-                                                ) : (
-                                                    <div className="w-full h-full bg-[#4C3B8A]/10" />
-                                                )}
-                                            </div>
-                                            <span className="text-[10px] text-gray-400 truncate leading-none">
-                                                {thread.listing.title}
-                                            </span>
+                                            {isMall ? (
+                                                <>
+                                                    <div className="w-4 h-4 rounded-[4px] bg-[#4C3B8A]/10 flex items-center justify-center shrink-0">
+                                                        <Store className="w-2.5 h-2.5 text-[#4C3B8A]" />
+                                                    </div>
+                                                    <span className="text-[10px] text-[#4C3B8A] truncate leading-none font-medium">
+                                                        Mall Store
+                                                    </span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div className="w-4 h-4 rounded-[4px] bg-gray-100 overflow-hidden shrink-0">
+                                                        {thumbnail ? (
+                                                            <Image
+                                                                src={absoluteMediaUrl(thumbnail)}
+                                                                alt=""
+                                                                width={16}
+                                                                height={16}
+                                                                unoptimized
+                                                                className="object-cover w-full h-full"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full bg-[#4C3B8A]/10" />
+                                                        )}
+                                                    </div>
+                                                    <span className="text-[10px] text-gray-400 truncate leading-none">
+                                                        {thread.listing?.title || 'Marketplace'}
+                                                    </span>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                 </button>

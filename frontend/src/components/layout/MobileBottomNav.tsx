@@ -9,7 +9,7 @@ import { useCartStore } from '@/stores/cart.store'
 const items = [
     { label: 'Home', href: '/', icon: Home },
     { label: 'Wishlist', href: '/wishlist', icon: Heart },
-    { label: 'Messages', href: '/account/messages', icon: MessageSquare },
+    { label: 'Messages', href: '/marketplace/chat', icon: MessageSquare },
     { label: 'Cart', href: '#cart', icon: ShoppingCart, badge: true },
     { label: 'Profile', href: '/account', icon: User },
 ]
