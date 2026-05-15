@@ -285,7 +285,7 @@ export function MarketplaceListingCard({ listing }: MarketplaceListingCardProps)
     return (
         <Link
             href={`/marketplace/listings/${listing.id}`}
-            className={`group block bg-white rounded-2xl border border-gray-100 border-t-[3px] ${cfg.topBorder} shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden`}
+            className={`group block bg-white rounded-xl sm:rounded-2xl border border-gray-100 border-t-[3px] ${cfg.topBorder} shadow-sm hover:shadow-xl hover:-translate-y-1 active:scale-[0.98] transition-all duration-300 overflow-hidden`}
         >
             {/* Image */}
             <div className="relative aspect-[4/3] w-full overflow-hidden">
@@ -329,7 +329,7 @@ export function MarketplaceListingCard({ listing }: MarketplaceListingCardProps)
 
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent px-3 pb-2.5 pt-8">
                     <div className="flex items-end justify-between">
-                        <span className={`font-black text-white text-lg drop-shadow-lg tracking-tight`}>
+                        <span className={`font-black text-white text-base sm:text-lg drop-shadow-lg tracking-tight`}>
                             {priceLabel}
                         </span>
                         {timeLeft && (
@@ -343,9 +343,9 @@ export function MarketplaceListingCard({ listing }: MarketplaceListingCardProps)
             </div>
 
             {/* Content */}
-            <div className="p-3.5">
-                <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <span className={`text-[10px] uppercase tracking-widest font-bold truncate ${cfg.accentColor}`}>
+            <div className="p-2.5 sm:p-3.5">
+                <div className="flex items-center justify-between gap-2 mb-1 sm:mb-1.5">
+                    <span className={`text-[9px] sm:text-[10px] uppercase tracking-wider sm:tracking-widest font-bold truncate ${cfg.accentColor}`}>
                         {categoryName || ' '}
                     </span>
                     {uniShort && (
@@ -356,7 +356,7 @@ export function MarketplaceListingCard({ listing }: MarketplaceListingCardProps)
                     )}
                 </div>
 
-                <h3 className={`font-bold text-[13px] text-gray-900 leading-snug line-clamp-2 min-h-[36px] ${cfg.hoverAccent} transition-colors`}>
+                <h3 className={`font-bold text-[12px] sm:text-[13px] text-gray-900 leading-snug line-clamp-2 min-h-[32px] sm:min-h-[36px] ${cfg.hoverAccent} transition-colors`}>
                     {listing.title}
                 </h3>
 

@@ -25,7 +25,10 @@ export function StickyCartBar({
     const hasDiscount = basePrice !== null && basePrice > effectivePrice
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-white border-t border-gray-200 px-4 py-3 pb-[calc(12px+env(safe-area-inset-bottom))] flex items-center gap-3">
+        <div
+            className="fixed left-0 right-0 z-[55] sm:hidden bg-white border-t border-gray-200 px-4 py-3 flex items-center gap-3 shadow-[0_-4px_12px_-4px_rgba(0,0,0,0.08)]"
+            style={{ bottom: 'calc(60px + env(safe-area-inset-bottom, 0px))' }}
+        >
             {/* Price Display */}
             <div className="flex-1 min-w-0">
                 <CurrencyDisplay 
