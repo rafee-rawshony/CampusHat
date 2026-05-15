@@ -49,7 +49,7 @@ const SECTIONS: Section[] = [
             { label: 'Address Book', href: '/account/addresses', icon: MapPin },
             { label: 'My Payment Options', href: '/account/payments', icon: CreditCard },
             { label: 'My Vouchers', href: '/account/vouchers', icon: Ticket },
-            { label: 'Messages', href: '/marketplace/chat', icon: MessageSquare },
+            { label: 'Messages', href: '/account/messages', icon: MessageSquare },
         ],
     },
     {

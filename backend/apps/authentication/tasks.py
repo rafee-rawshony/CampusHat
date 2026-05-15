@@ -295,25 +295,29 @@ def notify_admin_new_verification(self, verification_id):
         flags.append(f'Re-submission: attempt #{attempt} for this verification type.')
 
     try:
-        from django.core.mail import send_mail
+        from core.utils import send_notification_email
+
         subject = f'New Verification Request: {verification.verification_type}'
         if flags:
             subject = '[FLAGGED] ' + subject
-        message = (
-            f'User {verification.user.full_name} ({verification.user.email}) '
-            f'has submitted a {verification.verification_type} verification.\n\n'
-            f'Student ID: {verification.student_id_number or "N/A"}\n'
-        )
-        if flags:
-            message += '\nSecurity flags:\n  - ' + '\n  - '.join(flags) + '\n'
-        message += '\nPlease review it in the admin panel.'
 
-        send_mail(
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'https://campushat.com')
+        review_url = f'{frontend_url}/admin/approvals'
+
+        send_notification_email(
+            to=admin_emails,
             subject=subject,
-            message=message,
-            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@campushat.com'),
-            recipient_list=admin_emails,
-            fail_silently=True,
+            template='emails/admin_verification_notification.html',
+            context={
+                'subject_title': 'New Student Verification' if not flags else '[FLAGGED] New Student Verification',
+                'student_name': verification.user.full_name,
+                'student_email': verification.user.email,
+                'verification_type': verification.verification_type,
+                'student_id': verification.student_id_number or 'N/A',
+                'attempt_number': attempt,
+                'flags': flags,
+                'review_url': review_url,
+            },
         )
 
         # 2. Platform Notification for Admins
