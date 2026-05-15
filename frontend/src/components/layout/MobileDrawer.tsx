@@ -63,24 +63,24 @@ export function MobileDrawer() {
         return pathname === path || pathname.startsWith(path + '/')
     }
 
-    const renderLink = (link: NavLink, onClose?: () => void) => {
+    const renderLink = (link: NavLink) => {
         const Icon = link.icon
         const active = isActive(link.href)
         return (
-            <Link
-                key={link.href + link.label}
-                href={link.href}
-                onClick={onClose}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all active:scale-[0.98] ${
-                    active
-                        ? 'bg-brand-primary/10 text-brand-primary font-bold'
-                        : 'text-gray-700 hover:bg-gray-50 font-semibold'
-                }`}
-            >
-                <Icon className={`w-[18px] h-[18px] shrink-0 ${active ? 'text-brand-primary' : 'text-gray-400'}`} />
-                <span className="flex-1">{link.label}</span>
-                {active && <ChevronRight className="w-3.5 h-3.5 text-brand-primary" />}
-            </Link>
+            <DialogPrimitive.Close asChild key={link.href + link.label}>
+                <Link
+                    href={link.href}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all active:scale-[0.98] ${
+                        active
+                            ? 'bg-brand-primary/10 text-brand-primary font-bold'
+                            : 'text-gray-700 hover:bg-gray-50 font-semibold'
+                    }`}
+                >
+                    <Icon className={`w-[18px] h-[18px] shrink-0 ${active ? 'text-brand-primary' : 'text-gray-400'}`} />
+                    <span className="flex-1">{link.label}</span>
+                    {active && <ChevronRight className="w-3.5 h-3.5 text-brand-primary" />}
+                </Link>
+            </DialogPrimitive.Close>
         )
     }
 
@@ -161,15 +161,15 @@ export function MobileDrawer() {
                 </div>
 
                 {/* NAVIGATION */}
-                <DialogPrimitive.Close asChild>
-                    <nav className="flex-1 overflow-y-auto no-scrollbar p-3 pb-6 space-y-1" onClick={() => {}}>
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-3 mb-1.5 mt-1">
-                            Mall
-                        </p>
-                        <div className="space-y-0.5">{MALL_LINKS.map((l) => renderLink(l))}</div>
+                <nav className="flex-1 overflow-y-auto no-scrollbar p-3 pb-6 space-y-1">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-3 mb-1.5 mt-1">
+                        Mall
+                    </p>
+                    <div className="space-y-0.5">{MALL_LINKS.map((l) => renderLink(l))}</div>
 
-                        {isAuthenticated && (
-                            <div className="pt-2 pb-1">
+                    {isAuthenticated && (
+                        <div className="pt-2 pb-1">
+                            <DialogPrimitive.Close asChild>
                                 {isSeller() ? (
                                     <Link
                                         href="/dashboard/seller"
@@ -185,22 +185,24 @@ export function MobileDrawer() {
                                         <Store className="w-4 h-4" /> Become a Seller
                                     </Link>
                                 )}
-                            </div>
-                        )}
+                            </DialogPrimitive.Close>
+                        </div>
+                    )}
 
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-3 mt-5 mb-1.5">
-                            Marketplace
-                        </p>
-                        <div className="space-y-0.5">{MARKETPLACE_LINKS.map((l) => renderLink(l))}</div>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-3 mt-5 mb-1.5">
+                        Marketplace
+                    </p>
+                    <div className="space-y-0.5">{MARKETPLACE_LINKS.map((l) => renderLink(l))}</div>
 
-                        {isAuthenticated && (
-                            <>
-                                <div className="my-4 border-t border-gray-100" />
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-3 mb-1.5">
-                                    Account
-                                </p>
-                                <div className="space-y-0.5">{ACCOUNT_LINKS.map((l) => renderLink(l))}</div>
-                                {user?.role === 'normal_user' && (
+                    {isAuthenticated && (
+                        <>
+                            <div className="my-4 border-t border-gray-100" />
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-3 mb-1.5">
+                                Account
+                            </p>
+                            <div className="space-y-0.5">{ACCOUNT_LINKS.map((l) => renderLink(l))}</div>
+                            {user?.role === 'normal_user' && (
+                                <DialogPrimitive.Close asChild>
                                     <Link
                                         href="/account/verify"
                                         className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all text-amber-700 hover:bg-amber-50 font-semibold mt-1"
@@ -208,18 +210,18 @@ export function MobileDrawer() {
                                         <ShieldCheck className="w-[18px] h-[18px] shrink-0 text-amber-500" />
                                         <span className="flex-1">Verify Student ID</span>
                                     </Link>
-                                )}
-                                <button
-                                    onClick={handleLogout}
-                                    className="w-full flex items-center gap-3 px-3 py-2.5 text-red-500 font-bold transition-all hover:bg-red-50 active:bg-red-100 rounded-xl mt-3 text-sm"
-                                >
-                                    <LogOut className="w-[18px] h-[18px] shrink-0" />
-                                    Log Out
-                                </button>
-                            </>
-                        )}
-                    </nav>
-                </DialogPrimitive.Close>
+                                </DialogPrimitive.Close>
+                            )}
+                            <button
+                                onClick={handleLogout}
+                                className="w-full flex items-center gap-3 px-3 py-2.5 text-red-500 font-bold transition-all hover:bg-red-50 active:bg-red-100 rounded-xl mt-3 text-sm"
+                            >
+                                <LogOut className="w-[18px] h-[18px] shrink-0" />
+                                Log Out
+                            </button>
+                        </>
+                    )}
+                </nav>
 
                 {/* FOOTER */}
                 <div className="px-5 py-3 border-t border-gray-100 text-[10px] font-bold text-gray-400 bg-gray-50/60 flex items-center justify-between">

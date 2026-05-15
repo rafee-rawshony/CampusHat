@@ -324,7 +324,7 @@ export function MarketplaceListingPage({ postType, title, defaultMaxPrice }: Mar
                 </div>
 
                 {/* Two-column layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-8">
                     {/* Desktop Sidebar */}
                     <aside className="hidden lg:block lg:col-span-1">
                         <div className="bg-white p-4 rounded-xl border border-gray-200 sticky top-[160px]">
@@ -388,13 +388,13 @@ export function MarketplaceListingPage({ postType, title, defaultMaxPrice }: Mar
 
                         {/* Listings Grid */}
                         {isLoading ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-2.5 sm:gap-6">
                                 {[1, 2, 3, 4, 5, 6].map((i) => (
                                     <div key={i} className="bg-gray-200 animate-pulse h-72 rounded-xl" />
                                 ))}
                             </div>
                         ) : listings.length > 0 ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-2.5 sm:gap-6">
                                 {listings.map((item: any) => (
                                     <MarketplaceListingCard key={item.id} listing={item} />
                                 ))}

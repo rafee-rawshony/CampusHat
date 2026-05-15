@@ -122,7 +122,7 @@ export function ExplorerResultsGrid({
         return (
             <div>
                 {renderTopRow()}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4">
                     {Array.from({ length: 8 }).map((_, i) => (
                         <div key={i} className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm animate-pulse">
                             <div className="h-48 bg-gray-200 w-full" />
