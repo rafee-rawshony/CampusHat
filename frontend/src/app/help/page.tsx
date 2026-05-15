@@ -78,7 +78,7 @@ export default function HelpCenterPage() {
                 {/* Contact section */}
                 <h2 className="text-xl font-bold text-gray-900 mb-4">Still need help?</h2>
                 <div className="grid sm:grid-cols-2 gap-4">
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex items-start gap-4">
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 flex items-start gap-3 sm:gap-4">
                         <div className="w-10 h-10 rounded-xl bg-[#4C3B8A]/10 flex items-center justify-center shrink-0">
                             <Phone className="w-5 h-5 text-[#4C3B8A]" />
                         </div>
@@ -88,7 +88,7 @@ export default function HelpCenterPage() {
                             <p className="text-xs text-gray-400 mt-1">Sun–Thu, 9 AM – 6 PM</p>
                         </div>
                     </div>
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex items-start gap-4">
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 flex items-start gap-3 sm:gap-4">
                         <div className="w-10 h-10 rounded-xl bg-[#4C3B8A]/10 flex items-center justify-center shrink-0">
                             <Mail className="w-5 h-5 text-[#4C3B8A]" />
                         </div>

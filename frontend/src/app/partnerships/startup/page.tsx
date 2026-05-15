@@ -38,13 +38,13 @@ export default function StartupPage() {
                 </div>
             </div>
 
-            <div className="max-w-4xl mx-auto px-4 py-12">
+            <div className="max-w-4xl mx-auto px-3 sm:px-4 py-6 sm:py-12 pb-20 sm:pb-12">
 
                 {/* Benefits */}
                 <h2 className="text-2xl font-bold text-gray-900 text-center mb-8">What You Get</h2>
                 <div className="grid sm:grid-cols-2 gap-4 mb-12">
                     {BENEFITS.map(({ icon: Icon, title, desc }) => (
-                        <div key={title} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex items-start gap-4">
+                        <div key={title} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 flex items-start gap-3 sm:gap-4">
                             <div className="w-10 h-10 rounded-xl bg-[#4C3B8A]/10 flex items-center justify-center shrink-0">
                                 <Icon className="w-5 h-5 text-[#4C3B8A]" />
                             </div>
@@ -57,7 +57,7 @@ export default function StartupPage() {
                 </div>
 
                 {/* Eligibility */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-8">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 mb-6 sm:mb-8">
                     <h2 className="text-xl font-bold text-gray-900 mb-4">Who Can Apply?</h2>
                     <ul className="space-y-3">
                         {ELIGIBILITY.map((item, i) => (

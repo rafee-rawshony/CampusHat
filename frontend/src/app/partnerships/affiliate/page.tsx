@@ -36,13 +36,13 @@ export default function AffiliatePage() {
                 </div>
             </div>
 
-            <div className="max-w-4xl mx-auto px-4 py-12">
+            <div className="max-w-4xl mx-auto px-3 sm:px-4 py-6 sm:py-12 pb-20 sm:pb-12">
 
                 {/* How it works */}
                 <h2 className="text-2xl font-bold text-gray-900 text-center mb-8">How It Works</h2>
                 <div className="grid sm:grid-cols-3 gap-4 mb-12">
                     {STEPS.map(({ n, icon: Icon, title, desc }) => (
-                        <div key={n} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 text-center">
+                        <div key={n} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 text-center">
                             <div className="w-12 h-12 rounded-full bg-[#4C3B8A]/10 flex items-center justify-center mx-auto mb-3">
                                 <Icon className="w-5 h-5 text-[#4C3B8A]" />
                             </div>
@@ -56,7 +56,7 @@ export default function AffiliatePage() {
                 </div>
 
                 {/* Commission rates */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-8">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 mb-6 sm:mb-8">
                     <h2 className="text-xl font-bold text-gray-900 mb-4">Commission Rates</h2>
                     <div className="space-y-3">
                         {RATES.map(rate => (

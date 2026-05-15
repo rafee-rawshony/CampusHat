@@ -5,10 +5,10 @@ import Link from 'next/link'
 export default function TermsPage() {
     return (
         <div className="min-h-screen bg-white">
-            <div className="max-w-3xl mx-auto px-4 py-12">
+            <div className="max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-12 pb-20 sm:pb-12">
 
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
-                    <h1 className="text-3xl font-bold text-gray-900">Terms of Service</h1>
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-8">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Terms of Service</h1>
                     <p className="text-sm text-gray-400 mt-1 mb-8">Last updated: January 2025</p>
 
                     <p className="text-gray-600 leading-relaxed mb-6">
